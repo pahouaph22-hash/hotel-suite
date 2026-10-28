@@ -320,14 +320,15 @@ body.busy .btn{pointer-events:none}
 .login-card a{color:var(--accent)}
 
 .vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
-.slipview{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;justify-content:center;min-height:200px;align-items:center}
-.slipview img{max-width:100%;max-height:64vh;display:block;border-radius:6px}
+.slipview{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;justify-content:center;min-height:200px;align-items:center;flex-shrink:0;overflow:hidden}
+.slipview img{max-width:100%;max-height:58vh;display:block;border-radius:6px}
 .qrset{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}
 .qrset img,.qrnone{width:160px;height:160px;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:#fff;flex:none}
 .qrnone{display:grid;place-items:center;color:var(--faint);font-size:13px;background:var(--surface-2)}
 .qrset .stack{flex:1 1 220px;min-width:0}
 .row label.btn{cursor:pointer}
 .row:focus-within label.btn{outline:2px solid var(--accent);outline-offset:2px}
+.p-pending{background:var(--warn-soft);color:var(--warn)}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -351,7 +352,7 @@ const CATALOG = {
     email: 'stay@saynam-hotel.example',
     map_url: 'https://maps.google.com/?q=Chanthabouly+Vientiane',
     check_in_time: '14:00', check_out_time: '12:00',
-    vat_rate: 10, prices_incl_vat: true, deposit_pct: 30, direct_discount: 5, free_cancel_days: 3,
+    vat_rate: 10, prices_incl_vat: true, deposit_pct: 100, direct_discount: 5, free_cancel_days: 3, cancel_cutoff_hours: 3, cancel_refund_pct: 80, pending_hold_hours: 24,
     payment_note: {
       lo: 'ສະແກນ QR ດ້ວຍແອັບທະນາຄານ (BCEL OnePay ຫຼື LAO QR) ແລ້ວອັບໂຫຼດຮູບສະລິບການໂອນ. ພະນັກງານຈະກວດ ແລະ ຢືນຢັນພາຍໃນ 2 ຊົ່ວໂມງ (08:00–22:00).',
       th: 'สแกน QR ด้วยแอปธนาคาร (BCEL OnePay หรือ LAO QR) แล้วอัปโหลดรูปสลิปการโอน พนักงานจะตรวจสอบและยืนยันภายใน 2 ชั่วโมง (08:00–22:00)',
@@ -421,6 +422,7 @@ const CATALOG = {
     ['2120', 'cl', 'ຄ່ານາຍໜ້າ OTA ຄ້າງຈ່າຍ', 'ค่าคอมมิชชั่น OTA ค้างจ่าย', 'OTA commission payable'],
     ['2140', 'cl', 'ອາກອນມູນຄ່າເພີ່ມ ຂາອອກ', 'ภาษีขาย', 'Output VAT payable'],
     ['2150', 'cl', 'ເງິນມັດຈຳລູກຄ້າ (ໜີ້ສິນຕາມສັນຍາ)', 'เงินมัดจำลูกค้า (หนี้สินตามสัญญา)', 'Customer deposits (contract liability)'],
+    ['2170', 'cl', 'ເງິນຄືນລູກຄ້າຄ້າງຈ່າຍ', 'เงินคืนลูกค้าค้างจ่าย', 'Guest refunds payable'],
     ['2160', 'cl', 'ຄ່າໃຊ້ຈ່າຍຄ້າງຈ່າຍ', 'ค่าใช้จ่ายค้างจ่าย', 'Accrued expenses'],
     ['2310', 'ncl', 'ເງິນກູ້ທະນາຄານ', 'เงินกู้ธนาคาร', 'Bank loan'],
     ['3100', 'eq', 'ທຶນຂອງເຈົ້າຂອງ', 'ทุนของเจ้าของ', "Owner's capital"],
@@ -544,6 +546,7 @@ const Core = (function () {
     return {
       hotel: { name: s.hotel, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
         check_out_time: s.check_out_time, deposit_pct: s.deposit_pct, direct_discount: s.direct_discount, free_cancel_days: s.free_cancel_days, payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null,
+        cancel_cutoff_hours: s.cancel_cutoff_hours ?? 3, cancel_refund_pct: s.cancel_refund_pct ?? 80, pending_hold_hours: s.pending_hold_hours || 24,
         vat_rate: s.vat, prices_incl_vat: s.incl, business_date: S.bizDate },
       types: S.types.filter(t => t.active).sort((a, b) => a.sort - b.sort).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, base_rate: t.rate, direct_rate: directRate(t.rate), size_m2: t.size, bed: t.bed, amenities: t.amenities })),
       amenities: S.amenities.map(a => ({ id: a.id, icon: a.icon, name: a.name }))
@@ -579,7 +582,7 @@ const Core = (function () {
   }
   function confirmIfPaid(b) {
     if (b.status !== 'pending' || paidOf(b) < (b.deposit_due || 0)) return false;
-    b.status = 'confirmed'; log('booking.confirmed', b.id, { paid: paidOf(b), deposit_due: b.deposit_due }); return true;
+    b.status = 'confirmed'; b.confirmed_at = new Date().toISOString(); log('booking.confirmed', b.id, { paid: paidOf(b), deposit_due: b.deposit_due }); return true;
   }
   function acceptBooking(id) {
     need('manager', 'frontdesk', 'accountant'); const b = bk(id);
@@ -624,7 +627,7 @@ const Core = (function () {
   function cancel(id, status, refund) {
     need('manager', 'frontdesk'); const b = bk(id);
     if (!['pending', 'confirmed'].includes(b.status) || !['cancelled', 'noshow'].includes(status) || (status === 'noshow' && (b.ci > S.bizDate || b.status === 'pending'))) fail('cannot_cancel');
-    applyDeposits(b, S.bizDate, refund && status === 'cancelled' ? 'refund' : 'forfeit');
+    if (refund && status === 'cancelled') settleCancellation(b, 100, 'staff_refund'); else applyDeposits(b, S.bizDate, 'forfeit');
     const was = b.status; if (was === 'pending') b.cancel_reason = 'declined_by_staff';
     b.status = status; S.claims.filter(c => c.bk === id && c.status === 'pending').forEach(c => c.status = 'rejected');
     log('booking.' + status, id, { refund: !!refund, was });
@@ -656,21 +659,139 @@ const Core = (function () {
   function payment(id, method, amount, ref) {
     need('manager', 'frontdesk', 'accountant'); const b = bk(id);
     if (!['pending', 'confirmed', 'inhouse'].includes(b.status)) fail('not_payable');
+    if (b.status === 'pending' && !['cash', 'card'].includes(method)) fail('use_slip_check');
     addPayment(b, S.bizDate, method, Math.round(+amount), ref); log('payment.take', id, { method, amount: +amount, ref });
   }
-  function verifyClaim(cid, approve, method) {
+  // staff must open the slip before approving it, and type the bank transaction reference they matched it to
+  function openSlip(cid) {
+    need('manager', 'frontdesk', 'accountant'); const c = S.claims.find(x => x.id === cid) || fail('not_found');
+    if (c.status === 'pending') { c.viewed_by = S.me.id; c.viewer = S.me.name; c.viewed_at = new Date().toISOString(); log('claim.viewed', c.bk, { claim: cid }); }
+    return c.slip;
+  }
+  function verifyClaim(cid, approve, method, bankRef) {
     need('manager', 'frontdesk', 'accountant'); const c = S.claims.find(x => x.id === cid) || fail('not_found');
     if (c.status !== 'pending') fail('already_decided');
-    if (approve) { const b = bk(c.bk); if (!['pending', 'confirmed', 'inhouse'].includes(b.status)) fail('not_payable'); addPayment(b, S.bizDate, method || 'qr', c.amt, c.ref); }
-    c.status = approve ? 'verified' : 'rejected'; log(approve ? 'claim.verify' : 'claim.reject', c.bk, { claim: cid, amount: c.amt });
+    const ref = String(bankRef || '').trim();
+    if (approve) {
+      if (c.slip && (c.viewed_by !== S.me.id || Date.now() - Date.parse(c.viewed_at) > 30 * 60e3)) fail('slip_not_viewed');
+      if (ref.length < 3) fail('bank_ref_required');
+      if (S.claims.some(x => x.status === 'verified' && x.bank_ref === ref)) fail('bank_ref_used');
+      const b = bk(c.bk); if (!['pending', 'confirmed', 'inhouse'].includes(b.status)) fail('not_payable');
+      addPayment(b, S.bizDate, method || 'qr', c.amt, ref); c.bank_ref = ref;
+    } else c.note = ref || null;
+    c.status = approve ? 'verified' : 'rejected'; c.decider = S.me.name; c.decided_at = new Date().toISOString();
+    log(approve ? 'claim.verify' : 'claim.reject', c.bk, { claim: cid, amount: c.amt, bank_ref: ref });
     if (approve) confirmIfPaid(bk(c.bk));
+  }
+  // ---------- cancellations & refunds ----------
+  function cancelDeadline(ci) {
+    const s = S.settings, t = String(s.check_in_time || '14:00').split(':');
+    return new Date(Date.parse(ci + 'T00:00:00Z') + ((+t[0] || 0) - 7) * 3600e3 + (+t[1] || 0) * 60e3 - (s.cancel_cutoff_hours ?? 3) * 3600e3);   // hotel time is UTC+7
+  }
+  function settleCancellation(b, pct, reason) {
+    const un = b.pays.filter(p => p.dep && !p.applied), s = un.reduce((a, p) => a + p.amt, 0);
+    if (!s) return null;
+    const back = Math.min(s, Math.round(s * pct / 100 / 1000) * 1000), fee = s - back;
+    const e = post(S.bizDate, { k: 'cxlPolicy', g: b.guest.name, pct }, b.id, 'deposit', [{ a: '2150', dr: s }, { a: '2170', cr: back }, { a: '4300', cr: fee }]);
+    un.forEach(p => p.applied = true);
+    const r = { id: S.seq.rf++, bk: b.id, paid_total: s, fee, amount: back, pct, reason, status: back > 0 ? 'owed' : 'paid', at: new Date().toISOString(), je: e.id };
+    S.refunds.unshift(r); return r;
+  }
+  function refundPaid(rid, method, ref) {
+    need('manager', 'accountant'); const r = S.refunds.find(x => x.id === rid);
+    if (!r || r.status !== 'owed' || r.amount <= 0) fail('nothing_due');
+    if (!['cash', 'transfer', 'qr'].includes(method)) fail('invalid_kind');
+    if (method !== 'cash' && String(ref || '').trim().length < 3) fail('bank_ref_required');
+    const b = bk(r.bk);
+    post(S.bizDate, { k: 'refundPaid', g: b.guest.name, m: method }, b.id, 'cash', [{ a: '2170', dr: r.amount }, { a: payAcc(method), cr: r.amount }]);
+    b.pays.push({ id: S.seq.fl++, date: S.bizDate, m: method, amt: r.amount, dep: false, applied: true, refund: true, ref: String(ref || '').trim() });
+    Object.assign(r, { status: 'paid', paid_method: method, paid_ref: String(ref || '').trim(), paid_at: new Date().toISOString() });
+    log('refund.paid', b.id, { refund: rid, amount: r.amount, method, ref });
+  }
+
+  // ---------- members (guest accounts) ----------
+  const memberOf = id => S.members.find(m => m.id === id) || null;
+  function asMember(id, fn) { const m = memberOf(id); if (!id) fail('login_required'); if (!m || !m.name) fail('profile_required'); const me = S.me; S.me = { name: 'member: ' + m.name }; try { return fn(m); } finally { S.me = me; } }
+  const memberView = m => m ? (m.name ? { profile: true, name: m.name, phone: m.phone, email: m.email, country: m.country, since: m.since } : { profile: false, email: m.email }) : null;
+  function memberSignUp(email, pw) {
+    email = String(email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('email_invalid');
+    if (String(pw || '').length < 6) fail('weak_password');
+    if (S.members.some(m => m.email === email)) fail('email_taken');
+    const m = { id: 'M' + S.seq.m++, email, pw, since: new Date().toISOString() }; S.members.push(m); return m.id;
+  }
+  function memberSignIn(email, pw) { const m = S.members.find(x => x.email === String(email || '').trim().toLowerCase() && x.pw === pw); if (!m) fail('bad_login'); return m.id; }
+  function memberMe(id) { return memberView(memberOf(id)); }
+  function memberRegister(id, name, phone, country) {
+    const m = memberOf(id) || fail('login_required');
+    if (String(name || '').trim().length < 2) fail('name_required');
+    if (digits(phone).length < 8) fail('phone_required');
+    const isNew = !m.name; Object.assign(m, { name: String(name).trim(), phone: String(phone).trim(), country: country || 'LA' });
+    S.bookings.filter(b => b.member === id).forEach(b => Object.assign(b.guest, { name: m.name, phone: m.phone, country: m.country }));
+    if (isNew) { const me = S.me; S.me = { name: 'member: ' + m.name }; log('member.register', m.email, { name: m.name, phone: m.phone }); S.me = me; }
+    return memberView(m);
+  }
+  function memberBook(id, p) {
+    return asMember(id, m => {
+      const t = typeOf(p.type); checkStay(p.ci, p.co); expireUnpaid();
+      if (!t || !t.active) fail('invalid_room_type');
+      if ((+p.adults || 1) > t.capacity) fail('too_many_guests');
+      let pct = 0; if (String(p.promo || '').trim()) { pct = promoPct(p.promo); if (pct == null) fail('promo_invalid'); }
+      if (S.bookings.some(b => b.member === id && b.status === 'pending' && b.type === t.id && b.ci === p.ci && b.co === p.co)) fail('duplicate_booking');
+      if (S.bookings.filter(b => b.member === id && b.status === 'pending').length >= 3) fail('too_many_pending');
+      const room = freeRooms(t.id, p.ci, p.co)[0]; if (!room) fail('sold_out');
+      const n = diffD(p.ci, p.co), rate = Math.round(directRate(t.rate) * (1 - pct / 100) / 1000) * 1000, total = rate * n;
+      const b = { id: 'BK' + S.seq.bk++, code: newCode(), guest: newGuest(m.name, m.phone, m.email, m.country), member: id, room, type: t.id, ci: p.ci, co: p.co, adults: +p.adults || 1, ch: 'DIR', rate,
+        status: total > 0 ? 'pending' : 'confirmed', createdAt: Date.now(), created: S.bizDate, source: 'website', deposit_due: total, promo: pct ? String(p.promo).trim().toUpperCase() : null, request: String(p.request || '').slice(0, 500), folio: [], pays: [] };
+      S.bookings.push(b); log('booking.create', b.id, { source: 'website', member: m.email, ci: b.ci, co: b.co, type: t.id, total });
+      return { id: b.id, code: b.code, nights: n, rate, total, due: total, status: b.status, hold_hours: S.settings.pending_hold_hours || 24, cancel_until: cancelDeadline(b.ci).toISOString() };
+    });
+  }
+  function memberBookings(id) {
+    return asMember(id, m => { expireUnpaid(); return S.bookings.filter(b => b.member === id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).map(b => {
+      const t = typeOf(b.type), claims = S.claims.filter(c => c.bk === b.id).sort((x, y) => x.id - y.id), dl = cancelDeadline(b.ci), r = S.refunds.find(x => x.bk === b.id);
+      const pend = claims.filter(c => c.status === 'pending');
+      return { code: b.code, status: b.status, ci: b.ci, co: b.co, nights: nightsOf(b), type: t.name, type_id: b.type, adults: b.adults, rate: b.rate, total: b.rate * nightsOf(b), paid: paidOf(b),
+        pending_claims: pend.reduce((s, c) => s + c.amt, 0), claims: claims.map(c => ({ amount: c.amt, status: c.status, at: c.at, decided_at: c.decided_at || null })),
+        refund: r ? { amount: r.amount, fee: r.fee, pct: r.pct, status: r.status, paid_at: r.paid_at || null } : null, cancel_reason: b.cancel_reason || null,
+        created: b.createdAt ? new Date(b.createdAt).toISOString() : b.created, confirmed_at: b.confirmed_at || null,
+        hold_until: b.status === 'pending' && b.createdAt ? new Date(b.createdAt + (S.settings.pending_hold_hours || 24) * 3600e3).toISOString() : null,
+        cancel_until: dl.toISOString(), can_cancel: ['pending', 'confirmed'].includes(b.status) && Date.now() < dl.getTime() && !pend.length,
+        refund_pct: b.status === 'confirmed' ? (S.settings.cancel_refund_pct ?? 80) : 100, held: b.pays.filter(p => p.dep && !p.applied).reduce((s, p) => s + p.amt, 0) };
+    }); });
+  }
+  const myBooking = (id, code) => S.bookings.find(b => b.member === id && b.code === String(code || '').trim().toUpperCase()) || fail('not_found');
+  function memberClaim(id, code, amount, slip) {
+    return asMember(id, () => {
+      const b = myBooking(id, code); if (b.status !== 'pending') fail('not_payable');
+      const pend = S.claims.filter(c => c.bk === b.id && c.status === 'pending');
+      amount = Math.round(+amount); const remaining = b.rate * nightsOf(b) - paidOf(b) - pend.reduce((s, c) => s + c.amt, 0);
+      if (!(amount > 0) || amount > remaining) fail('invalid_amount');
+      if (pend.length >= 3) fail('too_many_claims');
+      if (!slip || !String(slip).startsWith('data:image/')) fail('slip_required');
+      S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: amount, ref: '', slip, status: 'pending', at: new Date().toISOString() });
+      log('claim.create', b.id, { amount }); return { ok: true };
+    });
+  }
+  function memberCancel(id, code) {
+    return asMember(id, () => {
+      const b = myBooking(id, code);
+      if (!['pending', 'confirmed'].includes(b.status)) fail('cannot_cancel');
+      if (Date.now() >= cancelDeadline(b.ci).getTime()) fail('cancel_window_closed');
+      if (S.claims.some(c => c.bk === b.id && c.status === 'pending')) fail('slip_under_review');
+      const pct = b.status === 'confirmed' ? (S.settings.cancel_refund_pct ?? 80) : 100, was = b.status;
+      const r = settleCancellation(b, pct, 'guest_cancel');
+      b.status = 'cancelled'; b.cancel_reason = 'guest_cancelled';
+      log('booking.guest_cancel', b.id, { was, pct, refund: r ? r.amount : 0, fee: r ? r.fee : 0 });
+      return { ok: true, refund: r ? r.amount : 0, fee: r ? r.fee : 0, pct };
+    });
   }
   function setHk(no, status) { need('manager', 'frontdesk', 'housekeeping'); const r = roomOf(no); const from = r.hk; r.hk = status; log('room.hk', no, { from, to: status }); }
   function nightAudit() {
     need('manager', 'frontdesk'); const d = S.bizDate;
     if (S.bookings.some(b => b.status === 'inhouse' && b.co <= d)) fail('departures_pending');
     let ns = 0, n = 0, amt = 0, ex = 0;
-    S.bookings.filter(b => b.status === 'pending' && b.ci <= d).forEach(b => { applyDeposits(b, d, 'refund'); b.status = 'cancelled'; b.cancel_reason = 'unpaid_at_arrival';
+    S.bookings.filter(b => b.status === 'pending' && b.ci <= d).forEach(b => { settleCancellation(b, 100, 'unpaid_at_arrival'); b.status = 'cancelled'; b.cancel_reason = 'unpaid_at_arrival';
       S.claims.filter(c => c.bk === b.id && c.status === 'pending').forEach(c => c.status = 'rejected'); log('booking.expired', b.id, { reason: 'payment not confirmed by arrival date' }); ex++; });
     S.bookings.filter(b => b.status === 'confirmed' && b.ci <= d).forEach(b => { applyDeposits(b, d, 'forfeit'); b.status = 'noshow'; ns++; });
     S.bookings.filter(b => b.status === 'inhouse').sort((a, b) => a.room < b.room ? -1 : 1).forEach(b => { addCharge(b, d, 'room', { k: 'night', room: b.room, d }, b.rate); n++; amt += b.rate; const r = roomOf(b.room); if (r.hk !== 'ooo') r.hk = 'dirty'; });
@@ -775,9 +896,16 @@ const Core = (function () {
     const gl1130 = accBal('1130'), sub1130 = S.bookings.filter(b => b.status === 'inhouse' || b.status === 'out').reduce((s, b) => s + balanceOf(b), 0);
     const gl2150 = -accBal('2150'), sub2150 = S.bookings.reduce((s, b) => s + b.pays.filter(p => p.dep && !p.applied).reduce((a, p) => a + p.amt, 0), 0);
     const gl1140 = accBal('1140'), sub1140 = S.arOTA.filter(x => !x.settled).reduce((s, x) => s + x.amt, 0);
-    return { drcr: d === c, bs: bs.A === bs.L + bs.E, guest: gl1130 === sub1130, deposits: gl2150 === sub2150, ota: gl1140 === sub1140, ok: d === c && bs.A === bs.L + bs.E && gl1130 === sub1130 && gl2150 === sub2150 && gl1140 === sub1140 };
+    const gl2170 = -accBal('2170'), sub2170 = (S.refunds || []).filter(r => r.status === 'owed').reduce((s, r) => s + r.amount, 0);
+    return { drcr: d === c, bs: bs.A === bs.L + bs.E, guest: gl1130 === sub1130, deposits: gl2150 === sub2150, ota: gl1140 === sub1140, refunds: gl2170 === sub2170,
+      ok: d === c && bs.A === bs.L + bs.E && gl1130 === sub1130 && gl2150 === sub2150 && gl1140 === sub1140 && gl2170 === sub2170 };
   }
 
+  // a drawn transfer slip so the demo's slip check has something to look at
+  function sampleSlip(amt, tx) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="520" viewBox="0 0 360 520"><rect width="360" height="520" fill="#f4f7f6"/><rect x="0" y="0" width="360" height="86" fill="#c8102e"/><text x="24" y="52" font-family="sans-serif" font-size="26" fill="#fff" font-weight="700">BCEL One</text><text x="24" y="132" font-family="sans-serif" font-size="16" fill="#3a8a4f">✓ Transfer successful (demo)</text><text x="24" y="190" font-family="sans-serif" font-size="13" fill="#666">Amount</text><text x="24" y="224" font-family="sans-serif" font-size="30" fill="#122" font-weight="700">${amt.toLocaleString('en-US')} LAK</text><text x="24" y="276" font-family="sans-serif" font-size="13" fill="#666">To</text><text x="24" y="300" font-family="sans-serif" font-size="17" fill="#122">Saynam Riverside Hotel</text><text x="24" y="350" font-family="sans-serif" font-size="13" fill="#666">Transaction ref</text><text x="24" y="374" font-family="monospace" font-size="17" fill="#122">${tx}</text><text x="24" y="470" font-family="sans-serif" font-size="11" fill="#999">Sample slip for the demo only</text></svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
   // ---------- demo data: two months of simulated operations ----------
   function seed(C, today) {
     const R = mulberry32(77031), pick = a => a[Math.floor(R() * a.length)];
@@ -786,9 +914,10 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 7, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 8, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
-        vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts } },
+        vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
+        cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
       accounts: Object.fromEntries(C.accounts.map(a => [a[0], [a[1], L(a.slice(2))]])),
       types: C.types.map((t, i) => ({ id: t.id, name: L(t.n), description: L(t.d), capacity: t.cap, rate: t.rate, size: t.size, bed: L(t.bed), amenities: t.am.slice(), sort: i, active: true })),
       rooms: C.rooms.map(r => ({ no: r[0], type: r[1], floor: r[2], hk: 'inspected', note: '', active: true })),
@@ -797,7 +926,9 @@ const Core = (function () {
       amenities: C.amenities.map((a, i) => ({ id: a[0], icon: a[1], name: L(a.slice(2)), sort: i })),
       staff: [{ id: 'U1', name: 'Somsack', role: 'owner', email: 'owner@saynam.la', active: true }, { id: 'U2', name: 'Manivanh', role: 'frontdesk', email: 'desk@saynam.la', active: true },
         { id: 'U3', name: 'Phonsavanh', role: 'accountant', email: 'account@saynam.la', active: true }, { id: 'U4', name: 'Keo', role: 'housekeeping', email: 'hk@saynam.la', active: true }],
-      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], seq: { bk: 2401, je: 1, fl: 1, ar: 1, g: 1, cl: 1, au: 1, u: 5 }
+      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], refunds: [],
+      members: [{ id: 'M1', email: 'demo@saynam.la', pw: 'demo1234', name: 'Noy Sayavong', phone: '+856 20 5555 1234', country: 'LA', since: new Date().toISOString() }],
+      seq: { bk: 2401, je: 1, fl: 1, ar: 1, g: 1, cl: 1, au: 1, u: 5, m: 2, rf: 1 }
     };
     const GUESTS = [['Somphone Vongsa', 'LA'], ['Khamla Phommachanh', 'LA'], ['Noy Sayavong', 'LA'], ['Anong Keomany', 'LA'], ['Bounmy Sihavong', 'LA'], ['Vilay Inthavong', 'LA'], ['Siriporn Chaiyasit', 'TH'],
       ['Kittisak Boonmee', 'TH'], ['Pranee Saetang', 'TH'], ['Wang Lei', 'CN'], ['Zhang Min', 'CN'], ['Liu Yang', 'CN'], ['Nguyen Thi Lan', 'VN'], ['Tran Van Hai', 'VN'], ['Park Minho', 'KR'], ['Tanaka Hiroshi', 'JP'],
@@ -829,7 +960,7 @@ const Core = (function () {
       S.bizDate = d; actor('Manivanh');
       for (const b of S.bookings) if (b.created === d && (b.ch === 'DIR' || b.ch === 'FB') && b.status === 'confirmed') {
         // most website guests already paid; the ones booked in the last two days are waiting for staff to verify the QR transfer
-        if (b.ch === 'DIR' && diffD(d, today) <= 1 && b.ci > today) { b.status = 'pending'; b.source = 'website'; b.deposit_due = b.deposit_due || depAmt(b); b.createdAt = Date.now() - diffD(d, today) * 3600e3; S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: b.deposit_due || depAmt(b), ref: 'BCEL ' + (400000 + Math.floor(R() * 99999)), status: 'pending', at: d + 'T09:' + (10 + Math.floor(R() * 40)) + ':00Z' }); }
+        if (b.ch === 'DIR' && diffD(d, today) <= 1 && b.ci > today) { b.status = 'pending'; b.source = 'website'; b.member = 'M1'; Object.assign(b.guest, { name: 'Noy Sayavong', phone: '+856 20 5555 1234', email: 'demo@saynam.la', country: 'LA' }); b.deposit_due = b.rate * nightsOf(b); b.createdAt = Date.now() - diffD(d, today) * 3600e3; const tx = 'BCEL ' + (400000 + Math.floor(R() * 99999)); S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: b.deposit_due, ref: '', slip: sampleSlip(b.deposit_due, tx), status: 'pending', at: d + 'T09:' + (10 + Math.floor(R() * 40)) + ':00Z' }); }
         else addPayment(b, d, 'qr', b.deposit_due || depAmt(b), 'BCEL ' + (400000 + Math.floor(R() * 99999)));
       }
       if (d === today) break;
@@ -870,7 +1001,8 @@ const Core = (function () {
 
   return {
     set: s => { S = s; }, get: () => S, addD, diffD, dow, monthEnd, mulberry32, nightsOf, LIVE, HOLD, DEBIT_NORMAL, seed,
-    catalog, availability, publicBook, lookup, claim, acceptBooking, promoPct, directRate,
+    catalog, availability, publicBook, lookup, claim, acceptBooking, openSlip, refundPaid, cancelDeadline,
+    memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
     expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
@@ -883,7 +1015,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v7', USER_KEY = 'saynam-suite-demo-user';
+  const KEY = 'saynam-suite-v8', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -891,16 +1023,29 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|Invalid login credentials)/);
-    const err = new Error(known ? known[1] : m); err.code = known ? (known[1] === 'Invalid login credentials' ? 'bad_login' : known[1]) : 'unknown'; err.raw = m;
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
+    const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
     return err;
   }
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 7) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 8) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
+  }
+  function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
+  function setDemoMember(id) { try { if (id) localStorage.setItem(MEMBER_KEY, id); else localStorage.removeItem(MEMBER_KEY); } catch (e) { } }
+  async function finishPending(me) {
+    if (!me || me.profile) return me;
+    try {
+      const p = JSON.parse(localStorage.getItem('saynam-member-pending') || 'null');
+      if (p && String(p.email).toLowerCase() === String(me.email).toLowerCase()) {
+        me = await rpc('member_register', { p_name: p.name, p_phone: p.phone, p_country: p.country || 'LA' }); localStorage.removeItem('saynam-member-pending');
+      }
+    } catch (x) { }
+    return me;
   }
   function demoSave() { try { localStorage.setItem(KEY, JSON.stringify(Core.get())); } catch (e) { } }
   function demoReset() { try { localStorage.removeItem(KEY); } catch (e) { } return demoLoad(); }
@@ -920,8 +1065,9 @@ const API = (function () {
     if (sb) return sb;
     if (!window.supabase) await loadScript(SB_CDN);
     // the guest website must never act with a staff login that happens to be saved in the same browser
+    // members keep their own login on the guest website, stored apart from any staff login in the same browser
     sb = guestMode
-      ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'saynam-guest' } })
+      ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'saynam-member' } })
       : window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
     return sb;
   }
@@ -933,14 +1079,15 @@ const API = (function () {
       live: true, me: x.me, bizDate: s.business_date,
       settings: { hotel: s.hotel_name, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
         check_out_time: s.check_out_time, vat: +s.vat_rate, incl: s.prices_incl_vat, deposit_pct: +s.deposit_pct, direct_discount: +s.direct_discount, free_cancel_days: s.free_cancel_days,
-        payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null, close: s.close_amounts },
+        payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null, close: s.close_amounts,
+        cancel_cutoff_hours: +s.cancel_cutoff_hours, cancel_refund_pct: +s.cancel_refund_pct, pending_hold_hours: +s.pending_hold_hours },
       accounts: Object.fromEntries((x.accounts || []).map(a => [a.code, [a.type, a.name]])),
       types: (x.types || []).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, rate: +t.base_rate, size: t.size_m2, bed: t.bed, amenities: t.amenities || [], sort: t.sort, active: t.active })),
       rooms: (x.rooms || []).map(r => ({ no: r.no, type: r.type_id, floor: r.floor, hk: r.hk_status, note: r.note || '', active: r.active })),
       channels: (x.channels || []).map(c => ({ id: c.id, name: c.name, comm: +c.commission, mode: c.mode })),
       promos: (x.promos || []).map(p => ({ code: p.code, pct: +p.pct, active: p.active, valid_to: p.valid_to })),
       amenities: x.amenities || [], bookings: x.bookings || [], journal: (x.journal || []).map(e => ({ ...e, lines: e.lines || [] })), arOTA: x.arOTA || [],
-      claims: (x.claims || []).map(c => ({ ...c, amt: +c.amt })), locks: x.locks || [], audit: x.audit || [], staff: x.staff || []
+      claims: (x.claims || []).map(c => ({ ...c, amt: +c.amt })), members: x.members || [], refunds: (x.refunds || []).map(r => ({ ...r, amount: +r.amount, fee: +r.fee, paid_total: +r.paid_total, pct: +r.pct })), locks: x.locks || [], audit: x.audit || [], staff: x.staff || []
     };
   }
 
@@ -953,7 +1100,8 @@ const API = (function () {
     charge: (id, kind, text, amt) => ['staff_charge', { p_id: id, p_kind: kind, p_text: text, p_amount: amt }],
     voidCharge: (fid, reason) => ['staff_void_charge', { p_folio: fid, p_reason: reason }],
     payment: (id, m, amt, ref) => ['staff_payment', { p_id: id, p_method: m, p_amount: amt, p_ref: ref || null }],
-    verifyClaim: (cid, ok, m) => ['staff_verify_claim', { p_claim: cid, p_approve: ok, p_method: m || 'qr' }],
+    verifyClaim: (cid, ok, m, ref) => ['staff_verify_claim', { p_claim: cid, p_approve: ok, p_method: m || 'qr', p_bank_ref: ref || null }],
+    refundPaid: (rid, m, ref) => ['staff_refund_paid', { p_refund: rid, p_method: m, p_ref: ref || null }],
     acceptBooking: id => ['staff_accept_booking', { p_id: id }],
     setHk: (no, st) => ['staff_set_hk', { p_room: no, p_status: st }],
     nightAudit: () => ['staff_night_audit', {}],
@@ -973,7 +1121,7 @@ const API = (function () {
     if (fn.op === 'saveRoom') { const r = fn.arg; const { error } = await c.from('rooms').upsert({ no: r.no, type_id: r.type, floor: r.floor, note: r.note || null, active: r.active !== false }); if (error) throw toErr(error); }
     if (fn.op === 'savePromo') { const p = fn.arg; const { error } = await c.from('promo_codes').upsert({ code: String(p.code).toUpperCase(), pct: p.pct, active: p.active !== false, valid_to: p.valid_to || null }); if (error) throw toErr(error); }
     if (fn.op === 'saveSettings') {
-      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url' };
+      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url', cancel_cutoff_hours: 'cancel_cutoff_hours', cancel_refund_pct: 'cancel_refund_pct', pending_hold_hours: 'pending_hold_hours' };
       const row = {}; for (const k in p) if (m[k]) row[m[k]] = p[k];
       const { error } = await c.from('settings').update(row).eq('id', 1); if (error) throw toErr(error);
     }
@@ -985,10 +1133,39 @@ const API = (function () {
     live: LIVE,
     catalog: () => LIVE ? rpc('public_catalog') : demoRun(() => Core.catalog()),
     availability: (ci, co) => LIVE ? rpc('public_availability', { p_ci: ci, p_co: co }) : demoRun(() => Core.availability(ci, co)),
-    book: p => LIVE ? rpc('public_book', { p }) : demoRun(() => Core.publicBook(p)),
     promo: code => LIVE ? rpc('public_promo', { p_code: code }) : demoRun(() => Core.promoPct(code)),
-    lookup: (code, phone) => LIVE ? rpc('public_lookup', { p_code: code, p_phone: phone }) : demoRun(() => Core.lookup(code, phone)),
-    claim: (code, phone, amt, ref, slip) => LIVE ? rpc('public_claim', { p_code: code, p_phone: phone, p_amount: amt, p_ref: ref || null, p_slip: slip }) : demoRun(() => Core.claim(code, phone, amt, ref, slip)),
+    // ---- members (guest accounts): booking, paying and checking bookings all need a login ----
+    member: {
+      async session() {
+        if (LIVE) { const c = await client(); const { data } = await c.auth.getSession(); return data.session ? await rpc('member_me') : null; }
+        return demoRun(() => Core.memberMe(demoMember()));
+      },
+      async signUp(email, password, name, phone, country) {
+        if (!LIVE) { const id = await demoRun(() => Core.memberSignUp(email, password)); setDemoMember(id); return demoRun(() => Core.memberRegister(id, name, phone, country)); }
+        const c = await client();
+        const { data, error } = await c.auth.signUp({ email: String(email).trim(), password, options: { data: { name, phone }, emailRedirectTo: location.href.split('#')[0] } });
+        if (error) throw toErr(error);
+        if (!data.session) {
+          if (data.user && data.user.identities && !data.user.identities.length) throw toErr('email_taken');
+          try { localStorage.setItem('saynam-member-pending', JSON.stringify({ email, name, phone, country })); } catch (x) { }
+          throw toErr('confirm_email');
+        }
+        return await rpc('member_register', { p_name: name, p_phone: phone, p_country: country || 'LA' });
+      },
+      async signIn(email, password) {
+        if (!LIVE) { const id = await demoRun(() => Core.memberSignIn(email, password)); setDemoMember(id); return demoRun(() => Core.memberMe(id)); }
+        const c = await client(); const { error } = await c.auth.signInWithPassword({ email: String(email).trim(), password }); if (error) throw toErr(error);
+        return await finishPending(await rpc('member_me'));
+      },
+      // after an e-mail confirmation link brings the guest back, complete the profile they typed at sign-up
+      finishPending: me => LIVE ? finishPending(me) : me,
+      async signOut() { if (LIVE) { const c = await client(); await c.auth.signOut(); } setDemoMember(null); },
+      register: (name, phone, country) => LIVE ? rpc('member_register', { p_name: name, p_phone: phone, p_country: country || 'LA' }) : demoRun(() => Core.memberRegister(demoMember(), name, phone, country)),
+      book: p => LIVE ? rpc('member_book', { p }) : demoRun(() => Core.memberBook(demoMember(), p)),
+      bookings: () => LIVE ? rpc('member_bookings') : demoRun(() => Core.memberBookings(demoMember())),
+      claim: (code, amt, slip) => LIVE ? rpc('member_claim', { p_code: code, p_amount: amt, p_slip: slip }) : demoRun(() => Core.memberClaim(demoMember(), code, amt, slip)),
+      cancel: code => LIVE ? rpc('member_cancel', { p_code: code }) : demoRun(() => Core.memberCancel(demoMember(), code))
+    },
     // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
     async uploadSlip(code, blob) {
       if (!LIVE) return await blobToDataURL(blob);
@@ -996,6 +1173,12 @@ const API = (function () {
       const { error } = await c.storage.from('slips').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
       if (error) throw toErr(error.message && /row-level security|policy/i.test(error.message) ? 'not_payable' : error);
       return path;
+    },
+    // staff: opening a slip is recorded (who, when); approval is refused for a slip the approver never opened
+    async openSlip(cid) {
+      if (!LIVE) return demoRun(() => Core.openSlip(cid), true);
+      const path = await rpc('staff_open_slip', { p_claim: cid });
+      return await pub.slipUrl(path);
     },
     async slipUrl(ref) {
       if (!ref) return null;
@@ -1411,10 +1594,48 @@ const ACTIONS = {
   'staff.insert': ['ເພີ່ມພະນັກງານ', 'เพิ่มพนักงาน', 'Staff added'], 'staff.update': ['ແກ້ໄຂພະນັກງານ', 'แก้ไขพนักงาน', 'Staff changed'], 'demo.seed': ['ສ້າງຂໍ້ມູນສາທິດ', 'สร้างข้อมูลสาธิต', 'Demo data created']
 };
 
+// ---- member accounts, slip check, refunds ----
+Object.assign(TX, {
+  checkSlip: ['ກວດສະລິບ', 'ตรวจสลิป', 'Check slip'], slipAmt: ['ຍອດໃນສະລິບ', 'ยอดในสลิป', 'Slip amount'], bkDue: ['ຍອດທີ່ຕ້ອງຈ່າຍ', 'ยอดที่ต้องชำระ', 'Amount due'],
+  decidedBy: ['ຜູ້ກວດ', 'ผู้ตรวจ', 'Checked by'],
+  verifyTitle: ['ຢືນຢັນວ່າໄດ້ຮັບເງິນແທ້', 'ยืนยันว่าได้รับเงินจริง', 'Confirm the money really arrived'],
+  verifySteps: ['<li>ເປີດແອັບ ຫຼື ລາຍການບັນຊີທະນາຄານຂອງໂຮງແຮມ</li><li>ຊອກລາຍການເງິນເຂົ້າ {a} ທີ່ກົງກັບສະລິບ (ຊື່ຜູ້ໂອນ, ເວລາ)</li><li>ພິມເລກອ້າງອີງຂອງລາຍການນັ້ນ ແລ້ວໝາຍຕິກ</li>', '<li>เปิดแอปหรือรายการบัญชีธนาคารของโรงแรม</li><li>หารายการเงินเข้า {a} ที่ตรงกับสลิป (ชื่อผู้โอน เวลา)</li><li>พิมพ์เลขอ้างอิงของรายการนั้นแล้วติ๊ก</li>', '<li>Open the hotel bank app or statement</li><li>Find the incoming {a} that matches the slip (sender, time)</li><li>Type that transaction reference and tick the box</li>'],
+  bankRef: ['ເລກອ້າງອີງລາຍການໃນບັນຊີທະນາຄານ', 'เลขอ้างอิงรายการในบัญชีธนาคาร', 'Bank transaction reference'], bankRefPh: ['ເຊັ່ນ BCEL 1234567890', 'เช่น BCEL 1234567890', 'e.g. BCEL 1234567890'],
+  verifyTick: ['ຂ້ອຍກວດແລ້ວ: ເງິນ {a} ເຂົ້າບັນຊີໂຮງແຮມແທ້', 'ฉันตรวจแล้ว: เงิน {a} เข้าบัญชีโรงแรมจริง', 'I checked: {a} really arrived in the hotel account'],
+  memberAcct: ['ບັນຊີສະມາຊິກ', 'บัญชีสมาชิก', 'Member account'], guestCancelUntil: ['ລູກຄ້າຍົກເລີກເອງໄດ້ຮອດ {t}', 'ลูกค้ายกเลิกเองได้ถึง {t}', 'guest can cancel until {t}'],
+  refunds: ['ເງິນຄືນ', 'เงินคืน', 'Refunds'], fee: ['ຄ່າທຳນຽມ', 'ค่าธรรมเนียม', 'Fee'], refundAmt: ['ຄືນໃຫ້ລູກຄ້າ', 'คืนให้ลูกค้า', 'To refund'], reason: ['ເຫດຜົນ', 'เหตุผล', 'Reason'],
+  refundOwedL: ['ຍັງບໍ່ໄດ້ໂອນຄືນ', 'ยังไม่ได้โอนคืน', 'Not refunded yet'], refundPaidL: ['ໂອນຄືນແລ້ວ', 'โอนคืนแล้ว', 'Refunded'], refundMark: ['ບັນທຶກວ່າໂອນຄືນແລ້ວ', 'บันทึกว่าโอนคืนแล้ว', 'Record refund paid'],
+  refundRecorded: ['ບັນທຶກການໂອນເງິນຄືນແລ້ວ', 'บันทึกการโอนเงินคืนแล้ว', 'Refund recorded'],
+  refundsHint: ['ເງິນທີ່ຕ້ອງໂອນຄືນລູກຄ້າ (ບັນຊີ 2170). ໂອນເງິນໃຫ້ລູກຄ້າກ່ອນ ແລ້ວຈຶ່ງບັນທຶກພ້ອມເລກອ້າງອີງ — ລູກຄ້າຈະເຫັນສະຖານະໃນບັນຊີຂອງເຂົາ.', 'เงินที่ต้องโอนคืนลูกค้า (บัญชี 2170) โอนเงินให้ลูกค้าก่อน แล้วจึงบันทึกพร้อมเลขอ้างอิง — ลูกค้าจะเห็นสถานะในบัญชีของเขา', 'Money owed back to guests (account 2170). Transfer it first, then record it with the reference: the guest sees the status in their account.'],
+  att_refunds: ['ເງິນຄືນທີ່ຍັງບໍ່ໄດ້ໂອນ {n} ລາຍການ · {a}', 'เงินคืนที่ยังไม่ได้โอน {n} รายการ · {a}', '{n} refunds still to pay · {a}'],
+  rf_guest_cancel: ['ລູກຄ້າຍົກເລີກ (ຕາມນະໂຍບາຍ)', 'ลูกค้ายกเลิก (ตามนโยบาย)', 'Guest cancelled (policy)'], rf_staff_refund: ['ພະນັກງານຍົກເລີກ + ຄືນເງິນ', 'พนักงานยกเลิก + คืนเงิน', 'Cancelled by staff with refund'], rf_unpaid_at_arrival: ['ບໍ່ໄດ້ຢືນຢັນທັນວັນເຂົ້າພັກ', 'ไม่ได้ยืนยันทันวันเข้าพัก', 'Not confirmed by arrival'],
+  members: ['ສະມາຊິກເວັບໄຊ', 'สมาชิกเว็บไซต์', 'Website members'], allGuests: ['ແຂກທັງໝົດ', 'แขกทั้งหมด', 'All guests'], memberSearch: ['ຄົ້ນຫາຊື່, ອີເມວ, ເບີໂທ', 'ค้นหาชื่อ อีเมล เบอร์โทร', 'Search name, e-mail, phone'],
+  memberSince: ['ສະໝັກເມື່ອ', 'สมัครเมื่อ', 'Joined'], activeBk: ['ກຳລັງດຳເນີນ', 'กำลังดำเนินการ', 'Active'], noMembers: ['ຍັງບໍ່ມີສະມາຊິກ', 'ยังไม่มีสมาชิก', 'No members yet'],
+  cxlCutoff: ['ລູກຄ້າຍົກເລີກໄດ້ກ່ອນເຊັກອິນ (ຊົ່ວໂມງ)', 'ลูกค้ายกเลิกได้ก่อนเช็คอิน (ชั่วโมง)', 'Guests may cancel up to (hours before check-in)'],
+  cxlRefund: ['ເງິນຄືນເມື່ອຍົກເລີກ (%)', 'เงินคืนเมื่อยกเลิก (%)', 'Refund on cancellation (%)'], holdHours: ['ຖືຫ້ອງລໍຖ້າການຊຳລະ (ຊົ່ວໂມງ)', 'กันห้องรอการชำระ (ชั่วโมง)', 'Hold unpaid requests (hours)'],
+  slipPendingBk: ['ການຈອງນີ້ລໍຖ້າການກວດເງິນ. ອະນຸມັດສະລິບນີ້ = ຢືນຢັນວ່າເງິນເຂົ້າບັນຊີແທ້ ແລະ ຮັບການຈອງ (ເມື່ອຍອດຄົບ).', 'การจองนี้รอตรวจเงิน อนุมัติสลิปนี้ = ยืนยันว่าเงินเข้าบัญชีจริงและรับการจอง (เมื่อยอดครบ)', 'This booking awaits payment. Approving this slip means the money really reached the account, and accepts the booking once paid in full.'],
+  pendNoSlip: ['ລູກຄ້າຍັງບໍ່ໄດ້ສົ່ງສະລິບ. ຕ້ອງໄດ້ຮັບເງິນເຕັມຈຳນວນ {a}. ຖ້າບໍ່ມີການຊຳລະ ຫ້ອງຈະຖືກປ່ອຍຄືນອັດຕະໂນມັດ.', 'ลูกค้ายังไม่ได้ส่งสลิป ต้องได้รับเงินเต็มจำนวน {a} หากไม่มีการชำระ ห้องจะถูกปล่อยคืนอัตโนมัติ', 'No slip yet. The full {a} must be received. Without payment the room is released automatically.'],
+  pendSlip: ['ມີສະລິບ {a} ລໍຖ້າກວດ. ກົດ "ກວດສະລິບ", ກວດໃນບັນຊີທະນາຄານວ່າເງິນເຂົ້າແທ້, ໃສ່ເລກອ້າງອີງ ແລ້ວອະນຸມັດ.', 'มีสลิป {a} รอตรวจ กด "ตรวจสลิป" ตรวจในบัญชีธนาคารว่าเงินเข้าจริง ใส่เลขอ้างอิง แล้วอนุมัติ', 'A slip for {a} is waiting. Press "Check slip", confirm the money in the bank account, enter the reference, then approve.'],
+  e_slip_not_viewed: ['ຕ້ອງເປີດເບິ່ງສະລິບກ່ອນອະນຸມັດ', 'ต้องเปิดดูสลิปก่อนอนุมัติ', 'Open the slip before approving it'],
+  e_bank_ref_required: ['ໃສ່ເລກອ້າງອີງລາຍການທະນາຄານ ແລະ ໝາຍຕິກວ່າກວດແລ້ວ', 'ใส่เลขอ้างอิงรายการธนาคาร และติ๊กว่าตรวจแล้ว', 'Enter the bank transaction reference and tick the check box'],
+  e_bank_ref_used: ['ເລກອ້າງອີງນີ້ຖືກໃຊ້ອະນຸມັດສະລິບອື່ນແລ້ວ — ອາດເປັນສະລິບຊ້ຳ', 'เลขอ้างอิงนี้ถูกใช้อนุมัติสลิปอื่นแล้ว — อาจเป็นสลิปซ้ำ', 'That bank reference already approved another slip: possible duplicate'],
+  e_use_slip_check: ['ການໂອນສຳລັບການຈອງເວັບ ຕ້ອງອະນຸມັດຜ່ານການກວດສະລິບ. ບ່ອນນີ້ຮັບໄດ້ສະເພາະເງິນສົດ/ບັດທີ່ເຄົາເຕີ.', 'การโอนสำหรับการจองเว็บต้องอนุมัติผ่านการตรวจสลิป ช่องนี้รับได้เฉพาะเงินสด/บัตรที่เคาน์เตอร์', 'Transfers for web bookings must go through the slip check. Here you can only take cash or card at the desk.'],
+  e_cancel_window_closed: ['ໝົດເວລາຍົກເລີກ', 'หมดเวลายกเลิก', 'Cancellation window closed'], e_slip_under_review: ['ມີສະລິບລໍຖ້າກວດ', 'มีสลิปรอตรวจ', 'A slip is waiting to be checked'],
+  st_pending: ['ລໍຖ້າກວດເງິນ', 'รอตรวจเงิน', 'Awaiting payment']
+});
+Object.assign(DESC, {
+  cxlPolicy: ['ຍົກເລີກການຈອງ — ຄືນ {pct}, ສ່ວນທີ່ເຫຼືອເປັນຄ່າທຳນຽມ — {g}', 'ยกเลิกการจอง — คืน {pct} ส่วนที่เหลือเป็นค่าธรรมเนียม — {g}', 'Cancellation: {pct} owed back, rest kept as fee — {g}'],
+  refundPaid: ['ໂອນເງິນຄືນລູກຄ້າ — {g}', 'โอนเงินคืนลูกค้า — {g}', 'Refund paid to guest — {g}']
+});
+Object.assign(ACTIONS, {
+  'member.register': ['ສະໝັກສະມາຊິກ', 'สมัครสมาชิก', 'Member signed up'], 'booking.guest_cancel': ['ລູກຄ້າຍົກເລີກການຈອງ', 'ลูกค้ายกเลิกการจอง', 'Guest cancelled booking'],
+  'claim.viewed': ['ເປີດເບິ່ງສະລິບ', 'เปิดดูสลิป', 'Slip opened'], 'refund.paid': ['ໂອນເງິນຄືນ', 'โอนเงินคืน', 'Refund paid'], 'customers.insert': ['ສ້າງສະມາຊິກ', 'สร้างสมาชิก', 'Member created'], 'customers.update': ['ແກ້ໄຂສະມາຊິກ', 'แก้ไขสมาชิก', 'Member updated']
+});
+
 // ===== BACK OFFICE =====
 (function () {
   const LANGS = ['lo', 'th', 'en'];
-  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false };
+  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, gTab: 'members', gSel: null };
   let S = null, lang = 'lo';
   try { const l = localStorage.getItem('saynam-lang'); if (LANGS.includes(l)) lang = l; } catch (e) { }
   const $ = s => document.querySelector(s);
@@ -1453,7 +1674,7 @@ const ACTIONS = {
     return esc(tpl[li()]).replace(/\{(\w+)\}/g, (_, x) => {
       const v = d[x];
       if (x === 'ch') return chName(v);
-      if (x === 'pct') return pct(v);
+      if (x === 'pct') return d.k === 'cxlPolicy' ? (+v) + '%' : pct(v);
       if (x === 'd') return dsh(v);
       if (x === 'mo') return mfm(v);
       if (x === 'text' && d.k === 'void' && d.of) return esc(v) + ' (' + descText(d.of) + ')';
@@ -1495,6 +1716,8 @@ const ACTIONS = {
   const allowed = v => { for (const [, items] of NAV) for (const [k, , r] of items) if (k === v) return can(...r); return false; };
   const firstView = () => { for (const [, items] of NAV) for (const [k, , r] of items) if (can(...r)) return k; return 'dash'; };
   const pendingClaims = () => S.claims.filter(c => c.status === 'pending');
+  const owedRefunds = () => (S.refunds || []).filter(r => r.status === 'owed' && r.amount > 0);
+  const memberOf = id => (S.members || []).find(m => m.id === id) || null;
   const pre = b => b.status === 'pending' || b.status === 'confirmed';   // not yet arrived: total is the booked stay
   const owed = b => pre(b) ? b.rate * nightsOf(b) - Core.paidOf(b) : Core.balanceOf(b);
 
@@ -1504,7 +1727,7 @@ const ACTIONS = {
     $('#side').innerHTML = `
       <div class="brand"><div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f4efe2" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1"/><path d="M3 12c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1" opacity=".6"/><path d="M8 8V4h8v4"/></svg></div>
         <div><b>${esc(S.settings.hotel)}</b><span>${t('boName')}</span></div></div>
-      ${NAV.map(([g, items]) => { const vis = items.filter(([, , r]) => can(...r)); return vis.length ? `<div class="navgrp"><small>${t(g)}</small>${vis.map(([v, k]) => `<button class="navbtn ${V.view === v ? 'on' : ''}" data-act="nav" data-v="${v}">${ico(v)}<span>${t(k)}</span>${v === 'bk' && pc ? `<em class="badge">${pc}</em>` : ''}</button>`).join('')}</div>` : ''; }).join('')}
+      ${NAV.map(([g, items]) => { const vis = items.filter(([, , r]) => can(...r)); return vis.length ? `<div class="navgrp"><small>${t(g)}</small>${vis.map(([v, k]) => `<button class="navbtn ${V.view === v ? 'on' : ''}" data-act="nav" data-v="${v}">${ico(v)}<span>${t(k)}</span>${v === 'bk' && pc + owedRefunds().length ? `<em class="badge">${pc + owedRefunds().length}</em>` : ''}</button>`).join('')}</div>` : ''; }).join('')}
       <div class="navgrp"><a class="navbtn" href="index.html" target="_blank" rel="noopener">${ico('web')}<span>${t('viewSite')}</span></a></div>
       <div class="side-foot"><div class="me"><b>${esc(S.me.name)}</b><span>${t('r_' + S.me.role)}</span></div>
         <button class="navbtn" data-act="logout">${ico('out')}<span>${t('signOut')}</span></button>
@@ -1558,6 +1781,7 @@ const ACTIONS = {
     const att = []; const pc = pendingClaims();
     if (pc.length && can('frontdesk', 'accountant', 'manager')) att.push(['warn', `${t('claims')}: ${pc.length} · ${kip(pc.reduce((s, c) => s + c.amt, 0))}`, 'bk', 'claims']);
     const pend = S.bookings.filter(b => b.status === 'pending'); if (pend.length) att.unshift(['warn', t('att_pending', { n: pend.length }), 'bk', 'pending']);
+    const ro = owedRefunds(); if (ro.length && can('manager', 'accountant')) att.push(['warn', t('att_refunds', { n: ro.length, a: kip(ro.reduce((x, r) => x + r.amount, 0)) }), 'bk', 'refunds']);
     const dirty = S.rooms.filter(r => r.hk === 'dirty').length; if (dirty) att.push(['warn', t('att_dirty', { n: dirty }), 'rooms']);
     const old = S.arOTA.filter(x => !x.settled && diffD(x.date, biz) > 14).reduce((s, x) => s + x.amt, 0); if (old > 0) att.push(['bad', t('att_ota', { a: kip(old) }), 'acc']);
     const ic = Core.integrity(); if (!ic.ok) att.push(['bad', t('checksBad'), 'acc']);
@@ -1635,12 +1859,18 @@ const ACTIONS = {
     if (!pc.length) return `<div class="empty">${t('none')}</div>`;
     return `<p class="note" style="margin:0 0 10px">${t('claimsHint')}</p><div class="tablewrap"><table class="t"><thead><tr><th>${t('when')}</th><th>${t('guest')}</th><th>${t('code')}</th><th>${t('slip')}</th><th class="n">${t('amount')}</th><th></th></tr></thead><tbody>
       ${pc.map(c => { const b = S.bookings.find(x => x.id === c.bk) || { guest: {} }; return `<tr><td class="tnum small">${tfm(c.at)}</td><td>${esc(b.guest.name)}<div class="small faint">${esc(b.guest.phone || '')}</div></td><td class="mono small"><button class="btn sm ghost mono" data-act="openBk" data-id="${b.id}">${b.id} · ${esc(b.code || '')}</button></td><td>${c.slip ? `<button class="btn sm" data-act="viewSlip" data-id="${c.id}">${t('viewSlip')}</button>` : `<span class="mono small faint">${esc(c.ref || '—')}</span>`}</td><td class="n"><b>${fm(c.amt)}</b></td>
-        <td><div class="row" style="justify-content:flex-end">${can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="claimOk" data-id="${c.id}">${verifyLabel(b, c)}</button><button class="btn sm bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button>` : ''}</div></td></tr>`; }).join('')}</tbody></table></div>`;
+        <td><div class="row" style="justify-content:flex-end">${can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="viewSlip" data-id="${c.id}">${t('checkSlip')}</button>` : ''}</div></td></tr>`; }).join('')}</tbody></table></div>`;
+  }
+  function refundsList() {
+    const rs = (S.refunds || []).filter(r => r.amount > 0);
+    if (!rs.length) return `<div class="empty">${t('none')}</div>`;
+    return `<p class="note" style="margin:0 0 10px">${t('refundsHint')}</p><div class="tablewrap"><table class="t"><thead><tr><th>${t('when')}</th><th>${t('guest')}</th><th>${t('code')}</th><th>${t('reason')}</th><th class="n">${t('fee')}</th><th class="n">${t('refundAmt')}</th><th>${t('status')}</th></tr></thead><tbody>
+      ${rs.map(r => { const b = S.bookings.find(x => x.id === r.bk) || { guest: {} }; return `<tr class="click" data-act="openBk" data-id="${b.id}"><td class="tnum small">${tfm(r.at)}</td><td>${esc(b.guest.name)}<div class="small faint">${esc(b.guest.phone || '')}</div></td><td class="mono small">${b.id} · ${esc(b.code || '')}</td><td class="small">${t('rf_' + r.reason)}</td><td class="n">${fm(r.fee)}</td><td class="n"><b>${fm(r.amount)}</b></td><td>${r.status === 'paid' ? `<span class="pill p-inhouse">${t('refundPaidL')}</span>` : `<span class="pill p-pending">${t('refundOwedL')}</span>`}</td></tr>`; }).join('')}</tbody></table></div>`;
   }
   function vBk() {
     const pc = pendingClaims().length;
-    return `<div class="tabs" role="tablist"><button class="${V.bkTab === 'list' ? 'on' : ''}" data-act="bkTab" data-t="list">${t('nav_bk')}</button><button class="${V.bkTab === 'claims' ? 'on' : ''}" data-act="bkTab" data-t="claims">${t('claims')}${pc ? ` <em class="badge">${pc}</em>` : ''}</button></div>
-    ${V.bkTab === 'claims' ? `<div class="card">${claimsList()}</div>` : `<div class="spread"><div class="toolbar" style="flex:1"><input class="input grow" id="bkq" data-in="bkq" placeholder="${esc(t('search'))}" value="${esc(V.bkQ)}" style="max-width:360px">
+    return `<div class="tabs" role="tablist"><button class="${V.bkTab === 'list' ? 'on' : ''}" data-act="bkTab" data-t="list">${t('nav_bk')}</button><button class="${V.bkTab === 'claims' ? 'on' : ''}" data-act="bkTab" data-t="claims">${t('claims')}${pc ? ` <em class="badge">${pc}</em>` : ''}</button><button class="${V.bkTab === 'refunds' ? 'on' : ''}" data-act="bkTab" data-t="refunds">${t('refunds')}${owedRefunds().length ? ` <em class="badge">${owedRefunds().length}</em>` : ''}</button></div>
+    ${V.bkTab === 'claims' ? `<div class="card">${claimsList()}</div>` : V.bkTab === 'refunds' ? `<div class="card">${refundsList()}</div>` : `<div class="spread"><div class="toolbar" style="flex:1"><input class="input grow" id="bkq" data-in="bkq" placeholder="${esc(t('search'))}" value="${esc(V.bkQ)}" style="max-width:360px">
       <select class="input" data-in="bkst" style="width:auto"><option value="act" ${V.bkSt === 'act' ? 'selected' : ''}>${t('st_active')}</option><option value="all" ${V.bkSt === 'all' ? 'selected' : ''}>${t('all')}</option>${['pending', 'confirmed', 'inhouse', 'out', 'cancelled', 'noshow'].map(s => `<option value="${s}" ${V.bkSt === s ? 'selected' : ''}>${t('st_' + s)}</option>`).join('')}</select>
       <select class="input" data-in="bkch" style="width:auto"><option value="">${t('channel')}: ${t('all')}</option>${S.channels.map(c => `<option value="${c.id}" ${V.bkCh === c.id ? 'selected' : ''}>${nm(c.name)}</option>`).join('')}</select></div>
       ${can('frontdesk', 'manager') ? `<button class="btn pri" data-act="newBk">${t('newBooking')}</button>` : ''}</div>
@@ -1685,10 +1915,12 @@ const ACTIONS = {
       <div class="fact"><label>${t('balance')}</label><b class="${owed(b) > 0 && b.status === 'inhouse' ? 'warnc' : ''}">${['cancelled', 'noshow'].includes(b.status) ? '—' : kip(owed(b))}</b></div>
       <div class="fact"><label>${t('source')}</label><b>${b.source === 'website' ? t('website') : t('staffSrc')} · ${dfm(b.created)}</b></div>
     </div>
+    ${b.member ? (() => { const m = memberOf(b.member); return `<div class="note"><b>${t('memberAcct')}:</b> ${esc(m ? m.email || m.name : b.member)}${b.cancel_until ? ` · ${t('guestCancelUntil', { t: tfm(b.cancel_until) })}` : ''}</div>`; })() : ''}
+    ${refundBlock(b)}
     ${b.request ? `<div class="note"><b>${t('request')}:</b> ${esc(b.request)}</div>` : ''}
     ${held ? `<div class="note">${t('deposit')}: ${kip(held)} — ${t('depositHeld')} (2150)${b.status === 'confirmed' ? ' · ' + t('freeCancelUntil', { d: dfm(freeUntil) }) : ''}</div>` : ''}
     ${pre(b) && b.deposit_due && !held ? `<div class="note warn">${t('depositDue')}: ${kip(b.deposit_due)}</div>` : ''}
-    ${claims.length ? `<section><h4>${t('claims')}</h4><div class="list">${claims.map(c => `<div class="li"><div class="who"><b class="tnum">${kip(c.amt)}${c.ref ? ` · <span class="mono">${esc(c.ref)}</span>` : ''}</b><span>${tfm(c.at)}</span></div>${c.slip ? `<button class="btn sm" data-act="viewSlip" data-id="${c.id}">${t('viewSlip')}</button>` : ''}${c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="claimOk" data-id="${c.id}">${verifyLabel(b, c)}</button><button class="btn sm bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button>` : `<span class="pill ${c.status === 'verified' ? 'p-inhouse' : c.status === 'pending' ? 'p-confirmed' : 'p-cancelled'}">${c.status === 'verified' ? t('verify') : c.status === 'pending' ? t('claims') : t('reject')}</span>`}</div>`).join('')}</div></section>` : ''}
+    ${claims.length ? `<section><h4>${t('claims')}</h4><div class="list">${claims.map(c => `<div class="li"><div class="who"><b class="tnum">${kip(c.amt)}${c.ref ? ` · <span class="mono">${esc(c.ref)}</span>` : ''}</b><span>${tfm(c.at)}</span></div>${c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="viewSlip" data-id="${c.id}">${t('checkSlip')}</button>` : `${c.slip ? `<button class="btn sm" data-act="viewSlip" data-id="${c.id}">${t('viewSlip')}</button>` : ''}${c.bank_ref ? `<span class="mono small">${esc(c.bank_ref)}</span>` : ''}<span class="pill ${c.status === 'verified' ? 'p-inhouse' : c.status === 'pending' ? 'p-confirmed' : 'p-cancelled'}">${c.status === 'verified' ? t('verify') : c.status === 'pending' ? t('claims') : t('reject')}</span>`}</div>`).join('')}</div></section>` : ''}
     <section><h4>${t('folio')}</h4><div class="tablewrap"><table class="t"><thead><tr><th>${t('date')}</th><th>${t('desc')}</th><th class="n">VAT</th><th class="n">${t('amount')}</th><th></th></tr></thead><tbody>
     ${b.folio.map(f => `<tr class="${f.voids || voidedIds.has(f.id) ? 'struck' : ''}"><td class="tnum">${dsh(f.date)}</td><td>${descText(f.desc)} <span class="faint small">${nm(KIND[f.kind])}</span>${voidedIds.has(f.id) ? ` <span class="pill p-cancelled">${t('voided')}</span>` : ''}</td><td class="n faint">${fm(f.vat)}</td><td class="n">${fm(f.gross)}</td>
       <td class="n">${can('manager') && b.status === 'inhouse' && !f.voids && !voidedIds.has(f.id) ? `<button class="btn sm ghost" data-act="voidAsk" data-b="${b.id}" data-f="${f.id}">${t('voidIt')}</button>` : ''}</td></tr>`).join('') || `<tr><td colspan="5" class="empty">${pre(b) ? fm(b.rate) + ' × ' + nightsOf(b) : t('none')}</td></tr>`}
@@ -1702,6 +1934,13 @@ const ACTIONS = {
     ${canPay ? `<div class="inline-form"><label class="field"><span>${t('payMethod')}</span><select class="input" id="pf_m">${Object.keys(PM).map(k => `<option value="${k}">${nm(PM[k])}</option>`).join('')}</select></label><label class="field"><span>${t('ref')}</span><input class="input" id="pf_r"></label><label class="field"><span>${t('amount')}</span><input class="input" id="pf_a" type="number" min="0" step="1000" inputmode="numeric" value="${b.status === 'inhouse' ? Math.max(0, Core.balanceOf(b)) : Math.max(0, (b.deposit_due || 0) - held)}"></label><button class="btn" data-act="addPay" data-id="${b.id}">${pre(b) ? t('deposit') : t('addPay')}</button></div>` : ''}
     </section>
     ${acts ? `<div class="actions">${acts}</div>` : ''}`);
+  }
+  function refundBlock(b) {
+    const rs = (S.refunds || []).filter(r => r.bk === b.id); if (!rs.length) return '';
+    return `<section><h4>${t('refunds')}</h4><div class="list">${rs.map(r => `<div class="li"><div class="who"><b class="tnum">${kip(r.amount)} <span class="faint small">(${pct(r.pct / 100)} · ${t('fee')} ${fm(r.fee)})</span></b><span>${t('rf_' + r.reason) || esc(r.reason)} · ${tfm(r.at)}</span></div>
+      ${r.status === 'paid' ? `<span class="pill p-inhouse">${t('refundPaidL')}${r.paid_ref ? ' · ' + esc(r.paid_ref) : ''}</span>` : r.amount > 0 && can('manager', 'accountant') ? (V.refundAsk === r.id
+        ? `<div class="inline-form" style="margin:0"><label class="field"><span>${t('payMethod')}</span><select class="input" id="rf_m"><option value="transfer">${nm(PM.transfer)}</option><option value="qr">${nm(PM.qr)}</option><option value="cash">${nm(PM.cash)}</option></select></label><label class="field"><span>${t('bankRef')}</span><input class="input mono" id="rf_r"></label><button class="btn pri" data-act="refundDo" data-id="${r.id}">${t('refundMark')}</button></div>`
+        : `<button class="btn sm pri" data-act="refundForm" data-id="${r.id}">${t('refundMark')}</button>`) : `<span class="pill p-pending">${t('refundOwedL')}</span>`}</div>`).join('')}</div></section>`;
   }
   function startCo(id) {
     const b = S.bookings.find(x => x.id === id), ch = CHM()[b.ch];
@@ -1721,17 +1960,33 @@ const ACTIONS = {
   const verifyLabel = (b, c) => b && b.status === 'pending' && Core.paidOf(b) + (c ? c.amt : 0) >= (b.deposit_due || 0) ? t('verifyAccept') : t('verify');
   async function showSlip(cid) {
     const c = S.claims.find(x => x.id === cid); if (!c) return;
-    const b = S.bookings.find(x => x.id === c.bk) || { guest: {} };
+    const b = S.bookings.find(x => x.id === c.bk) || { guest: {} }, deciding = c.status === 'pending' && can('frontdesk', 'accountant', 'manager');
     V.modal = { k: 'slip', id: cid };
     const head = `<div class="mh"><div><h2>${t('slip')} · ${kip(c.amt)}</h2><p>${esc(b.guest.name)} · <span class="mono">${b.id} · ${esc(b.code || '')}</span> · ${tfm(c.at)}</p></div><button class="btn ghost" data-act="closeModal" aria-label="${esc(t('close'))}">✕</button></div>`;
-    const foot = c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<div class="actions"><button class="btn bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button><button class="btn pri" data-act="claimOk" data-id="${c.id}">${verifyLabel(b, c)} · ${kip(c.amt)}</button></div>` : '';
-    const st = b.status === 'pending' ? `<div class="note warn" style="margin:0">${t('slipPendingBk')}</div>` : '';
-    openModal(`${head}<div class="slipview"><div class="empty">${t('loading')}</div></div><p class="small muted" style="margin:0">${t('slipCheck')}</p>${st}${foot}`);
+    const due = b.rate ? b.rate * nightsOf(b) - Core.paidOf(b) : 0;
+    const info = `<div class="facts"><div class="fact"><label>${t('slipAmt')}</label><b>${kip(c.amt)}</b></div><div class="fact"><label>${t('bkDue')}</label><b>${kip(Math.max(0, due))}</b></div>
+      <div class="fact"><label>${t('status')}</label><b>${stPill(b.status || 'pending')}</b></div>${c.status !== 'pending' ? `<div class="fact"><label>${t('decidedBy')}</label><b>${esc(c.decider || '—')}${c.bank_ref ? ` · <span class="mono">${esc(c.bank_ref)}</span>` : ''}</b></div>` : ''}</div>`;
+    const form = deciding ? `<div class="card stack" style="border-color:var(--accent)"><h3 style="margin:0">${t('verifyTitle')}</h3>
+      <ol class="small" style="margin:0;padding-left:18px">${t('verifySteps', { a: kip(c.amt) })}</ol>
+      <label class="field"><span>${t('bankRef')}</span><input class="input mono" id="sv_ref" autocomplete="off" placeholder="${esc(t('bankRefPh'))}"></label>
+      <label class="check"><input type="checkbox" id="sv_ok"> ${t('verifyTick', { a: kip(c.amt) })}</label>
+      ${b.status === 'pending' ? `<div class="note warn" style="margin:0">${t('slipPendingBk')}</div>` : ''}
+      <div id="sv_msg"></div>
+      <div class="actions"><button class="btn bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button><button class="btn pri" data-act="claimOk" data-id="${c.id}" disabled>${verifyLabel(b, c)} · ${kip(c.amt)}</button></div></div>` : '';
+    openModal(`${head}${info}<div class="slipview"><div class="empty">${t('loading')}</div></div><p class="small muted" style="margin:0">${t('slipCheck')}</p>${form}`);
     try {
-      const url = await API.slipUrl(c.slip);
+      // opening the slip is what records "seen by"; the database refuses approval from someone who has not opened it
+      const url = await API.openSlip(cid);
       const box = $('#modal .slipview'); if (box && V.modal && V.modal.id === cid) box.innerHTML = `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${esc(t('slip'))}"></a>`;
+      const okBtn = $('#modal [data-act=claimOk]'); if (okBtn) okBtn.dataset.seen = '1';
+      syncVerifyBtn();
     } catch (e) { const box = $('#modal .slipview'); if (box) box.innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
   }
+  function syncVerifyBtn() {
+    const okBtn = $('#modal [data-act=claimOk]'); if (!okBtn) return;
+    okBtn.disabled = !(okBtn.dataset.seen === '1' && ($('#sv_ref') || {}).value && $('#sv_ref').value.trim().length >= 3 && ($('#sv_ok') || {}).checked);
+  }
+
 
   // ---------- new booking ----------
   function nbForm(room, d) {
@@ -1775,6 +2030,23 @@ const ACTIONS = {
 
   // ---------- guests ----------
   function vGuests() {
+    const tabs = `<div class="tabs" role="tablist"><button class="${V.gTab === 'members' ? 'on' : ''}" data-act="gTab" data-t="members">${t('members')} <em class="badge">${(S.members || []).length}</em></button><button class="${V.gTab === 'all' ? 'on' : ''}" data-act="gTab" data-t="all">${t('allGuests')}</button></div>`;
+    if (V.gTab === 'members') return tabs + membersList();
+    return tabs + guestsAll();
+  }
+  function membersList() {
+    const q = V.gQ.trim().toLowerCase();
+    const ms = (S.members || []).filter(m => !q || (m.name || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q) || (m.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '') || '§'));
+    const rows = ms.map(m => {
+      const bs = S.bookings.filter(b => b.member === m.id), act = bs.filter(b => ['pending', 'confirmed', 'inhouse'].includes(b.status)).length, paid = bs.reduce((x, b) => x + Core.paidOf(b), 0);
+      const open = V.gSel === m.id;
+      return `<tr class="click" data-act="gOpen" data-id="${esc(m.id)}"><td><b>${esc(m.name)}</b><div class="small faint">${esc(m.email || '')}</div></td><td class="tnum">${esc(m.phone || '')}</td><td>${nm(COUNTRIES[m.country] || COUNTRIES.OT)}</td><td class="tnum small">${tfm(m.since)}</td><td class="n">${bs.length}</td><td class="n">${act}</td><td class="n">${fm(paid)}</td></tr>
+        ${open ? `<tr><td colspan="7" style="background:var(--surface-2)">${bs.length ? `<table class="t"><tbody>${bs.slice().sort((a, b) => (b.createdAt || b.created || '') > (a.createdAt || a.created || '') ? 1 : -1).map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td class="mono small">${b.id} · ${esc(b.code)}</td><td>${typeName(b.type)}</td><td class="tnum">${dsh(b.ci)} → ${dsh(b.co)}</td><td>${stPill(b.status)}</td><td class="n">${fm(b.rate * nightsOf(b))}</td><td class="n">${fm(Core.paidOf(b))}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">${t('none')}</div>`}</td></tr>` : ''}`;
+    }).join('');
+    return `<div class="toolbar"><input class="input" id="gq" data-in="gq" placeholder="${esc(t('memberSearch'))}" value="${esc(V.gQ)}" style="max-width:360px"></div>
+    <div class="card tablewrap" id="gtable">${ms.length ? `<table class="t"><thead><tr><th>${t('guest')}</th><th>${t('phone')}</th><th>${t('country')}</th><th>${t('memberSince')}</th><th class="n">${t('nav_bk')}</th><th class="n">${t('activeBk')}</th><th class="n">${t('paid')}</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">${t('noMembers')}</div>`}</div>`;
+  }
+  function guestsAll() {
     const map = new Map();
     for (const b of S.bookings) {
       const key = (b.guest.phone || '').replace(/\D/g, '').slice(-8) || b.guest.name.toLowerCase();
@@ -2039,6 +2311,9 @@ const ACTIONS = {
       <label class="field"><span>${t('depositPct')}</span><input class="input" type="number" id="s_dep" min="0" max="100" value="${s.deposit_pct}"></label>
       <label class="field"><span>${t('directDisc')}</span><input class="input" type="number" id="s_dd" min="0" max="50" value="${s.direct_discount}"></label>
       <label class="field"><span>${t('freeCancel')}</span><input class="input" type="number" id="s_fc" min="0" max="60" value="${s.free_cancel_days}"></label>
+      <label class="field"><span>${t('cxlCutoff')}</span><input class="input" type="number" id="s_cxh" min="0" max="72" value="${s.cancel_cutoff_hours ?? 3}"></label>
+      <label class="field"><span>${t('cxlRefund')}</span><input class="input" type="number" id="s_cxp" min="0" max="100" value="${s.cancel_refund_pct ?? 80}"></label>
+      <label class="field"><span>${t('holdHours')}</span><input class="input" type="number" id="s_hold" min="1" max="168" value="${s.pending_hold_hours ?? 24}"></label>
       <label class="check full"><input type="checkbox" id="s_incl" ${s.incl ? 'checked' : ''}> ${t('inclVat')}</label></div>
       <p class="small muted" style="margin:0">${t('vatChangeNote')}</p>
       <h3 style="font-size:14.5px">${t('payQr')}</h3>
@@ -2098,13 +2373,25 @@ const ACTIONS = {
     addPay: async d => { const a = Math.round(+$('#pf_a').value || 0); if (a <= 0) return toast(t('errAmt')); try { await act('payment', d.id, $('#pf_m').value, a, $('#pf_r').value.trim()); render(); showBk(d.id); } catch (e) { } },
     viewSlip: d => showSlip(+d.id),
     claimOk: async d => {
-      const inSlip = V.modal && V.modal.k === 'slip', c = S.claims.find(x => x.id === +d.id), wasPend = c && (S.bookings.find(b => b.id === c.bk) || {}).status === 'pending';
-      try { await act('verifyClaim', +d.id, true, 'qr'); if (inSlip) closeModal(); render(); reopen();
+      const c = S.claims.find(x => x.id === +d.id), wasPend = c && (S.bookings.find(b => b.id === c.bk) || {}).status === 'pending';
+      const ref = ($('#sv_ref') || {}).value || '', box = $('#sv_msg');
+      if (!($('#sv_ok') || {}).checked || ref.trim().length < 3) { if (box) box.innerHTML = `<div class="note bad">${t('e_bank_ref_required')}</div>`; return; }
+      try {
+        await API.act('verifyClaim', +d.id, true, 'qr', ref.trim());
+        await refresh(); closeModal(); render(); reopen();
         const now = c && S.bookings.find(b => b.id === c.bk);
-        toast(wasPend && now && now.status === 'confirmed' ? t('bkAccepted') : wasPend ? t('stillShort') : t('posted')); } catch (e) { }
+        toast(wasPend && now && now.status === 'confirmed' ? t('bkAccepted') : wasPend ? t('stillShort') : t('posted'));
+      } catch (e) { if (box) box.innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
     },
+    claimNo: async d => { const inSlip = V.modal && V.modal.k === 'slip'; const note = ($('#sv_ref') || {}).value || ''; try { await act('verifyClaim', +d.id, false, 'qr', note.trim()); if (inSlip) closeModal(); render(); reopen(); } catch (e) { } },
+    refundForm: d => { V.refundAsk = +d.id; render(); reopen(); },
+    refundDo: async d => {
+      const m = ($('#rf_m') || {}).value || 'transfer', ref = (($('#rf_r') || {}).value || '').trim();
+      try { await act('refundPaid', +d.id, m, ref); V.refundAsk = null; render(); reopen(); toast(t('refundRecorded')); } catch (e) { }
+    },
+    gTab: d => { V.gTab = d.t; V.gSel = null; render(); },
+    gOpen: d => { V.gSel = V.gSel === d.id ? null : d.id; render(); },
     acceptBk: async d => { try { await act('acceptBooking', d.id); render(); reopen(); toast(t('bkAccepted')); } catch (e) { } },
-    claimNo: async d => { const inSlip = V.modal && V.modal.k === 'slip'; try { await act('verifyClaim', +d.id, false); if (inSlip) closeModal(); render(); reopen(); } catch (e) { } },
     setHk: async d => { try { await act('setHk', d.r, d.s); render(); } catch (e) { } },
     atab: d => { V.acctTab = d.t; if (d.t === 'close' && V.period === 'all') V.period = S.bizDate.slice(0, 7); V.jeLimit = 50; render(); },
     moreJe: () => { V.jeLimit += 100; render(); },
@@ -2143,7 +2430,7 @@ const ACTIONS = {
       try { navigator.clipboard.writeText(tsv).then(() => toast(t('copied')), fail); } catch (e) { fail(); }
     },
     saveSet: async () => {
-      const p = { hotel: $('#s_name').value.trim() || S.settings.hotel, address: $('#s_addr').value.trim(), phone: $('#s_phone').value.trim(), email: $('#s_email').value.trim(), vat: Math.max(0, Math.min(30, +$('#s_vat').value || 0)), incl: $('#s_incl').checked, deposit_pct: +$('#s_dep').value || 0, direct_discount: +$('#s_dd').value || 0, free_cancel_days: +$('#s_fc').value || 0, close: { depr: +$('#s_c_depr').value || 0, sal: +$('#s_c_sal').value || 0, int: +$('#s_c_int').value || 0 } };
+      const p = { hotel: $('#s_name').value.trim() || S.settings.hotel, address: $('#s_addr').value.trim(), phone: $('#s_phone').value.trim(), email: $('#s_email').value.trim(), vat: Math.max(0, Math.min(30, +$('#s_vat').value || 0)), incl: $('#s_incl').checked, deposit_pct: +$('#s_dep').value || 0, direct_discount: +$('#s_dd').value || 0, free_cancel_days: +$('#s_fc').value || 0, cancel_cutoff_hours: Math.max(0, Math.min(72, +$('#s_cxh').value || 0)), cancel_refund_pct: Math.max(0, Math.min(100, +$('#s_cxp').value || 0)), pending_hold_hours: Math.max(1, Math.min(168, +$('#s_hold').value || 24)), close: { depr: +$('#s_c_depr').value || 0, sal: +$('#s_c_sal').value || 0, int: +$('#s_c_int').value || 0 } };
       try { await act('saveSettings', p); render(); toast(t('saved')); } catch (e) { }
     },
     staffAdd: async () => { const e = $('#st_e').value.trim(), n = $('#st_n').value.trim(); if (!e || !n) return toast(t('errName')); try { await act('saveStaff', { email: e, name: n, role: $('#st_r').value }); render(); toast(t('saved')); } catch (er) { } },
@@ -2159,6 +2446,7 @@ const ACTIONS = {
     catch (er) { $('#lg_msg').innerHTML = `<div class="note bad">${esc(errText(er))}</div>`; }
   });
   document.addEventListener('input', e => {
+    if (e.target.id === 'sv_ref') syncVerifyBtn();
     const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;
     if (k === 'bkq') { V.bkQ = el.value; $('#bktable').innerHTML = bkRows(); }
     else if (k === 'gq') { V.gQ = el.value; const pos = el.selectionStart; render(); const i = $('#gq'); i.focus(); i.setSelectionRange(pos, pos); }
@@ -2166,6 +2454,7 @@ const ACTIONS = {
     else if (k === 'jer') { V.jeRows[+el.dataset.i][el.dataset.f] = el.value; jeTotals(); }
   });
   document.addEventListener('change', async e => {
+    if (e.target.id === 'sv_ok' || e.target.id === 'sv_ref') syncVerifyBtn();
     const el = e.target, k = el.dataset && el.dataset.in;
     if (el.id === 's_qr') {
       const f = el.files && el.files[0]; if (!f) return;
