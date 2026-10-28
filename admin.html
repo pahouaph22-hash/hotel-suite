@@ -318,6 +318,16 @@ body.busy .btn{pointer-events:none}
 
 .login-card a{color:var(--accent)}
 
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+.slipview{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;justify-content:center;min-height:200px;align-items:center}
+.slipview img{max-width:100%;max-height:64vh;display:block;border-radius:6px}
+.qrset{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}
+.qrset img,.qrnone{width:160px;height:160px;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:#fff;flex:none}
+.qrnone{display:grid;place-items:center;color:var(--faint);font-size:13px;background:var(--surface-2)}
+.qrset .stack{flex:1 1 220px;min-width:0}
+.row label.btn{cursor:pointer}
+.row:focus-within label.btn{outline:2px solid var(--accent);outline-offset:2px}
+
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
@@ -342,9 +352,9 @@ const CATALOG = {
     check_in_time: '14:00', check_out_time: '12:00',
     vat_rate: 10, prices_incl_vat: true, deposit_pct: 30, direct_discount: 5, free_cancel_days: 3,
     payment_note: {
-      lo: 'ສະແກນ QR ດ້ວຍແອັບທະນາຄານ (BCEL OnePay ຫຼື LAO QR) ແລ້ວແຈ້ງເລກອ້າງອີງການໂອນ. ພະນັກງານຈະກວດ ແລະ ຢືນຢັນພາຍໃນ 2 ຊົ່ວໂມງ (08:00–22:00).',
-      th: 'สแกน QR ด้วยแอปธนาคาร (BCEL OnePay หรือ LAO QR) แล้วแจ้งเลขอ้างอิงการโอน พนักงานจะตรวจสอบและยืนยันภายใน 2 ชั่วโมง (08:00–22:00)',
-      en: 'Scan the QR with your banking app (BCEL OnePay or LAO QR), then send us the transfer reference. Our team checks it and confirms within 2 hours (08:00–22:00).'
+      lo: 'ສະແກນ QR ດ້ວຍແອັບທະນາຄານ (BCEL OnePay ຫຼື LAO QR) ແລ້ວອັບໂຫຼດຮູບສະລິບການໂອນ. ພະນັກງານຈະກວດ ແລະ ຢືນຢັນພາຍໃນ 2 ຊົ່ວໂມງ (08:00–22:00).',
+      th: 'สแกน QR ด้วยแอปธนาคาร (BCEL OnePay หรือ LAO QR) แล้วอัปโหลดรูปสลิปการโอน พนักงานจะตรวจสอบและยืนยันภายใน 2 ชั่วโมง (08:00–22:00)',
+      en: 'Scan the QR with your banking app (BCEL OnePay or LAO QR), then upload a picture of the transfer slip. Our team checks it and confirms within 2 hours (08:00–22:00).'
     },
     close_amounts: { depr: 47083333, sal: 52000000, int: 13333333 }
   },
@@ -532,7 +542,7 @@ const Core = (function () {
     const s = S.settings;
     return {
       hotel: { name: s.hotel, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
-        check_out_time: s.check_out_time, deposit_pct: s.deposit_pct, direct_discount: s.direct_discount, free_cancel_days: s.free_cancel_days, payment_note: s.payment_note,
+        check_out_time: s.check_out_time, deposit_pct: s.deposit_pct, direct_discount: s.direct_discount, free_cancel_days: s.free_cancel_days, payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null,
         vat_rate: s.vat, prices_incl_vat: s.incl, business_date: S.bizDate },
       types: S.types.filter(t => t.active).sort((a, b) => a.sort - b.sort).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, base_rate: t.rate, direct_rate: directRate(t.rate), size_m2: t.size, bed: t.bed, amenities: t.amenities })),
       amenities: S.amenities.map(a => ({ id: a.id, icon: a.icon, name: a.name }))
@@ -565,12 +575,13 @@ const Core = (function () {
     return { code: b.code, status: b.status, ci: b.ci, co: b.co, nights: nightsOf(b), type: t.name, adults: b.adults, rate: b.rate, total: b.rate * nightsOf(b), guest: b.guest.name,
       deposit_due: b.deposit_due || 0, paid: paidOf(b), pending_claims: S.claims.filter(c => c.bk === b.id && c.status === 'pending').reduce((s, c) => s + c.amt, 0) };
   }
-  function claim(code, phone, amount, ref) {
+  function claim(code, phone, amount, ref, slip) {
     const b = findGuestBooking(code, phone); if (!b) fail('not_found');
     if (b.status !== 'confirmed') fail('not_payable');
     amount = Math.round(+amount); if (!(amount > 0) || amount > b.rate * nightsOf(b)) fail('invalid_amount');
     if (S.claims.filter(c => c.bk === b.id && c.status === 'pending').length >= 3) fail('too_many_claims');
-    S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: amount, ref: String(ref || '').slice(0, 80), status: 'pending', at: new Date().toISOString() });
+    if (!slip || !(String(slip).startsWith('data:image/'))) fail('slip_required');
+    S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: amount, ref: String(ref || '').slice(0, 80), slip, status: 'pending', at: new Date().toISOString() });
     const me = S.me; S.me = null; log('claim.create', b.id, { amount, ref }); S.me = me;
     return { ok: true };
   }
@@ -857,7 +868,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|Invalid login credentials)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|Invalid login credentials)/);
     const err = new Error(known ? known[1] : m); err.code = known ? (known[1] === 'Invalid login credentials' ? 'bad_login' : known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
     return err;
@@ -877,6 +888,9 @@ const API = (function () {
     catch (e) { S.me = null; demoLoad(); return Promise.reject(toErr(e)); }   // reload drops any half-applied change
   }
 
+  function blobToDataURL(blob) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(r.error); r.readAsDataURL(blob); }); }
+  function uuid() { if (crypto.randomUUID) return crypto.randomUUID(); const b = crypto.getRandomValues(new Uint8Array(16)); b[6] = b[6] & 15 | 64; b[8] = b[8] & 63 | 128; const h = [...b].map(x => x.toString(16).padStart(2, '0')).join(''); return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`; }
+
   // ---------- supabase ----------
   function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('network')); document.head.appendChild(s); }); }
   async function client() {
@@ -893,7 +907,7 @@ const API = (function () {
       live: true, me: x.me, bizDate: s.business_date,
       settings: { hotel: s.hotel_name, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
         check_out_time: s.check_out_time, vat: +s.vat_rate, incl: s.prices_incl_vat, deposit_pct: +s.deposit_pct, direct_discount: +s.direct_discount, free_cancel_days: s.free_cancel_days,
-        payment_note: s.payment_note, close: s.close_amounts },
+        payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null, close: s.close_amounts },
       accounts: Object.fromEntries((x.accounts || []).map(a => [a.code, [a.type, a.name]])),
       types: (x.types || []).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, rate: +t.base_rate, size: t.size_m2, bed: t.bed, amenities: t.amenities || [], sort: t.sort, active: t.active })),
       rooms: (x.rooms || []).map(r => ({ no: r.no, type: r.type_id, floor: r.floor, hk: r.hk_status, note: r.note || '', active: r.active })),
@@ -932,7 +946,7 @@ const API = (function () {
     if (fn.op === 'saveRoom') { const r = fn.arg; const { error } = await c.from('rooms').upsert({ no: r.no, type_id: r.type, floor: r.floor, note: r.note || null, active: r.active !== false }); if (error) throw toErr(error); }
     if (fn.op === 'savePromo') { const p = fn.arg; const { error } = await c.from('promo_codes').upsert({ code: String(p.code).toUpperCase(), pct: p.pct, active: p.active !== false, valid_to: p.valid_to || null }); if (error) throw toErr(error); }
     if (fn.op === 'saveSettings') {
-      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url' };
+      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url' };
       const row = {}; for (const k in p) if (m[k]) row[m[k]] = p[k];
       const { error } = await c.from('settings').update(row).eq('id', 1); if (error) throw toErr(error);
     }
@@ -947,7 +961,28 @@ const API = (function () {
     book: p => LIVE ? rpc('public_book', { p }) : demoRun(() => Core.publicBook(p)),
     promo: code => LIVE ? rpc('public_promo', { p_code: code }) : demoRun(() => Core.promoPct(code)),
     lookup: (code, phone) => LIVE ? rpc('public_lookup', { p_code: code, p_phone: phone }) : demoRun(() => Core.lookup(code, phone)),
-    claim: (code, phone, amt, ref) => LIVE ? rpc('public_claim', { p_code: code, p_phone: phone, p_amount: amt, p_ref: ref }) : demoRun(() => Core.claim(code, phone, amt, ref)),
+    claim: (code, phone, amt, ref, slip) => LIVE ? rpc('public_claim', { p_code: code, p_phone: phone, p_amount: amt, p_ref: ref || null, p_slip: slip }) : demoRun(() => Core.claim(code, phone, amt, ref, slip)),
+    // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
+    async uploadSlip(code, blob) {
+      if (!LIVE) return await blobToDataURL(blob);
+      const c = await client(), path = String(code).toUpperCase() + '/' + uuid() + '.jpg';
+      const { error } = await c.storage.from('slips').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw toErr(error.message && /row-level security|policy/i.test(error.message) ? 'not_payable' : error);
+      return path;
+    },
+    async slipUrl(ref) {
+      if (!ref) return null;
+      if (!LIVE || String(ref).startsWith('data:')) return ref;
+      const c = await client(); const { data, error } = await c.storage.from('slips').createSignedUrl(ref, 600);
+      if (error) throw toErr(error); return data.signedUrl;
+    },
+    async uploadQr(blob, type) {
+      if (!LIVE) return await blobToDataURL(blob);
+      const c = await client(), ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg', path = 'qr/' + uuid() + '.' + ext;
+      const { error } = await c.storage.from('hotel-public').upload(path, blob, { contentType: type, upsert: false });
+      if (error) throw toErr(/row-level security|policy/i.test(error.message || '') ? 'permission_denied' : error);
+      return c.storage.from('hotel-public').getPublicUrl(path).data.publicUrl;
+    },
     // ---- staff ----
     async session() {
       if (LIVE) { const c = await client(); const { data } = await c.auth.getSession(); if (!data.session) return null; return await rpc('me'); }
@@ -1282,6 +1317,14 @@ Object.assign(TX, {
   e_bad_login: ['ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກ', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'Email or password is wrong'], e_not_staff: ['ບັນຊີນີ້ບໍ່ແມ່ນພະນັກງານ', 'บัญชีนี้ไม่ใช่พนักงาน', 'This login is not on the staff list'],
   e_user_not_found: ['ບໍ່ພົບບັນຊີນີ້ໃນ Supabase Auth', 'ไม่พบบัญชีนี้ใน Supabase Auth', 'No such login in Supabase Auth'],
   e_cannot_void: ['ລາຍການນີ້ຍົກເລີກບໍ່ໄດ້', 'รายการนี้ยกเลิกไม่ได้', 'This line cannot be voided'], e_future_date: ['ວັນທີຕ້ອງບໍ່ເກີນວັນທີທຸລະກິດ', 'วันที่ต้องไม่เกินวันที่ทำการ', 'The date cannot be after the business date'],
+  slip: ['ສະລິບການໂອນ', 'สลิปการโอน', 'Transfer slip'], viewSlip: ['ເບິ່ງສະລິບ', 'ดูสลิป', 'View slip'],
+  slipCheck: ['ກວດຊື່ຜູ້ຮັບ, ຈຳນວນເງິນ ແລະ ວັນທີໃນສະລິບ ກັບລາຍການເງິນເຂົ້າໃນບັນຊີທະນາຄານ ກ່ອນກົດຢືນຢັນ.', 'ตรวจชื่อผู้รับ จำนวนเงิน และวันที่ในสลิป กับรายการเงินเข้าในบัญชีธนาคาร ก่อนกดยืนยัน', 'Match the payee, amount and date on the slip against the money received in the bank account before confirming.'],
+  payQr: ['QR ຮັບເງິນຂອງໂຮງແຮມ', 'QR รับเงินของโรงแรม', 'Hotel payment QR'],
+  payQrHint: ['ຮູບ QR ຈາກແອັບທະນາຄານຂອງໂຮງແຮມ (BCEL OnePay / LAO QR). ແຂກຈະເຫັນ QR ນີ້ຕອນຈ່າຍມັດຈຳ.', 'รูป QR จากแอปธนาคารของโรงแรม (BCEL OnePay / LAO QR) แขกจะเห็น QR นี้ตอนจ่ายมัดจำ', "The QR image from the hotel's banking app (BCEL OnePay / LAO QR). Guests see it when paying the deposit."],
+  payQrNone: ['ຍັງບໍ່ມີ QR', 'ยังไม่มี QR', 'No QR yet'], payQrUpload: ['ອັບໂຫຼດ QR', 'อัปโหลด QR', 'Upload QR'], payQrReplace: ['ປ່ຽນ QR', 'เปลี่ยน QR', 'Replace QR'],
+  payQrRemove: ['ລຶບ QR', 'ลบ QR', 'Remove QR'], payQrType: ['ກະລຸນາເລືອກຮູບ PNG, JPG ຫຼື WEBP', 'กรุณาเลือกรูป PNG, JPG หรือ WEBP', 'Choose a PNG, JPG or WEBP image'],
+  payQrBig: ['ຮູບໃຫຍ່ເກີນ 3 MB', 'รูปใหญ่เกิน 3 MB', 'Image is larger than 3 MB'],
+  e_slip_required: ['ບໍ່ມີສະລິບ', 'ไม่มีสลิป', 'No slip attached'],
   e_unknown: ['ເກີດຂໍ້ຜິດພາດ: {m}', 'เกิดข้อผิดพลาด: {m}', 'Something went wrong: {m}']
 });
 Object.assign(DESC, {
@@ -1524,8 +1567,8 @@ const ACTIONS = {
   function claimsList() {
     const pc = pendingClaims();
     if (!pc.length) return `<div class="empty">${t('none')}</div>`;
-    return `<p class="note" style="margin:0 0 10px">${t('claimsHint')}</p><div class="tablewrap"><table class="t"><thead><tr><th>${t('when')}</th><th>${t('guest')}</th><th>${t('code')}</th><th>${t('ref')}</th><th class="n">${t('amount')}</th><th></th></tr></thead><tbody>
-      ${pc.map(c => { const b = S.bookings.find(x => x.id === c.bk) || { guest: {} }; return `<tr><td class="tnum small">${tfm(c.at)}</td><td>${esc(b.guest.name)}<div class="small faint">${esc(b.guest.phone || '')}</div></td><td class="mono small"><button class="btn sm ghost mono" data-act="openBk" data-id="${b.id}">${b.id} · ${esc(b.code || '')}</button></td><td class="mono">${esc(c.ref || '—')}</td><td class="n"><b>${fm(c.amt)}</b></td>
+    return `<p class="note" style="margin:0 0 10px">${t('claimsHint')}</p><div class="tablewrap"><table class="t"><thead><tr><th>${t('when')}</th><th>${t('guest')}</th><th>${t('code')}</th><th>${t('slip')}</th><th class="n">${t('amount')}</th><th></th></tr></thead><tbody>
+      ${pc.map(c => { const b = S.bookings.find(x => x.id === c.bk) || { guest: {} }; return `<tr><td class="tnum small">${tfm(c.at)}</td><td>${esc(b.guest.name)}<div class="small faint">${esc(b.guest.phone || '')}</div></td><td class="mono small"><button class="btn sm ghost mono" data-act="openBk" data-id="${b.id}">${b.id} · ${esc(b.code || '')}</button></td><td>${c.slip ? `<button class="btn sm" data-act="viewSlip" data-id="${c.id}">${t('viewSlip')}</button>` : `<span class="mono small faint">${esc(c.ref || '—')}</span>`}</td><td class="n"><b>${fm(c.amt)}</b></td>
         <td><div class="row" style="justify-content:flex-end">${can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="claimOk" data-id="${c.id}">${t('verify')}</button><button class="btn sm bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button>` : ''}</div></td></tr>`; }).join('')}</tbody></table></div>`;
   }
   function vBk() {
@@ -1573,7 +1616,7 @@ const ACTIONS = {
     ${b.request ? `<div class="note"><b>${t('request')}:</b> ${esc(b.request)}</div>` : ''}
     ${held ? `<div class="note">${t('deposit')}: ${kip(held)} — ${t('depositHeld')} (2150)${b.status === 'confirmed' ? ' · ' + t('freeCancelUntil', { d: dfm(freeUntil) }) : ''}</div>` : ''}
     ${b.status === 'confirmed' && b.deposit_due && !held ? `<div class="note warn">${t('depositDue')}: ${kip(b.deposit_due)}</div>` : ''}
-    ${claims.length ? `<section><h4>${t('claims')}</h4><div class="list">${claims.map(c => `<div class="li"><div class="who"><b class="tnum">${kip(c.amt)} · <span class="mono">${esc(c.ref || '—')}</span></b><span>${tfm(c.at)}</span></div>${c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="claimOk" data-id="${c.id}">${t('verify')}</button><button class="btn sm bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button>` : `<span class="pill ${c.status === 'verified' ? 'p-inhouse' : c.status === 'pending' ? 'p-confirmed' : 'p-cancelled'}">${c.status === 'verified' ? t('verify') : c.status === 'pending' ? t('claims') : t('reject')}</span>`}</div>`).join('')}</div></section>` : ''}
+    ${claims.length ? `<section><h4>${t('claims')}</h4><div class="list">${claims.map(c => `<div class="li"><div class="who"><b class="tnum">${kip(c.amt)}${c.ref ? ` · <span class="mono">${esc(c.ref)}</span>` : ''}</b><span>${tfm(c.at)}</span></div>${c.slip ? `<button class="btn sm" data-act="viewSlip" data-id="${c.id}">${t('viewSlip')}</button>` : ''}${c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="claimOk" data-id="${c.id}">${t('verify')}</button><button class="btn sm bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button>` : `<span class="pill ${c.status === 'verified' ? 'p-inhouse' : c.status === 'pending' ? 'p-confirmed' : 'p-cancelled'}">${c.status === 'verified' ? t('verify') : c.status === 'pending' ? t('claims') : t('reject')}</span>`}</div>`).join('')}</div></section>` : ''}
     <section><h4>${t('folio')}</h4><div class="tablewrap"><table class="t"><thead><tr><th>${t('date')}</th><th>${t('desc')}</th><th class="n">VAT</th><th class="n">${t('amount')}</th><th></th></tr></thead><tbody>
     ${b.folio.map(f => `<tr class="${f.voids || voidedIds.has(f.id) ? 'struck' : ''}"><td class="tnum">${dsh(f.date)}</td><td>${descText(f.desc)} <span class="faint small">${nm(KIND[f.kind])}</span>${voidedIds.has(f.id) ? ` <span class="pill p-cancelled">${t('voided')}</span>` : ''}</td><td class="n faint">${fm(f.vat)}</td><td class="n">${fm(f.gross)}</td>
       <td class="n">${can('manager') && b.status === 'inhouse' && !f.voids && !voidedIds.has(f.id) ? `<button class="btn sm ghost" data-act="voidAsk" data-b="${b.id}" data-f="${f.id}">${t('voidIt')}</button>` : ''}</td></tr>`).join('') || `<tr><td colspan="5" class="empty">${b.status === 'confirmed' ? fm(b.rate) + ' × ' + nightsOf(b) : t('none')}</td></tr>`}
@@ -1599,6 +1642,20 @@ const ACTIONS = {
     const collect = bal - ota;
     showBk(id, `<div class="card stack" style="border-color:var(--accent)"><h3 style="margin:0">${t('checkOut')} · ${t('room')} ${b.room}</h3>${info}
       <div class="inline-form p3"><div class="field"><span>${collect >= 0 ? t('collect') : t('refund')}</span><b class="big-insight" style="font-size:20px">${kip(Math.abs(collect))}</b></div><label class="field"><span>${t('payMethod')}</span><select class="input" id="co_m">${Object.keys(PM).map(k => `<option value="${k}">${nm(PM[k])}</option>`).join('')}</select></label><button class="btn pri" data-act="doCo" data-id="${b.id}">${t('confirm')}</button></div></div>`);
+  }
+
+  // ---------- slip viewer ----------
+  async function showSlip(cid) {
+    const c = S.claims.find(x => x.id === cid); if (!c) return;
+    const b = S.bookings.find(x => x.id === c.bk) || { guest: {} };
+    V.modal = { k: 'slip', id: cid };
+    const head = `<div class="mh"><div><h2>${t('slip')} · ${kip(c.amt)}</h2><p>${esc(b.guest.name)} · <span class="mono">${b.id} · ${esc(b.code || '')}</span> · ${tfm(c.at)}</p></div><button class="btn ghost" data-act="closeModal" aria-label="${esc(t('close'))}">✕</button></div>`;
+    const foot = c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<div class="actions"><button class="btn bad" data-act="claimNo" data-id="${c.id}">${t('reject')}</button><button class="btn pri" data-act="claimOk" data-id="${c.id}">${t('verify')} ${kip(c.amt)}</button></div>` : '';
+    openModal(`${head}<div class="slipview"><div class="empty">${t('loading')}</div></div><p class="small muted" style="margin:0">${t('slipCheck')}</p>${foot}`);
+    try {
+      const url = await API.slipUrl(c.slip);
+      const box = $('#modal .slipview'); if (box && V.modal && V.modal.id === cid) box.innerHTML = `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(url)}" alt="${esc(t('slip'))}"></a>`;
+    } catch (e) { const box = $('#modal .slipview'); if (box) box.innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
   }
 
   // ---------- new booking ----------
@@ -1909,6 +1966,10 @@ const ACTIONS = {
       <label class="field"><span>${t('freeCancel')}</span><input class="input" type="number" id="s_fc" min="0" max="60" value="${s.free_cancel_days}"></label>
       <label class="check full"><input type="checkbox" id="s_incl" ${s.incl ? 'checked' : ''}> ${t('inclVat')}</label></div>
       <p class="small muted" style="margin:0">${t('vatChangeNote')}</p>
+      <h3 style="font-size:14.5px">${t('payQr')}</h3>
+      <div class="qrset">${s.payment_qr_url ? `<img src="${esc(s.payment_qr_url)}" alt="QR">` : `<div class="qrnone">${t('payQrNone')}</div>`}
+        <div class="stack"><p class="small muted" style="margin:0">${t('payQrHint')}</p>
+          <div class="row"><label class="btn" for="s_qr">${s.payment_qr_url ? t('payQrReplace') : t('payQrUpload')}</label><input type="file" id="s_qr" class="vh" accept="image/png,image/jpeg,image/webp">${s.payment_qr_url ? `<button class="btn bad" data-act="qrRemove">${t('payQrRemove')}</button>` : ''}</div></div></div>
       <h3 style="font-size:14.5px">${t('closeAmounts')}</h3>
       <div class="fgrid">${['depr', 'sal', 'int'].map(k => `<label class="field"><span>${t(k)}</span><input class="input" type="number" id="s_c_${k}" min="0" step="1000" value="${s.close[k]}"></label>`).join('')}</div>
       <div class="actions"><button class="btn pri" data-act="saveSet">${t('save')}</button></div></div>
@@ -1959,8 +2020,9 @@ const ACTIONS = {
     voidAsk: d => { V.voidAsk = { b: d.b, f: +d.f }; showBk(d.b); const i = $('#vd_r'); if (i) i.focus(); },
     voidDo: async () => { const v = V.voidAsk, r = $('#vd_r').value.trim(); try { await act('voidCharge', v.f, r); V.voidAsk = null; render(); showBk(v.b); } catch (e) { } },
     addPay: async d => { const a = Math.round(+$('#pf_a').value || 0); if (a <= 0) return toast(t('errAmt')); try { await act('payment', d.id, $('#pf_m').value, a, $('#pf_r').value.trim()); render(); showBk(d.id); } catch (e) { } },
-    claimOk: async d => { try { await act('verifyClaim', +d.id, true, 'qr'); render(); reopen(); toast(t('posted')); } catch (e) { } },
-    claimNo: async d => { try { await act('verifyClaim', +d.id, false); render(); reopen(); } catch (e) { } },
+    viewSlip: d => showSlip(+d.id),
+    claimOk: async d => { const inSlip = V.modal && V.modal.k === 'slip'; try { await act('verifyClaim', +d.id, true, 'qr'); if (inSlip) closeModal(); render(); reopen(); toast(t('posted')); } catch (e) { } },
+    claimNo: async d => { const inSlip = V.modal && V.modal.k === 'slip'; try { await act('verifyClaim', +d.id, false); if (inSlip) closeModal(); render(); reopen(); } catch (e) { } },
     setHk: async d => { try { await act('setHk', d.r, d.s); render(); } catch (e) { } },
     atab: d => { V.acctTab = d.t; if (d.t === 'close' && V.period === 'all') V.period = S.bizDate.slice(0, 7); V.jeLimit = 50; render(); },
     moreJe: () => { V.jeLimit += 100; render(); },
@@ -2004,6 +2066,7 @@ const ACTIONS = {
     },
     staffAdd: async () => { const e = $('#st_e').value.trim(), n = $('#st_n').value.trim(); if (!e || !n) return toast(t('errName')); try { await act('saveStaff', { email: e, name: n, role: $('#st_r').value }); render(); toast(t('saved')); } catch (er) { } },
     staffToggle: async d => { const u = S.staff.find(x => x.id === d.id); try { await act('saveStaff', { ...u, active: !u.active }); render(); } catch (e) { } },
+    qrRemove: async () => { try { await act('saveSettings', { payment_qr_url: null }); render(); toast(t('saved')); } catch (e) { } },
     resetAsk: () => { V.resetAsk = true; render(); }, resetNo: () => { V.resetAsk = false; render(); },
     resetYes: async () => { API.resetDemo(); V.resetAsk = false; V.calStart = null; V.period = null; V.mktMonth = null; await refresh(); render(); toast(t('saved')); }
   };
@@ -2021,7 +2084,15 @@ const ACTIONS = {
     else if (k === 'jer') { V.jeRows[+el.dataset.i][el.dataset.f] = el.value; jeTotals(); }
   });
   document.addEventListener('change', async e => {
-    const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;
+    const el = e.target, k = el.dataset && el.dataset.in;
+    if (el.id === 's_qr') {
+      const f = el.files && el.files[0]; if (!f) return;
+      if (!/^image\/(png|jpeg|webp)$/.test(f.type)) { toast(t('payQrType')); return; }
+      if (f.size > 3 * 1048576) { toast(t('payQrBig')); return; }
+      try { toast(t('loading')); const url = await API.uploadQr(f, f.type); await act('saveSettings', { payment_qr_url: url }); render(); toast(t('saved')); } catch (er) { toast(errText(er)); }
+      return;
+    }
+    if (!k) return;
     if (k === 'bkst') { V.bkSt = el.value; $('#bktable').innerHTML = bkRows(); }
     else if (k === 'bkch') { V.bkCh = el.value; $('#bktable').innerHTML = bkRows(); }
     else if (k === 'nb') nbRefresh(false);
@@ -2030,6 +2101,7 @@ const ACTIONS = {
     else if (k === 'aper') { V.period = el.value; V.jeLimit = 50; render(); }
     else if (k === 'aua') { V.auA = el.value; render(); }
     else if (k === 'jer') { V.jeRows[+el.dataset.i][el.dataset.f] = el.value; jeTotals(); }
+    else if (el.id === 's_qr') { }
     else if (k === 'staffRole') { const u = S.staff.find(x => x.id === el.dataset.id); try { await act('saveStaff', { ...u, role: el.value }); render(); } catch (er) { render(); } }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });

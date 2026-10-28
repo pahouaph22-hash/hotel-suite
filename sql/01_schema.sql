@@ -27,6 +27,7 @@ create table settings (
   direct_discount numeric(5,2) not null default 5 check (direct_discount between 0 and 50),
   free_cancel_days int not null default 3,
   payment_note jsonb not null default '{}',
+  payment_qr_url text,
   business_date date not null default current_date
 );
 
@@ -187,6 +188,7 @@ create table payment_claims (                 -- guest says "I paid by QR"; staf
   reference text,
   status text not null default 'pending' check (status in ('pending','verified','rejected')),
   payment_id bigint references payments(id),
+  slip_path text,
   decided_by uuid, decided_at timestamptz,
   created_at timestamptz not null default now()
 );

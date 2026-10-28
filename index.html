@@ -214,6 +214,24 @@ footer a{color:var(--sub)}
 
 .linkbtn{border:0;background:none;padding:0;color:var(--river);font-weight:600;text-decoration:underline;cursor:pointer;font-size:inherit}
 
+.qrimg{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
+.qrimg img,.qrimg canvas{width:180px;height:180px;object-fit:contain;image-rendering:auto;border-radius:8px;background:#fff;border:1px solid var(--line)}
+.qrimg canvas{image-rendering:pixelated}
+.qrimg .linkbtn{font-size:12.5px}
+.qrmissing{flex:1 1 200px;background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:12px;font-size:14px}
+.slipdrop{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;border:2px dashed var(--line);border-radius:14px;padding:20px 14px;cursor:pointer;color:var(--river);background:var(--mist)}
+.slipdrop:hover,.slipdrop:focus-within{border-color:var(--river)}
+.slipdrop b{color:var(--ink);font-weight:600}
+.slipdrop small{color:var(--sub);font-size:12.5px}
+.slipok{display:flex;gap:12px;align-items:center;border:1.5px solid var(--good);background:var(--good-soft);border-radius:14px;padding:10px}
+.slipok img{width:72px;height:96px;object-fit:cover;border-radius:8px;background:#fff;flex:none}
+.slipok div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.slipok b{color:var(--good)}
+.slipok small{color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slipok .linkbtn{align-self:flex-start;font-size:13px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+.field:focus-within .slipdrop{border-color:var(--river);box-shadow:0 0 0 3px var(--river-soft)}
+
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
@@ -238,9 +256,9 @@ const CATALOG = {
     check_in_time: '14:00', check_out_time: '12:00',
     vat_rate: 10, prices_incl_vat: true, deposit_pct: 30, direct_discount: 5, free_cancel_days: 3,
     payment_note: {
-      lo: 'ສະແກນ QR ດ້ວຍແອັບທະນາຄານ (BCEL OnePay ຫຼື LAO QR) ແລ້ວແຈ້ງເລກອ້າງອີງການໂອນ. ພະນັກງານຈະກວດ ແລະ ຢືນຢັນພາຍໃນ 2 ຊົ່ວໂມງ (08:00–22:00).',
-      th: 'สแกน QR ด้วยแอปธนาคาร (BCEL OnePay หรือ LAO QR) แล้วแจ้งเลขอ้างอิงการโอน พนักงานจะตรวจสอบและยืนยันภายใน 2 ชั่วโมง (08:00–22:00)',
-      en: 'Scan the QR with your banking app (BCEL OnePay or LAO QR), then send us the transfer reference. Our team checks it and confirms within 2 hours (08:00–22:00).'
+      lo: 'ສະແກນ QR ດ້ວຍແອັບທະນາຄານ (BCEL OnePay ຫຼື LAO QR) ແລ້ວອັບໂຫຼດຮູບສະລິບການໂອນ. ພະນັກງານຈະກວດ ແລະ ຢືນຢັນພາຍໃນ 2 ຊົ່ວໂມງ (08:00–22:00).',
+      th: 'สแกน QR ด้วยแอปธนาคาร (BCEL OnePay หรือ LAO QR) แล้วอัปโหลดรูปสลิปการโอน พนักงานจะตรวจสอบและยืนยันภายใน 2 ชั่วโมง (08:00–22:00)',
+      en: 'Scan the QR with your banking app (BCEL OnePay or LAO QR), then upload a picture of the transfer slip. Our team checks it and confirms within 2 hours (08:00–22:00).'
     },
     close_amounts: { depr: 47083333, sal: 52000000, int: 13333333 }
   },
@@ -428,7 +446,7 @@ const Core = (function () {
     const s = S.settings;
     return {
       hotel: { name: s.hotel, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
-        check_out_time: s.check_out_time, deposit_pct: s.deposit_pct, direct_discount: s.direct_discount, free_cancel_days: s.free_cancel_days, payment_note: s.payment_note,
+        check_out_time: s.check_out_time, deposit_pct: s.deposit_pct, direct_discount: s.direct_discount, free_cancel_days: s.free_cancel_days, payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null,
         vat_rate: s.vat, prices_incl_vat: s.incl, business_date: S.bizDate },
       types: S.types.filter(t => t.active).sort((a, b) => a.sort - b.sort).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, base_rate: t.rate, direct_rate: directRate(t.rate), size_m2: t.size, bed: t.bed, amenities: t.amenities })),
       amenities: S.amenities.map(a => ({ id: a.id, icon: a.icon, name: a.name }))
@@ -461,12 +479,13 @@ const Core = (function () {
     return { code: b.code, status: b.status, ci: b.ci, co: b.co, nights: nightsOf(b), type: t.name, adults: b.adults, rate: b.rate, total: b.rate * nightsOf(b), guest: b.guest.name,
       deposit_due: b.deposit_due || 0, paid: paidOf(b), pending_claims: S.claims.filter(c => c.bk === b.id && c.status === 'pending').reduce((s, c) => s + c.amt, 0) };
   }
-  function claim(code, phone, amount, ref) {
+  function claim(code, phone, amount, ref, slip) {
     const b = findGuestBooking(code, phone); if (!b) fail('not_found');
     if (b.status !== 'confirmed') fail('not_payable');
     amount = Math.round(+amount); if (!(amount > 0) || amount > b.rate * nightsOf(b)) fail('invalid_amount');
     if (S.claims.filter(c => c.bk === b.id && c.status === 'pending').length >= 3) fail('too_many_claims');
-    S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: amount, ref: String(ref || '').slice(0, 80), status: 'pending', at: new Date().toISOString() });
+    if (!slip || !(String(slip).startsWith('data:image/'))) fail('slip_required');
+    S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: amount, ref: String(ref || '').slice(0, 80), slip, status: 'pending', at: new Date().toISOString() });
     const me = S.me; S.me = null; log('claim.create', b.id, { amount, ref }); S.me = me;
     return { ok: true };
   }
@@ -753,7 +772,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|Invalid login credentials)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|Invalid login credentials)/);
     const err = new Error(known ? known[1] : m); err.code = known ? (known[1] === 'Invalid login credentials' ? 'bad_login' : known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
     return err;
@@ -773,6 +792,9 @@ const API = (function () {
     catch (e) { S.me = null; demoLoad(); return Promise.reject(toErr(e)); }   // reload drops any half-applied change
   }
 
+  function blobToDataURL(blob) { return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(r.error); r.readAsDataURL(blob); }); }
+  function uuid() { if (crypto.randomUUID) return crypto.randomUUID(); const b = crypto.getRandomValues(new Uint8Array(16)); b[6] = b[6] & 15 | 64; b[8] = b[8] & 63 | 128; const h = [...b].map(x => x.toString(16).padStart(2, '0')).join(''); return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`; }
+
   // ---------- supabase ----------
   function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('network')); document.head.appendChild(s); }); }
   async function client() {
@@ -789,7 +811,7 @@ const API = (function () {
       live: true, me: x.me, bizDate: s.business_date,
       settings: { hotel: s.hotel_name, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
         check_out_time: s.check_out_time, vat: +s.vat_rate, incl: s.prices_incl_vat, deposit_pct: +s.deposit_pct, direct_discount: +s.direct_discount, free_cancel_days: s.free_cancel_days,
-        payment_note: s.payment_note, close: s.close_amounts },
+        payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null, close: s.close_amounts },
       accounts: Object.fromEntries((x.accounts || []).map(a => [a.code, [a.type, a.name]])),
       types: (x.types || []).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, rate: +t.base_rate, size: t.size_m2, bed: t.bed, amenities: t.amenities || [], sort: t.sort, active: t.active })),
       rooms: (x.rooms || []).map(r => ({ no: r.no, type: r.type_id, floor: r.floor, hk: r.hk_status, note: r.note || '', active: r.active })),
@@ -828,7 +850,7 @@ const API = (function () {
     if (fn.op === 'saveRoom') { const r = fn.arg; const { error } = await c.from('rooms').upsert({ no: r.no, type_id: r.type, floor: r.floor, note: r.note || null, active: r.active !== false }); if (error) throw toErr(error); }
     if (fn.op === 'savePromo') { const p = fn.arg; const { error } = await c.from('promo_codes').upsert({ code: String(p.code).toUpperCase(), pct: p.pct, active: p.active !== false, valid_to: p.valid_to || null }); if (error) throw toErr(error); }
     if (fn.op === 'saveSettings') {
-      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url' };
+      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url' };
       const row = {}; for (const k in p) if (m[k]) row[m[k]] = p[k];
       const { error } = await c.from('settings').update(row).eq('id', 1); if (error) throw toErr(error);
     }
@@ -843,7 +865,28 @@ const API = (function () {
     book: p => LIVE ? rpc('public_book', { p }) : demoRun(() => Core.publicBook(p)),
     promo: code => LIVE ? rpc('public_promo', { p_code: code }) : demoRun(() => Core.promoPct(code)),
     lookup: (code, phone) => LIVE ? rpc('public_lookup', { p_code: code, p_phone: phone }) : demoRun(() => Core.lookup(code, phone)),
-    claim: (code, phone, amt, ref) => LIVE ? rpc('public_claim', { p_code: code, p_phone: phone, p_amount: amt, p_ref: ref }) : demoRun(() => Core.claim(code, phone, amt, ref)),
+    claim: (code, phone, amt, ref, slip) => LIVE ? rpc('public_claim', { p_code: code, p_phone: phone, p_amount: amt, p_ref: ref || null, p_slip: slip }) : demoRun(() => Core.claim(code, phone, amt, ref, slip)),
+    // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
+    async uploadSlip(code, blob) {
+      if (!LIVE) return await blobToDataURL(blob);
+      const c = await client(), path = String(code).toUpperCase() + '/' + uuid() + '.jpg';
+      const { error } = await c.storage.from('slips').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw toErr(error.message && /row-level security|policy/i.test(error.message) ? 'not_payable' : error);
+      return path;
+    },
+    async slipUrl(ref) {
+      if (!ref) return null;
+      if (!LIVE || String(ref).startsWith('data:')) return ref;
+      const c = await client(); const { data, error } = await c.storage.from('slips').createSignedUrl(ref, 600);
+      if (error) throw toErr(error); return data.signedUrl;
+    },
+    async uploadQr(blob, type) {
+      if (!LIVE) return await blobToDataURL(blob);
+      const c = await client(), ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg', path = 'qr/' + uuid() + '.' + ext;
+      const { error } = await c.storage.from('hotel-public').upload(path, blob, { contentType: type, upsert: false });
+      if (error) throw toErr(/row-level security|policy/i.test(error.message || '') ? 'permission_denied' : error);
+      return c.storage.from('hotel-public').getPublicUrl(path).data.publicUrl;
+    },
     // ---- staff ----
     async session() {
       if (LIVE) { const c = await client(); const { data } = await c.auth.getSession(); if (!data.session) return null; return await rpc('me'); }
@@ -925,8 +968,20 @@ const SX = {
   payNowT: ['ຈ່າຍມັດຈຳ {a} ເພື່ອລັອກຫ້ອງ', 'ชำระมัดจำ {a} เพื่อล็อกห้อง', 'Pay the {a} deposit to lock the room'],
   qrSample: ['QR ຕົວຢ່າງ ໃນໂໝດສາທິດ — ບໍ່ມີການຕັດເງິນແທ້', 'QR ตัวอย่างในโหมดสาธิต — ไม่มีการตัดเงินจริง', 'Sample QR in demo mode: no money moves'],
   transferRef: ['ເລກອ້າງອີງການໂອນ', 'เลขอ้างอิงการโอน', 'Transfer reference'], transferPh: ['ເຊັ່ນ ເລກທຸລະກຳ BCEL', 'เช่น เลขรายการ BCEL', 'e.g. BCEL transaction no.'],
-  sendRef: ['ແຈ້ງການໂອນ', 'แจ้งการโอน', 'Send transfer details'], payLater: ['ຈ່າຍພາຍຫຼັງ', 'ชำระภายหลัง', 'I will pay later'],
-  claimSent: ['ໄດ້ຮັບແລ້ວ. ພະນັກງານຈະກວດກັບທະນາຄານ ແລະ ຢືນຢັນໃຫ້ທ່ານ.', 'ได้รับแล้ว พนักงานจะตรวจสอบกับธนาคารและยืนยันให้คุณ', 'Received. Our team will check it with the bank and confirm.'],
+  sendRef: ['ສົ່ງສະລິບການໂອນ', 'ส่งสลิปการโอน', 'Send payment slip'],
+  sending: ['ກຳລັງສົ່ງ…', 'กำลังส่ง…', 'Sending…'],
+  slipLabel: ['ສະລິບການໂອນເງິນ', 'สลิปการโอนเงิน', 'Transfer slip'],
+  slipPick: ['ແຕະເພື່ອເລືອກຮູບສະລິບ', 'แตะเพื่อเลือกรูปสลิป', 'Tap to choose the slip image'],
+  slipHint: ['ຮູບໜ້າຈໍ ຫຼື ຮູບຖ່າຍສະລິບຈາກແອັບທະນາຄານ (JPG, PNG)', 'ภาพหน้าจอหรือรูปถ่ายสลิปจากแอปธนาคาร (JPG, PNG)', 'A screenshot or photo of the slip from your banking app (JPG, PNG)'],
+  slipReady: ['ພ້ອມສົ່ງ', 'พร้อมส่ง', 'Ready to send'],
+  slipChange: ['ປ່ຽນຮູບ', 'เปลี่ยนรูป', 'Choose another'],
+  slipPreparing: ['ກຳລັງກຽມຮູບ…', 'กำลังเตรียมรูป…', 'Preparing the image…'],
+  saveQr: ['ບັນທຶກ QR ເພື່ອສະແກນຈາກແອັບ', 'บันทึก QR เพื่อสแกนจากแอป', 'Save QR to scan from your app'],
+  qrMissing: ['ໂຮງແຮມກຳລັງຕັ້ງຄ່າ QR ຮັບເງິນ. ກະລຸນາໂທ {p} ເພື່ອຂໍເລກບັນຊີ.', 'โรงแรมกำลังตั้งค่า QR รับเงิน กรุณาโทร {p} เพื่อขอเลขบัญชี', 'The hotel is setting up its payment QR. Please call {p} for the account details.'],
+  e_slip_required: ['ກະລຸນາແນບຮູບສະລິບການໂອນ', 'กรุณาแนบรูปสลิปการโอน', 'Please attach the transfer slip'],
+  e_slip_type: ['ເປີດຮູບນີ້ບໍ່ໄດ້. ກະລຸນາເລືອກຮູບ JPG ຫຼື PNG', 'เปิดรูปนี้ไม่ได้ กรุณาเลือกรูป JPG หรือ PNG', 'That file could not be read. Please choose a JPG or PNG image'],
+  e_slip_big: ['ຮູບໃຫຍ່ເກີນໄປ (ສູງສຸດ 25 MB)', 'รูปใหญ่เกินไป (สูงสุด 25 MB)', 'That image is too large (25 MB max)'], payLater: ['ຈ່າຍພາຍຫຼັງ', 'ชำระภายหลัง', 'I will pay later'],
+  claimSent: ['ໄດ້ຮັບສະລິບແລ້ວ. ພະນັກງານຈະກວດກັບບັນຊີທະນາຄານ ແລະ ຢືນຢັນໃຫ້ທ່ານ.', 'ได้รับสลิปแล้ว พนักงานจะตรวจสอบกับบัญชีธนาคารและยืนยันให้คุณ', 'Slip received. Our team will check it against the bank account and confirm.'],
   done: ['ສຳເລັດ', 'เสร็จสิ้น', 'Done'], seeYou: ['ພົບກັນທີ່ {h}', 'แล้วพบกันที่ {h}', 'See you at {h}'],
   // manage
   manageTitle: ['ກວດການຈອງ', 'ตรวจสอบการจอง', 'Find your booking'], code: ['ລະຫັດການຈອງ', 'รหัสการจอง', 'Booking code'],
@@ -1163,14 +1218,46 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
     const r = F.result;
     el.innerHTML = sheetShell(t('booked'), `<div class="codebox"><span>${t('yourCode')}</span><span class="code">${esc(r.code)}</span><button class="btn" data-act="copy" data-v="${esc(r.code)}">${t('copy')}</button><small style="color:var(--sub);max-width:40ch">${t('keepCode')}</small></div>
       ${F.claimed ? `<div class="msg ok">${t('claimSent')}</div><p style="margin:0">${t('seeYou', { h: esc(CAT.hotel.name) })}</p>` : payBlock(r.deposit_due, r.code)}${msg}`,
-      F.claimed ? `<button class="btn cta block" data-act="closeSheet">${t('done')}</button>` : `<button class="btn" data-act="closeSheet">${t('payLater')}</button><button class="btn cta" data-act="claim" ${F.busy ? 'disabled' : ''}>${t('sendRef')}</button>`, 4);
+      F.claimed ? `<button class="btn cta block" data-act="closeSheet">${t('done')}</button>` : `<button class="btn" data-act="closeSheet">${t('payLater')}</button><button class="btn cta" data-act="claim" ${F.busy || !F.slipBlob ? 'disabled' : ''}>${F.busy ? t('sending') : t('sendRef')}</button>`, 4);
     drawQR(r.code);
   }
   function payBlock(amount, code) {
-    const img = window.HOTEL_CONFIG && window.HOTEL_CONFIG.paymentQrImage;
+    const qr = CAT.hotel.payment_qr_url || (window.HOTEL_CONFIG && window.HOTEL_CONFIG.paymentQrImage) || '';
+    const qrBox = qr
+      ? `<div class="qrimg"><img src="${esc(qr)}" alt="QR" loading="eager"><a class="linkbtn" href="${esc(qr)}" target="_blank" rel="noopener" download>${t('saveQr')}</a></div>`
+      : API.live ? `<div class="qrmissing">${t('qrMissing', { p: esc(CAT.hotel.phone || '') })}</div>`
+      : `<div class="qrimg"><canvas id="qrc" width="29" height="29" aria-label="QR"></canvas></div>`;
+    const slip = F.slipPreview
+      ? `<div class="slipok"><img src="${F.slipPreview}" alt=""><div><b>${t('slipReady')}</b><small>${esc(F.slipName)}</small><label class="linkbtn" for="f_slip">${t('slipChange')}</label></div></div>`
+      : `<label class="slipdrop" for="f_slip"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><b>${t('slipPick')}</b><small>${t('slipHint')}</small></label>`;
     return `<h3 style="font-size:19px">${t('payNowT', { a: kip(amount) })}</h3>
-      <div class="qr">${img ? `<img src="${esc(img)}" alt="QR">` : `<canvas id="qrc" width="29" height="29" aria-label="QR"></canvas>`}<div class="txt"><span class="amt">${kip(amount)}</span><span>${esc(L(CAT.hotel.payment_note))}</span>${img ? '' : `<small style="color:var(--faint)">${t('qrSample')}</small>`}</div></div>
-      <label class="field"><span>${t('transferRef')}</span><input class="in" id="f_ref" value="${esc(F.claimRef)}" placeholder="${esc(t('transferPh'))}" autocomplete="off"></label>`;
+      <div class="qr">${qrBox}<div class="txt"><span class="amt">${kip(amount)}</span><span>${esc(L(CAT.hotel.payment_note))}</span>${!qr && !API.live ? `<small style="color:var(--faint)">${t('qrSample')}</small>` : ''}</div></div>
+      <div class="field"><span>${t('slipLabel')}</span>${slip}<input type="file" id="f_slip" class="vh" accept="image/*"></div>
+      ${F.slipBusy ? `<div class="msg info">${t('slipPreparing')}</div>` : ''}`;
+  }
+  // phone photos are often 5–12 MB: shrink to a sharp, readable JPEG before upload
+  async function shrinkImage(file, maxDim) {
+    if (!file) throw Object.assign(new Error('slip_type'), { code: 'slip_type' });
+    if (file.size > 25 * 1048576) throw Object.assign(new Error('slip_big'), { code: 'slip_big' });
+    let src;
+    try { src = await createImageBitmap(file); }
+    catch (e) {
+      src = await new Promise((ok, no) => { const u = URL.createObjectURL(file), i = new Image(); i.onload = () => ok(i); i.onerror = () => no(Object.assign(new Error('slip_type'), { code: 'slip_type' })); i.src = u; });
+    }
+    const w = src.width, h = src.height, k = Math.min(1, maxDim / Math.max(w, h));
+    const c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(src, 0, 0, c.width, c.height);
+    let q = 0.85, blob;
+    do { blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', q)); q -= 0.15; } while (blob && blob.size > 4.5 * 1048576 && q > 0.3);
+    if (!blob) throw Object.assign(new Error('slip_type'), { code: 'slip_type' });
+    return blob;
+  }
+  function clearSlip() { if (F.slipPreview) URL.revokeObjectURL(F.slipPreview); F.slipBlob = null; F.slipPreview = ''; F.slipName = ''; }
+  async function sendSlip(code, phone, amount) {
+    if (!F.slipBlob) throw Object.assign(new Error('slip_required'), { code: 'slip_required' });
+    const ref = await API.uploadSlip(code, F.slipBlob);
+    await API.claim(code, phone, amount, null, ref);
+    clearSlip();
   }
   function drawQR(seed) {
     const c = document.getElementById('qrc'); if (!c) return; const g = c.getContext('2d');
@@ -1195,7 +1282,7 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
         <span class="k tot">${t('due')}</span><span class="v tot">${kip(Math.max(0, d.total - d.paid))}</span></div>
         <div><span class="status s-${d.status}">${t('st_' + d.status)}</span></div>
         ${d.status === 'confirmed' && due > 0 && !F.claimed ? payBlock(due, d.code) : d.status === 'confirmed' && d.paid >= d.deposit_due ? `<div class="msg ok">${t('depPaid')}</div>` : ''}${msg}`;
-      foot = d.status === 'confirmed' && due > 0 && !F.claimed ? `<button class="btn" data-act="mReset">${t('back')}</button><button class="btn cta" data-act="mClaim" ${F.busy ? 'disabled' : ''}>${t('sendRef')}</button>` : `<button class="btn block" data-act="mReset">${t('back')}</button>`;
+      foot = d.status === 'confirmed' && due > 0 && !F.claimed ? `<button class="btn" data-act="mReset">${t('back')}</button><button class="btn cta" data-act="mClaim" ${F.busy || !F.slipBlob ? 'disabled' : ''}>${F.busy ? t('sending') : t('sendRef')}</button>` : `<button class="btn block" data-act="mReset">${t('back')}</button>`;
       setTimeout(() => drawQR(d.code), 0);
     }
     return sheetShell(t('manageTitle'), body, foot, 0);
@@ -1208,7 +1295,7 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
     renderSheet();
   }
   function openBooking(typeId) {
-    Object.assign(F, { open: true, manage: false, step: 1, sel: null, result: null, claimed: false, msg: '', agree: false, claimRef: '' });
+    clearSlip(); Object.assign(F, { open: true, manage: false, step: 1, sel: null, result: null, claimed: false, msg: '', agree: false, claimRef: '' });
     document.body.style.overflow = 'hidden';
     loadAvail().then(() => {
       if (typeId) { const a = F.avail.find(v => v.type_id === typeId), x = CAT.types.find(y => y.id === typeId); if (a && a.free && Q.ad <= x.capacity) { F.sel = typeId; F.step = 2; renderSheet(); } }
@@ -1240,7 +1327,7 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
     lang: d => { lang = d.l; try { localStorage.setItem('saynam-lang', lang); } catch (e) { } render(); },
     book: d => openBooking(d.t),
     closeSheet,
-    manage: () => { Object.assign(F, { manage: true, open: false, mData: null, mMsg: '', claimed: false, claimRef: '' }); document.body.style.overflow = 'hidden'; renderSheet(); },
+    manage: () => { clearSlip(); Object.assign(F, { manage: true, open: false, mData: null, mMsg: '', claimed: false, claimRef: '' }); document.body.style.overflow = 'hidden'; renderSheet(); },
     pick: d => { F.sel = d.t; F.step = 2; F.msg = ''; renderSheet(); },
     step: d => { readDetails(); F.step = +d.s; F.msg = ''; if (F.step === 1 && !F.avail) loadAvail(); else renderSheet(); },
     promo: async () => {
@@ -1263,8 +1350,8 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
       F.busy = false; renderSheet();
     },
     claim: async () => {
-      F.claimRef = $('#f_ref').value.trim(); F.busy = true; F.msg = ''; renderSheet();
-      try { await API.claim(F.result.code, F.phone, F.result.deposit_due, F.claimRef); F.claimed = true; } catch (e) { F.msg = errText(e); }
+      F.busy = true; F.msg = ''; renderSheet();
+      try { await sendSlip(F.result.code, F.phone, F.result.deposit_due); F.claimed = true; } catch (e) { F.msg = errText(e); }
       F.busy = false; renderSheet();
     },
     find: async () => {
@@ -1273,8 +1360,8 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
       F.busy = false; renderSheet();
     },
     mClaim: async () => {
-      const d = F.mData, due = Math.max(0, d.deposit_due - d.paid - d.pending_claims); F.claimRef = $('#f_ref').value.trim(); F.busy = true; renderSheet();
-      try { await API.claim(d.code, F.mPhone, due, F.claimRef); F.claimed = true; F.mData = await API.lookup(F.mCode, F.mPhone); F.mMsg = { k: 'ok', t: t('claimSent') }; } catch (e) { F.mMsg = { k: 'bad', t: errText(e) }; }
+      const d = F.mData, due = Math.max(0, d.deposit_due - d.paid - d.pending_claims); F.busy = true; F.mMsg = ''; renderSheet();
+      try { await sendSlip(d.code, F.mPhone, due); F.claimed = true; F.mData = await API.lookup(F.mCode, F.mPhone); F.mMsg = { k: 'ok', t: t('claimSent') }; } catch (e) { F.mMsg = { k: 'bad', t: errText(e) }; }
       F.busy = false; renderSheet();
     },
     mReset: () => { F.mData = null; F.mMsg = ''; F.claimed = false; renderSheet(); },
@@ -1286,8 +1373,15 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
     const ci = $('#q_ci').value, co = $('#q_co').value; Q.ad = +$('#q_ad').value;
     if (ci) Q.ci = ci; if (co) Q.co = co; if (Q.co <= Q.ci) Q.co = addD(Q.ci, 1);
   }
-  document.addEventListener('change', e => {
+  document.addEventListener('change', async e => {
     const id = e.target.id;
+    if (id === 'f_slip') {
+      const file = e.target.files && e.target.files[0]; if (!file) return;
+      F.slipBusy = true; F.msg = ''; renderSheet();
+      try { const blob = await shrinkImage(file, API.live ? 1600 : 900); clearSlip(); F.slipBlob = blob; F.slipPreview = URL.createObjectURL(blob); F.slipName = file.name; }
+      catch (er) { const m = errText(er); if (F.manage) F.mMsg = { k: 'bad', t: m }; else F.msg = m; }
+      F.slipBusy = false; renderSheet(); return;
+    }
     if (id === 'q_ci' || id === 'q_co' || id === 'q_ad') { if (id === 'q_ci') { const stay = Math.max(1, nights(Q.ci, Q.co)); Q.ci = $('#q_ci').value || Q.ci; $('#q_co').value = addD(Q.ci, stay); } readSearch(); const n = $('#q_n'); if (n) n.textContent = `${nights(Q.ci, Q.co)} ${t('nights')} · ${dfm(Q.ci)} → ${dfm(Q.co)}`; if (id === 'q_ci') $('#q_co').value = Q.co; }
     if (id === 'f_ci' || id === 'f_co' || id === 'f_ad') {
       if (F.step === 2) readDetails();

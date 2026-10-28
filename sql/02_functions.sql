@@ -134,7 +134,7 @@ create or replace function public_catalog() returns jsonb language sql stable se
     'hotel', (select jsonb_build_object('name', hotel_name, 'tagline', tagline, 'about', about, 'address', address, 'phone', phone,
               'email', email, 'map_url', map_url, 'check_in_time', check_in_time, 'check_out_time', check_out_time,
               'deposit_pct', deposit_pct, 'direct_discount', direct_discount, 'free_cancel_days', free_cancel_days,
-              'payment_note', payment_note, 'vat_rate', vat_rate, 'prices_incl_vat', prices_incl_vat, 'business_date', business_date)
+              'payment_note', payment_note, 'payment_qr_url', payment_qr_url, 'vat_rate', vat_rate, 'prices_incl_vat', prices_incl_vat, 'business_date', business_date)
               from settings where id = 1),
     'types', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'description', description, 'capacity', capacity,
               'base_rate', base_rate, 'direct_rate', direct_rate(base_rate), 'size_m2', size_m2, 'bed', bed, 'amenities', amenities) order by sort)
@@ -222,19 +222,7 @@ begin
     'pending_claims', (select coalesce(sum(amount),0) from payment_claims where booking_id = b.id and status = 'pending'));
 end $$;
 
-create or replace function public_claim(p_code text, p_phone text, p_amount bigint, p_ref text) returns jsonb
-language plpgsql security definer set search_path = public as $$
-declare b bookings;
-begin
-  b := find_guest_booking(p_code, p_phone);
-  if b.id is null then raise exception 'not_found' using errcode = 'P0001'; end if;
-  if b.status <> 'confirmed' then raise exception 'not_payable' using errcode = 'P0001'; end if;
-  if p_amount is null or p_amount <= 0 or p_amount > b.rate * (b.check_out - b.check_in) then raise exception 'invalid_amount' using errcode = 'P0001'; end if;
-  if (select count(*) from payment_claims where booking_id = b.id and status = 'pending') >= 3 then raise exception 'too_many_claims' using errcode = 'P0001'; end if;
-  insert into payment_claims(booking_id, amount, reference) values (b.id, p_amount, left(p_ref, 80));
-  perform log_action('claim.create', b.id, jsonb_build_object('amount', p_amount, 'ref', left(p_ref, 80)));
-  return jsonb_build_object('ok', true);
-end $$;
+-- public_claim (guest payment report with slip) is defined in 04_payment_slips.sql
 
 -- =====================================================================
 -- STAFF — front office
@@ -581,7 +569,7 @@ begin
     'arOTA', coalesce((select jsonb_agg(jsonb_build_object('id', o.id, 'bk', o.booking_id, 'ch', o.channel, 'date', o.entry_date, 'gross', o.gross,
         'amt', o.amount, 'settled', o.settled_on is not null)) from ota_receivables o), '[]'),
     'claims', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'bk', c.booking_id, 'amt', c.amount, 'ref', c.reference, 'status', c.status,
-        'at', c.created_at) order by c.id desc) from payment_claims c), '[]'),
+        'slip', c.slip_path, 'at', c.created_at) order by c.id desc) from payment_claims c), '[]'),
     'locks', coalesce((select jsonb_agg(month order by month) from period_locks), '[]'),
     'audit', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'at', a.at, 'actor', a.actor, 'action', a.action, 'ref', a.ref, 'detail', a.detail) order by a.id desc)
       from (select * from audit_log order by id desc limit 500) a), '[]')
@@ -616,8 +604,8 @@ grant insert, update, delete on amenities, room_types, rooms, channels, promo_co
 grant update on settings to authenticated;
 
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public_catalog(), public_availability(date, date), public_book(jsonb), public_lookup(text, text),
-  public_claim(text, text, bigint, text) to anon, authenticated;
+grant execute on function public_catalog(), public_availability(date, date), public_book(jsonb), public_lookup(text, text)
+  to anon, authenticated;
 grant execute on function me(), admin_snapshot(), staff_create_booking(jsonb), staff_check_in(text), staff_check_out(text, text),
   staff_cancel(text, text, boolean), staff_extend(text, int), staff_charge(text, text, text, bigint), staff_void_charge(bigint, text),
   staff_payment(text, text, bigint, text), staff_verify_claim(bigint, boolean, text), staff_set_hk(text, text), staff_night_audit(),
