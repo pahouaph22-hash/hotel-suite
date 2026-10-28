@@ -766,7 +766,7 @@ const API = (function () {
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
   const KEY = 'saynam-suite-v6', USER_KEY = 'saynam-suite-demo-user';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
-  let sb = null, demoMe = null;
+  let sb = null, demoMe = null, guestMode = false;
 
   const todayLocal = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10); // Asia/Vientiane
   function toErr(e) {
@@ -800,7 +800,10 @@ const API = (function () {
   async function client() {
     if (sb) return sb;
     if (!window.supabase) await loadScript(SB_CDN);
-    sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+    // the guest website must never act with a staff login that happens to be saved in the same browser
+    sb = guestMode
+      ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'saynam-guest' } })
+      : window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
     return sb;
   }
   async function rpc(name, args) { const c = await client(); const { data, error } = await c.rpc(name, args || {}); if (error) throw toErr(error); return data; }
@@ -915,7 +918,18 @@ const API = (function () {
       return liveTable({ op: name, arg: args[0] });
     },
     resetDemo: () => { if (!LIVE) demoReset(); },
-    onExternalChange(cb) { if (!LIVE && typeof window !== 'undefined') window.addEventListener('storage', e => { if (e.key === KEY) cb(); }); }
+    asGuest() { guestMode = true; },
+    // demo: another tab wrote to this browser's storage. live: poll the database while the page is visible
+    onExternalChange(cb, everyMs) {
+      if (typeof window === 'undefined') return;
+      if (!LIVE) { window.addEventListener('storage', e => { if (e.key === KEY) cb(); }); return; }
+      let t = null;
+      const tick = () => { if (document.visibilityState === 'visible') cb(); };
+      const start = () => { clearInterval(t); t = setInterval(tick, everyMs || 15000); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { cb(); start(); } else clearInterval(t); });
+      window.addEventListener('focus', () => cb());
+      start();
+    }
   };
   return pub;
 })();
@@ -1397,6 +1411,7 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
 
   // ---------- boot ----------
   (async function boot() {
+    API.asGuest();
     try { CAT = await API.catalog(); } catch (e) { $('#app').innerHTML = `<div class="wrap" style="padding-block:60px"><div class="msg bad">${esc(errText(e))}</div></div>`; return; }
     Q.ci = addD(CAT.hotel.business_date, 2); Q.co = addD(Q.ci, 2);
     render();

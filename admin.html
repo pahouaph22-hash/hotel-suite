@@ -862,7 +862,7 @@ const API = (function () {
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
   const KEY = 'saynam-suite-v6', USER_KEY = 'saynam-suite-demo-user';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
-  let sb = null, demoMe = null;
+  let sb = null, demoMe = null, guestMode = false;
 
   const todayLocal = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10); // Asia/Vientiane
   function toErr(e) {
@@ -896,7 +896,10 @@ const API = (function () {
   async function client() {
     if (sb) return sb;
     if (!window.supabase) await loadScript(SB_CDN);
-    sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+    // the guest website must never act with a staff login that happens to be saved in the same browser
+    sb = guestMode
+      ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'saynam-guest' } })
+      : window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
     return sb;
   }
   async function rpc(name, args) { const c = await client(); const { data, error } = await c.rpc(name, args || {}); if (error) throw toErr(error); return data; }
@@ -1011,7 +1014,18 @@ const API = (function () {
       return liveTable({ op: name, arg: args[0] });
     },
     resetDemo: () => { if (!LIVE) demoReset(); },
-    onExternalChange(cb) { if (!LIVE && typeof window !== 'undefined') window.addEventListener('storage', e => { if (e.key === KEY) cb(); }); }
+    asGuest() { guestMode = true; },
+    // demo: another tab wrote to this browser's storage. live: poll the database while the page is visible
+    onExternalChange(cb, everyMs) {
+      if (typeof window === 'undefined') return;
+      if (!LIVE) { window.addEventListener('storage', e => { if (e.key === KEY) cb(); }); return; }
+      let t = null;
+      const tick = () => { if (document.visibilityState === 'visible') cb(); };
+      const start = () => { clearInterval(t); t = setInterval(tick, everyMs || 15000); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { cb(); start(); } else clearInterval(t); });
+      window.addEventListener('focus', () => cb());
+      start();
+    }
   };
   return pub;
 })();
@@ -1317,6 +1331,7 @@ Object.assign(TX, {
   e_bad_login: ['ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກ', 'อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'Email or password is wrong'], e_not_staff: ['ບັນຊີນີ້ບໍ່ແມ່ນພະນັກງານ', 'บัญชีนี้ไม่ใช่พนักงาน', 'This login is not on the staff list'],
   e_user_not_found: ['ບໍ່ພົບບັນຊີນີ້ໃນ Supabase Auth', 'ไม่พบบัญชีนี้ใน Supabase Auth', 'No such login in Supabase Auth'],
   e_cannot_void: ['ລາຍການນີ້ຍົກເລີກບໍ່ໄດ້', 'รายการนี้ยกเลิกไม่ได้', 'This line cannot be voided'], e_future_date: ['ວັນທີຕ້ອງບໍ່ເກີນວັນທີທຸລະກິດ', 'วันที่ต้องไม่เกินวันที่ทำการ', 'The date cannot be after the business date'],
+  recentBk: ['ການຈອງລ່າສຸດ', 'การจองล่าสุด', 'Latest bookings'],
   slip: ['ສະລິບການໂອນ', 'สลิปการโอน', 'Transfer slip'], viewSlip: ['ເບິ່ງສະລິບ', 'ดูสลิป', 'View slip'],
   slipCheck: ['ກວດຊື່ຜູ້ຮັບ, ຈຳນວນເງິນ ແລະ ວັນທີໃນສະລິບ ກັບລາຍການເງິນເຂົ້າໃນບັນຊີທະນາຄານ ກ່ອນກົດຢືນຢັນ.', 'ตรวจชื่อผู้รับ จำนวนเงิน และวันที่ในสลิป กับรายการเงินเข้าในบัญชีธนาคาร ก่อนกดยืนยัน', 'Match the payee, amount and date on the slip against the money received in the bank account before confirming.'],
   payQr: ['QR ຮັບເງິນຂອງໂຮງແຮມ', 'QR รับเงินของโรงแรม', 'Hotel payment QR'],
@@ -1524,8 +1539,18 @@ const ACTIONS = {
       <div class="card"><h3>${t('arrivals')} <small>${arr.length}</small></h3><div class="list">${arr.length ? arr.map(b => `<div class="li"><span class="roomno">${b.room}</span><div class="who"><b>${esc(b.guest.name)}</b><span>${chName(b.ch)} · ${nightsOf(b)} ${t('nights')} · ${typeName(b.type)}</span></div><button class="btn sm" data-act="openBk" data-id="${b.id}">${t('checkIn')}</button></div>`).join('') : `<div class="empty">${t('noArr')}</div>`}</div></div>
       <div class="card"><h3>${t('departures')} <small>${dep.length}</small></h3><div class="list">${dep.length ? dep.map(b => `<div class="li"><span class="roomno">${b.room}</span><div class="who"><b>${esc(b.guest.name)}</b><span>${chName(b.ch)} · ${t('balance')} ${kip(Core.balanceOf(b))}</span></div><button class="btn sm" data-act="startCo" data-id="${b.id}">${t('checkOut')}</button></div>`).join('') : `<div class="empty">${t('noDep')}</div>`}</div></div>
     </div>` : ''}
+    ${recentCard()}
     <div class="card"><h3>${t('inhouse')} <small>${inh.length}</small></h3><div class="tablewrap"><table class="t"><thead><tr><th>${t('room')}</th><th>${t('guest')}</th><th>${t('channel')}</th><th>${t('depart')}</th><th class="n">${t('balance')}</th></tr></thead><tbody>
       ${inh.map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td><span class="roomno">${b.room}</span></td><td>${esc(b.guest.name)}</td><td>${chTag(b.ch)}</td><td class="tnum">${dfm(b.co)}</td><td class="n">${fm(Core.balanceOf(b))}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+  }
+
+  function recentCard() {
+    const num = id => +String(id).replace(/\D/g, '') || 0;
+    const list = S.bookings.slice().sort((a, b) => (b.created || '').localeCompare(a.created || '') || num(b.id) - num(a.id)).slice(0, 8);
+    if (!list.length) return '';
+    return `<div class="card"><h3>${t('recentBk')} <button class="btn sm" data-act="nav" data-v="bk">${t('nav_bk')} →</button></h3><div class="tablewrap"><table class="t"><thead><tr><th>${t('code')}</th><th>${t('guest')}</th><th>${t('room')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('source')}</th><th>${t('status')}</th><th class="n">${t('deposit')}</th></tr></thead><tbody>
+      ${list.map(b => { const pend = S.claims.some(c => c.bk === b.id && c.status === 'pending'), paid = Core.paidOf(b); return `<tr class="click" data-act="openBk" data-id="${b.id}"><td class="mono small">${b.id}<div class="faint">${esc(b.code || '')}</div></td><td>${esc(b.guest.name)}</td><td><span class="roomno">${b.room}</span></td><td class="tnum">${dsh(b.ci)} → ${dsh(b.co)}</td><td>${b.source === 'website' ? `<span class="pill p-confirmed">${t('website')}</span>` : chTag(b.ch)}</td><td>${stPill(b.status)}</td><td class="n">${pend ? `<span class="pill h-dirty">${t('claims')}</span>` : paid > 0 ? fm(paid) : b.deposit_due ? `<span class="faint">${fm(b.deposit_due)}</span>` : '—'}</td></tr>`; }).join('')}
     </tbody></table></div></div>`;
   }
 
@@ -2106,7 +2131,24 @@ const ACTIONS = {
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
   // a booking made on the guest website in another tab shows up here (demo mode shares this browser's storage)
-  API.onExternalChange(async () => { if (!S || !S.me) return; const before = S.bookings.length; await refresh(); if (V.modal) reopen(); else render(); if (S.bookings.length > before) toast(t('newWebBooking')); });
+  // keep the back office current: new website bookings and slips appear without pressing refresh
+  const sig = () => S ? [S.bookings.length, S.claims.filter(c => c.status === 'pending').length, S.audit[0] ? S.audit[0].id : 0, S.journal.length, S.bizDate].join('|') : '';
+  let polling = false;
+  API.onExternalChange(async () => {
+    if (!S || !S.me || V.busy || polling) return;
+    polling = true;
+    try {
+      const before = sig(), knownBk = new Set(S.bookings.map(b => b.id)), knownCl = new Set(S.claims.map(c => c.id));
+      const fresh = await API.snapshot(); if (!fresh || !fresh.me) return;
+      const newBk = fresh.bookings.filter(b => !knownBk.has(b.id)), newCl = fresh.claims.filter(c => !knownCl.has(c.id) && c.status === 'pending');
+      S = fresh; Core.set(S);
+      if (sig() === before) return;
+      const typing = document.activeElement && document.activeElement.closest('#view') && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+      if (!typing) render();                                   // an open dialog keeps its own content; the page behind it updates
+      if (newBk.length) toast(t('newWebBooking') + ': ' + newBk.map(b => b.guest.name).join(', '));
+      else if (newCl.length) toast(t('claims') + ': ' + newCl.length);
+    } catch (e) { } finally { polling = false; }
+  }, 15000);
 
   (async function boot() {
     try { const me = await API.session(); if (me) { await refresh(); V.view = firstView(); render(); } else renderLogin(); }
