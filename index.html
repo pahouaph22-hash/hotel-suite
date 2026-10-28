@@ -212,6 +212,8 @@ footer a{color:var(--sub)}
   .contact .k{grid-column:1/-1;margin-bottom:-8px}
 }
 
+.linkbtn{border:0;background:none;padding:0;color:var(--river);font-weight:600;text-decoration:underline;cursor:pointer;font-size:inherit}
+
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
@@ -936,6 +938,8 @@ const SX = {
   payDeposit: ['ຈ່າຍມັດຈຳ', 'ชำระมัดจำ', 'Pay deposit'],
   demoBanner: ['ໂໝດສາທິດ: ການຈອງຖືກເກັບໃນ browser ນີ້ ແລະ ເຫັນໄດ້ໃນລະບົບຫຼັງບ້ານ', 'โหมดสาธิต: การจองถูกเก็บใน browser นี้ และเห็นได้ในระบบหลังบ้าน', 'Demo mode: bookings are kept in this browser and appear in the back office'],
   openAdmin: ['ເປີດລະບົບຫຼັງບ້ານ', 'เปิดระบบหลังบ้าน', 'Open back office'],
+  changeRoom: ['ປ່ຽນຫ້ອງ', 'เปลี่ยนห้อง', 'Change room'],
+  selNotFree: ['ຫ້ອງທີ່ເລືອກບໍ່ວ່າງໃນວັນທີໃໝ່. ກະລຸນາເລືອກຫ້ອງອື່ນ.', 'ห้องที่เลือกไม่ว่างในวันที่ใหม่ กรุณาเลือกห้องอื่น', 'Your room is not free on the new dates. Please pick another.'],
   close: ['ປິດ', 'ปิด', 'Close'], loading: ['ກຳລັງໂຫຼດ…', 'กำลังโหลด…', 'Loading…'],
   e_sold_out: ['ຫ້ອງປະເພດນີ້ເຕັມແລ້ວ. ກະລຸນາເລືອກຫ້ອງອື່ນ ຫຼື ວັນອື່ນ.', 'ห้องประเภทนี้เต็มแล้ว กรุณาเลือกห้องหรือวันอื่น', 'That room just sold out. Please pick another room or dates.'],
   e_promo_invalid: ['ລະຫັດນີ້ໃຊ້ບໍ່ໄດ້ ຫຼື ໝົດອາຍຸ', 'โค้ดนี้ใช้ไม่ได้หรือหมดอายุ', 'That code is not valid or has expired'],
@@ -1119,13 +1123,17 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
           <div class="row"><small style="color:var(--sub)">${t('sleeps', { n: x.capacity })} · ${esc(L(x.bed))}</small>${cap ? `<span class="flag bad">${t('tooMany', { n: x.capacity })}</span>` : !a.free ? `<span class="flag bad">${t('soldOut')}</span>` : a.free <= 2 ? `<span class="flag">${t('left', { n: a.free })}</span>` : `<span class="flag ok">${t('available')}</span>`}</div></div></button>`;
       }).join('');
       el.innerHTML = sheetShell(t('bookNow'), `<div class="mini"><label class="field"><span>${t('arrive')}</span><input class="in" type="date" id="f_ci" value="${Q.ci}" min="${CAT.hotel.business_date}"></label>
-        <label class="field"><span>${t('depart')}</span><input class="in" type="date" id="f_co" value="${Q.co}" min="${addD(CAT.hotel.business_date, 1)}"></label>
+        <label class="field"><span>${t('depart')}</span><input class="in" type="date" id="f_co" value="${Q.co}" min="${addD(Q.ci, 1)}"></label>
         <label class="field"><span>${t('guests')}</span><select class="in" id="f_ad">${[1, 2, 3, 4].map(v => `<option ${v === Q.ad ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>${msg}${list}`, '', 1);
       return;
     }
     const q = quote();
     if (F.step === 2) {
-      el.innerHTML = sheetShell(t('bookNow'), `<div class="summary"><span class="k">${t('room')}</span><span class="v">${esc(L(q.x.name))}</span><span class="k">${t('stay')}</span><span class="v">${dfm(Q.ci)} → ${dfm(Q.co)} · ${q.n} ${t('nights')}</span></div>
+      el.innerHTML = sheetShell(t('bookNow'), `<div class="summary"><span class="k">${t('room')}</span><span class="v">${esc(L(q.x.name))} · <button class="linkbtn" data-act="step" data-s="1">${t('changeRoom')}</button></span></div>
+        <div class="mini"><label class="field"><span>${t('arrive')}</span><input class="in" type="date" id="f_ci" value="${Q.ci}" min="${CAT.hotel.business_date}"></label>
+          <label class="field"><span>${t('depart')}</span><input class="in" type="date" id="f_co" value="${Q.co}" min="${addD(Q.ci, 1)}"></label>
+          <label class="field"><span>${t('guests')}</span><select class="in" id="f_ad">${Array.from({ length: q.x.capacity }, (_, i) => i + 1).map(v => `<option ${v === Q.ad ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>
+        <div class="tnum" style="font-size:13px;color:var(--sub);margin-top:-6px">${q.n} ${t('nights')} · ${kip(q.rate)} / ${t('night')}${F.checking ? ' · ' + t('loading') : ''}</div>
         <label class="field"><span>${t('name')}</span><input class="in" id="f_name" value="${esc(F.name)}" autocomplete="name" required></label>
         <label class="field"><span>${t('phone')}</span><input class="in" id="f_phone" value="${esc(F.phone)}" inputmode="tel" autocomplete="tel" placeholder="+856 20 …" required><small>${t('phoneHint')}</small></label>
         <label class="field"><span>${t('email')}</span><input class="in" id="f_email" type="email" value="${esc(F.email)}" autocomplete="email"></label>
@@ -1194,8 +1202,8 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
   }
 
   // ---------- actions ----------
-  async function loadAvail() {
-    F.avail = null; F.msg = ''; renderSheet();
+  async function loadAvail(keepMsg) {
+    F.avail = null; if (!keepMsg) F.msg = ''; renderSheet();
     try { F.avail = await API.availability(Q.ci, Q.co); } catch (e) { F.avail = []; F.msg = errText(e); }
     renderSheet();
   }
@@ -1205,6 +1213,21 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
     loadAvail().then(() => {
       if (typeId) { const a = F.avail.find(v => v.type_id === typeId), x = CAT.types.find(y => y.id === typeId); if (a && a.free && Q.ad <= x.capacity) { F.sel = typeId; F.step = 2; renderSheet(); } }
     });
+  }
+  // dates changed while on the details step: keep the guest's typed details and the chosen room if it is still free
+  async function recheckSelected() {
+    F.checking = true; F.msg = ''; renderSheet();
+    let av = [];
+    try { av = await API.availability(Q.ci, Q.co); } catch (e) { F.checking = false; F.msg = errText(e); renderSheet(); return; }
+    F.checking = false; F.avail = av;
+    const a = av.find(v => v.type_id === F.sel);
+    if (!a || !a.free) { F.step = 1; F.msg = t('selNotFree'); }
+    renderSheet();
+  }
+  function syncSearchBar() {
+    const ci = $('#q_ci'), co = $('#q_co'), ad = $('#q_ad'), n = $('#q_n');
+    if (ci) ci.value = Q.ci; if (co) co.value = Q.co; if (ad) ad.value = String(Math.min(4, Q.ad));
+    if (n) n.textContent = `${nights(Q.ci, Q.co)} ${t('nights')} · ${dfm(Q.ci)} → ${dfm(Q.co)}`;
   }
   function closeSheet() { F.open = false; F.manage = false; document.body.style.overflow = ''; renderSheet(); }
   function readDetails() {
@@ -1219,7 +1242,7 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
     closeSheet,
     manage: () => { Object.assign(F, { manage: true, open: false, mData: null, mMsg: '', claimed: false, claimRef: '' }); document.body.style.overflow = 'hidden'; renderSheet(); },
     pick: d => { F.sel = d.t; F.step = 2; F.msg = ''; renderSheet(); },
-    step: d => { readDetails(); F.step = +d.s; F.msg = ''; renderSheet(); },
+    step: d => { readDetails(); F.step = +d.s; F.msg = ''; if (F.step === 1 && !F.avail) loadAvail(); else renderSheet(); },
     promo: async () => {
       readDetails(); F.msg = ''; F.promoPct = 0;
       if (F.promo) { try { const p = await API.promo(F.promo); if (p == null) F.msg = t('e_promo_invalid'); else F.promoPct = +p; } catch (e) { F.msg = errText(e); } }
@@ -1265,10 +1288,15 @@ const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไ
   }
   document.addEventListener('change', e => {
     const id = e.target.id;
-    if (id === 'q_ci' || id === 'q_co' || id === 'q_ad') { readSearch(); const n = $('#q_n'); if (n) n.textContent = `${nights(Q.ci, Q.co)} ${t('nights')} · ${dfm(Q.ci)} → ${dfm(Q.co)}`; if (id === 'q_ci') $('#q_co').value = Q.co; }
+    if (id === 'q_ci' || id === 'q_co' || id === 'q_ad') { if (id === 'q_ci') { const stay = Math.max(1, nights(Q.ci, Q.co)); Q.ci = $('#q_ci').value || Q.ci; $('#q_co').value = addD(Q.ci, stay); } readSearch(); const n = $('#q_n'); if (n) n.textContent = `${nights(Q.ci, Q.co)} ${t('nights')} · ${dfm(Q.ci)} → ${dfm(Q.co)}`; if (id === 'q_ci') $('#q_co').value = Q.co; }
     if (id === 'f_ci' || id === 'f_co' || id === 'f_ad') {
-      Q.ci = $('#f_ci').value || Q.ci; Q.co = $('#f_co').value || Q.co; Q.ad = +$('#f_ad').value; if (Q.co <= Q.ci) Q.co = addD(Q.ci, 1);
-      loadAvail();
+      if (F.step === 2) readDetails();
+      const stay = Math.max(1, nights(Q.ci, Q.co));
+      Q.ci = $('#f_ci').value || Q.ci; Q.co = $('#f_co').value || Q.co; Q.ad = +$('#f_ad').value;
+      if (Q.ci < CAT.hotel.business_date) Q.ci = CAT.hotel.business_date;
+      if (id === 'f_ci' || Q.co <= Q.ci) Q.co = addD(Q.ci, stay);   // moving check-in keeps the length of stay
+      syncSearchBar();
+      if (F.step === 2) recheckSelected(); else loadAvail();
     }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && (F.open || F.manage)) closeSheet(); });
