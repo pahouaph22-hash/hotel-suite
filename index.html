@@ -359,6 +359,170 @@ footer a{color:var(--sub)}
   .bk2,.bk2-art svg,.chev{transition:none}
 }
 
+/* ---- member hub ---- */
+#sheet .pane.wide{width:min(880px,100%)}
+.bell{position:absolute;top:14px;right:14px;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .2s,transform .2s}
+.bell:hover{background:rgba(255,255,255,.24);transform:rotate(-8deg)}
+.bell em{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--champa);color:var(--champa-ink);font:700 11px/20px var(--f-body);font-style:normal;box-shadow:0 0 0 2px #0c3a34}
+.bell.has svg{animation:ring 2.4s ease 1s 2}
+@keyframes ring{0%,100%{transform:rotate(0)}10%{transform:rotate(14deg)}20%{transform:rotate(-12deg)}30%{transform:rotate(8deg)}40%{transform:rotate(-4deg)}50%{transform:rotate(0)}}
+.ahero{padding-right:64px}
+.btn.acct{position:relative}
+.btn.acct.has::after{content:'';position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px var(--paper)}
+.hubnav{position:sticky;top:-16px;z-index:3;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:10px 20px;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hubnav::-webkit-scrollbar{display:none}
+.hubnav button{flex:none;position:relative;display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:var(--sub);font-weight:600;font-size:14px;padding:8px 12px;border-radius:10px;cursor:pointer;transition:background .2s,color .2s}
+.hubnav button:hover{background:var(--mist);color:var(--ink)}
+.hubnav button.on{background:var(--river-soft);color:var(--river)}
+.hubnav button em{font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--champa);color:var(--champa-ink);font-size:11px;line-height:18px;text-align:center}
+.hubsec{display:flex;flex-direction:column;gap:14px;animation:rise .35s ease both}
+.sech{font-size:18px;display:flex;align-items:center;gap:8px;margin:2px 0}
+.sechead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.hint{margin:0;font-size:12.5px;color:var(--faint)}
+.btn.sm{padding:6px 12px;font-size:13.5px;min-height:0;display:inline-flex;align-items:center;gap:6px}
+.tpill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 9px;background:var(--mist);color:var(--sub);white-space:nowrap}
+.tpill.ok{background:var(--good-soft);color:var(--good)} .tpill.warn{background:var(--warn-soft);color:var(--warn)} .tpill.bad{background:var(--bad-soft);color:var(--bad)}
+.ti{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--mist);color:var(--sub)}
+.tt{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
+.tt b{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt small{font-size:12.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ta{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.code{font-weight:700;letter-spacing:.06em}
+.nstrip{display:flex;flex-direction:column;gap:6px}
+.nstrip button{display:flex;align-items:center;gap:10px;text-align:left;border:1px solid color-mix(in srgb,var(--champa) 45%,var(--line));background:var(--champa-soft);color:var(--ink);border-radius:12px;padding:9px 12px;font-size:13.5px;cursor:pointer;animation:rise .4s ease both}
+.nstrip button span{flex:1;min-width:0} .nstrip small{color:var(--sub);white-space:nowrap}
+/* payments */
+.paytiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.pt{border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);background:var(--paper);min-width:0;animation:rise .4s ease both}
+.pt span{font-size:12px;color:var(--sub)} .pt b{font-family:var(--f-display);font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt.in{border-left:4px solid var(--good)} .pt.out{border-left:4px solid var(--river)} .pt.wait{border-left:4px solid var(--champa)} .pt.rev{border-left:4px solid var(--warn)}
+.txns{display:flex;flex-direction:column;gap:8px}
+.txn{border:1px solid var(--line);border-radius:14px;background:var(--paper);animation:rise .4s ease both;animation-delay:calc(var(--i,0)*40ms);transition:box-shadow .2s}
+.txn[open]{box-shadow:var(--shadow)}
+.txn summary{list-style:none;display:flex;align-items:center;gap:12px;padding:11px 12px;cursor:pointer}
+.txn summary::-webkit-details-marker{display:none}
+.txn.in .ti{background:var(--good-soft);color:var(--good)} .txn.out .ti{background:var(--river-soft);color:var(--river)} .txn.wait .ti{background:var(--warn-soft);color:var(--warn)} .txn.bad .ti{background:var(--bad-soft);color:var(--bad)}
+.txn.in .ta b{color:var(--good)}
+.tgrid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0;padding:4px 14px 14px 58px;font-size:13.5px}
+.tgrid dt{color:var(--sub)} .tgrid dd{margin:0;overflow-wrap:anywhere}
+/* messages */
+.contacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.ccard{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:10px 12px;transition:transform .2s,border-color .2s;min-width:0}
+.ccard:hover{transform:translateY(-2px);border-color:var(--river)}
+.ccard svg{flex:none;color:var(--river)} .ccard span{display:flex;flex-direction:column;min-width:0} .ccard b{font-size:14px} .ccard small{font-size:12.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.threads{display:flex;flex-direction:column;gap:8px}
+.thread{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:11px 12px;cursor:pointer;color:inherit;font:inherit;animation:rise .4s ease both;animation-delay:calc(var(--i,0)*50ms);transition:transform .2s,border-color .2s}
+.thread:hover{transform:translateY(-1px);border-color:var(--river)}
+.thread.unread{border-color:color-mix(in srgb,var(--champa) 60%,var(--line));background:color-mix(in srgb,var(--champa-soft) 45%,var(--paper))}
+.thread.unread .tt b::after{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--champa);margin-left:6px;vertical-align:middle}
+.thread .ta small{font-size:11.5px;color:var(--faint)}
+.thhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.thhead div{display:flex;flex-direction:column;gap:2px;min-width:0} .thhead b{font-family:var(--f-display);font-size:18px} .thhead small{font-size:12.5px;color:var(--sub)}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow-y:auto;padding:12px;border-radius:14px;background:var(--mist);border:1px solid var(--line)}
+.bub{max-width:82%;display:flex;flex-direction:column;gap:3px;animation:rise .3s ease both}
+.bub>div{padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.bub small{font-size:11.5px;color:var(--faint)}
+.bub.member{align-self:flex-end;align-items:flex-end} .bub.member>div{background:var(--river);color:var(--paper);border-bottom-right-radius:4px}
+.bub.staff{align-self:flex-start} .bub.staff>div{background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:4px}
+.chips2{display:flex;flex-wrap:wrap;gap:6px}
+.chips2 button{border:1px solid var(--line);background:var(--paper);color:var(--sub);border-radius:999px;padding:6px 12px;font-weight:600;font-size:13.5px;cursor:pointer;transition:all .2s}
+.chips2 button.on{background:var(--river);border-color:var(--river);color:var(--paper)}
+.counter{align-self:flex-end;font-size:11.5px;color:var(--faint)}
+/* reviews */
+.stars-ro{display:inline-flex;gap:1px;font-size:var(--s,14px);line-height:1;vertical-align:middle}
+.stars-ro i{font-style:normal;color:var(--line)} .stars-ro i.on{color:var(--champa)}
+.stars-in{display:inline-flex;flex-direction:row-reverse;justify-content:flex-end;gap:2px}
+.stars-in button{border:0;background:none;font-size:22px;line-height:1;color:var(--line);cursor:pointer;padding:2px;transition:transform .15s,color .15s}
+.stars-in.big button{font-size:40px}
+.stars-in button.on,.stars-in button:hover,.stars-in button:hover~button{color:var(--champa)}
+.stars-in button:hover{transform:scale(1.15)}
+.field.center{align-items:center;text-align:center}
+.rlabel{font-weight:700;color:var(--champa-2);min-height:1.2em}
+.subr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.subr>div{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:13.5px}
+.revhead{display:flex;align-items:center;gap:12px} .revhead>div:last-child{display:flex;flex-direction:column} .revhead small{color:var(--sub);font-size:12.5px}
+.revtodo{display:flex;flex-direction:column;gap:8px}
+.rcard{display:flex;align-items:center;gap:12px;border:1px dashed color-mix(in srgb,var(--champa) 60%,var(--line));border-radius:14px;padding:10px 12px;background:color-mix(in srgb,var(--champa-soft) 40%,var(--paper));animation:rise .4s ease both;animation-delay:calc(var(--i,0)*60ms)}
+.rcard .bk2-art{width:52px;height:52px} .rcard>div:nth-child(2){flex:1;display:flex;flex-direction:column;min-width:0} .rcard small{color:var(--sub);font-size:12.5px}
+.revlist{display:flex;flex-direction:column;gap:10px}
+.rev{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;background:var(--paper);animation:rise .4s ease both;animation-delay:calc(var(--i,0)*60ms)}
+.rev header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap} .rev header div{display:flex;align-items:center;gap:8px} .rev header small{color:var(--sub);font-size:12.5px}
+.rev p{margin:0;font-size:14px}
+.subrs{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--sub)}
+.hreply{border-left:3px solid var(--river);background:var(--river-soft);border-radius:0 10px 10px 0;padding:8px 12px;font-size:13.5px}
+.hreply b{font-size:12.5px;color:var(--river)} .hreply p{margin:2px 0 0} .hreply small{color:var(--sub);font-size:11.5px}
+/* notifications */
+.notifs{display:flex;flex-direction:column;gap:6px}
+.ngroup{font-family:var(--f-body);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);margin:8px 0 2px}
+.notif{display:flex;align-items:center;gap:12px;text-align:left;width:100%;border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:10px 12px;cursor:pointer;color:inherit;font:inherit;animation:rise .35s ease both;animation-delay:calc(var(--i,0)*35ms);transition:border-color .2s}
+.notif:hover{border-color:var(--river)}
+.notif .tt span{font-size:14px;line-height:1.45;white-space:normal}
+.notif.unread{background:color-mix(in srgb,var(--river-soft) 55%,var(--paper));border-color:color-mix(in srgb,var(--river) 35%,var(--line))}
+.notif.unread .ti::after{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:var(--champa);transform:translate(13px,-13px)}
+.notif .ti{position:relative}
+.notif.ok .ti{background:var(--good-soft);color:var(--good)} .notif.bad .ti{background:var(--bad-soft);color:var(--bad)} .notif.warn .ti{background:var(--warn-soft);color:var(--warn)}
+.bigico{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--river-soft);color:var(--river)}
+/* help */
+.helphero{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:16px;background:linear-gradient(135deg,var(--river-soft),var(--champa-soft))}
+.helphero b{font-family:var(--f-display);font-size:20px}
+.hsearch{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:0 12px;color:var(--sub)}
+.hsearch:focus-within{border-color:var(--river);box-shadow:0 0 0 3px var(--river-soft)}
+.hsearch input{flex:1;border:0;background:none;padding:11px 0;outline:none;min-width:0}
+.polcard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.polcard>div{display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--paper);min-width:0}
+.polcard span{color:var(--river)} .polcard b{font-size:13.5px} .polcard small{font-size:12.5px;color:var(--sub)}
+.faqcat{display:flex;flex-direction:column;gap:6px}
+.faqcat h4{font-family:var(--f-body);font-size:14px;display:flex;align-items:center;gap:7px;color:var(--river);margin:4px 0}
+.faq{border:1px solid var(--line);border-radius:12px;background:var(--paper);transition:box-shadow .2s}
+.faq[open]{box-shadow:var(--shadow)}
+.faq summary{list-style:none;cursor:pointer;padding:11px 40px 11px 14px;font-weight:600;font-size:14.5px;position:relative}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--river);transition:transform .2s}
+.faq[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+.faq p{margin:0;padding:0 14px 13px;color:var(--sub);font-size:14px}
+.helpcta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px dashed var(--river);border-radius:14px;padding:12px 14px}
+.helpcta div{display:flex;flex-direction:column} .helpcta small{color:var(--sub);font-size:12.5px}
+/* profile */
+.mcard{position:relative;overflow:hidden;border-radius:18px;padding:16px 18px;color:#fff;background:linear-gradient(125deg,#1d2b28 0%,#13524a 55%,#c98114 140%);box-shadow:0 12px 30px rgba(0,0,0,.18);animation:rise .4s ease both}
+.mcard::after{content:'';position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(246,196,106,.45),transparent 70%)}
+.mcard-top{display:flex;justify-content:space-between;font-size:12px;opacity:.85;position:relative}
+.mcard-top b{letter-spacing:.12em;text-transform:uppercase;font-size:11px}
+.mcard-name{font-family:var(--f-display);font-size:22px;margin-top:14px;position:relative}
+.mcard-no{font-size:15px;letter-spacing:.18em;opacity:.9;position:relative}
+.mcard dl{display:grid;grid-template-columns:repeat(4,auto);gap:2px 14px;margin:14px 0 0;font-size:12px;position:relative}
+.mcard dt{opacity:.7} .mcard dd{margin:0;font-weight:600}
+.mcard dl{grid-auto-flow:column;grid-template-rows:auto auto}
+.pform{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--paper)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.row-end{display:flex;justify-content:flex-end}
+.meter{display:block;height:5px;border-radius:999px;background:var(--mist);overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%;width:0;border-radius:inherit;background:var(--bad);transition:width .3s,background .3s}
+.meter i[data-l="2"]{background:var(--warn)} .meter i[data-l="3"]{background:var(--good)}
+.secnote{display:flex;gap:12px;border-radius:14px;padding:12px 14px;background:var(--river-soft);color:var(--ink)}
+.secnote svg{flex:none;color:var(--river);margin-top:2px} .secnote b{font-size:14px} .secnote ul{margin:4px 0 0;padding-left:18px;font-size:13px;color:var(--sub)}
+.dlinks{display:flex;flex-wrap:wrap;gap:8px}
+/* home page reviews */
+.revavg{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0}
+.revavg b{font-family:var(--f-display);font-size:30px;color:var(--river)} .revavg span{color:var(--sub)}
+.revgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.revc{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.revc header{display:flex;align-items:center;gap:10px} .revc header div{flex:1;display:flex;flex-direction:column;min-width:0} .revc header small{color:var(--sub);font-size:12.5px}
+.revc .ava{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--champa-soft);color:var(--champa-2);font-weight:700}
+.revc h4{font-size:17px} .revc p{margin:0;color:var(--sub);font-size:14.5px}
+@media (max-width:640px){
+  .paytiles,.polcard{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid2,.subr{grid-template-columns:1fr}
+  .hubnav button span{display:none} .hubnav button.on span{display:inline}
+  .tgrid{padding-left:14px}
+  .mcard dl{grid-template-columns:repeat(2,auto);grid-auto-flow:row;grid-template-rows:none}
+  .chat{max-height:52vh}
+}
+@media (prefers-reduced-motion:reduce){
+  .hubsec,.pt,.txn,.thread,.bub,.rcard,.rev,.notif,.nstrip button,.mcard{animation:none!important}
+  .bell.has svg{animation:none}
+}
+.pane-b>*{flex-shrink:0}
+
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
@@ -749,8 +913,8 @@ const Core = (function () {
     if (S.members.some(m => m.email === email)) fail('email_taken');
     const m = { id: 'M' + S.seq.m++, email, pw, since: new Date().toISOString() }; S.members.push(m); return m.id;
   }
-  function memberSignIn(email, pw) { const m = S.members.find(x => x.email === String(email || '').trim().toLowerCase() && x.pw === pw); if (!m) fail('bad_login'); return m.id; }
-  function memberMe(id) { return memberView(memberOf(id)); }
+  function memberSignIn(email, pw) { const m = S.members.find(x => x.email === String(email || '').trim().toLowerCase() && x.pw === pw); if (!m) fail('bad_login'); m.lastLogin = new Date().toISOString(); return m.id; }
+  function memberMe(id) { return memberMeFull(id); }
   function memberRegister(id, name, phone, country) {
     const m = memberOf(id) || fail('login_required');
     if (String(name || '').trim().length < 2) fail('name_required');
@@ -901,6 +1065,158 @@ const Core = (function () {
   function saveSettings(p) { need('manager'); const old = { ...S.settings }; Object.assign(S.settings, p); log('settings.update', '1', { old, new: p }); }
   function saveStaff(p) { need('owner'); const i = S.staff.findIndex(x => x.id === p.id); if (i >= 0) S.staff[i] = { ...S.staff[i], ...p }; else S.staff.push({ id: 'U' + S.seq.u++, active: true, ...p }); log('staff.' + (i >= 0 ? 'update' : 'insert'), p.email || p.id, { new: p }); }
 
+
+  // ---------- member hub (mirrors sql/07_member_hub.sql) ----------
+  const hubInit = () => { S.threads = S.threads || []; S.reviews = S.reviews || []; S.notifs = S.notifs || []; S.seq.th = S.seq.th || 1; S.seq.msg = S.seq.msg || 1; S.seq.rv = S.seq.rv || 1; S.seq.nt = S.seq.nt || 1; };
+  function notify(mid, kind, bid, data) { if (!mid) return; hubInit(); S.notifs.unshift({ id: S.seq.nt++, member: mid, kind, bk: bid || null, data: data || {}, read: false, at: new Date().toISOString() }); if (S.notifs.length > 2000) S.notifs.length = 2000; }
+  // like the database triggers: compare before/after so every path (guest, staff, night audit) notifies the member
+  function capture() {
+    hubInit();
+    return { b: new Map(S.bookings.map(b => [b.id, b.status])), c: new Map(S.claims.map(c => [c.id, c.status])), r: new Map((S.refunds || []).map(r => [r.id, r.status])),
+      m: new Set(S.threads.flatMap(t => t.messages.map(m => m.id))) };
+  }
+  function emit(prev) {
+    hubInit();
+    const bd = b => ({ code: b.code, ci: b.ci, co: b.co, total: b.rate * nightsOf(b) });
+    for (const b of S.bookings) {
+      if (!b.member) continue;
+      const was = prev.b.get(b.id);
+      if (was === undefined) { notify(b.member, 'booking_received', b.id, bd(b)); continue; }
+      if (was === b.status) continue;
+      const k = { confirmed: 'booking_confirmed', inhouse: 'checked_in', out: 'checked_out', noshow: 'booking_noshow' }[b.status]
+        || (b.status === 'cancelled' ? ({ guest_cancelled: 'booking_cancelled', declined_by_staff: 'booking_declined', unpaid_expired: 'booking_expired', unpaid_at_arrival: 'booking_expired' }[b.cancel_reason] || 'booking_cancelled_hotel') : null);
+      if (k) notify(b.member, k, b.id, bd(b));
+    }
+    for (const c of S.claims) {
+      const b = S.bookings.find(x => x.id === c.bk); if (!b || !b.member) continue;
+      const was = prev.c.get(c.id);
+      if (was === undefined) notify(b.member, 'slip_received', b.id, { code: b.code, amount: c.amt });
+      else if (was !== c.status && (c.status === 'verified' || c.status === 'rejected')) notify(b.member, c.status === 'verified' ? 'payment_verified' : 'payment_rejected', b.id, { code: b.code, amount: c.amt, ref: c.bank_ref || null });
+    }
+    for (const r of S.refunds || []) {
+      const b = S.bookings.find(x => x.id === r.bk); if (!b || !b.member || r.amount <= 0) continue;
+      const was = prev.r.get(r.id);
+      if (was === undefined) notify(b.member, 'refund_owed', b.id, { code: b.code, amount: r.amount, fee: r.fee });
+      else if (was !== 'paid' && r.status === 'paid') notify(b.member, 'refund_paid', b.id, { code: b.code, amount: r.amount, ref: r.paid_ref || null });
+    }
+    for (const t of S.threads) for (const m of t.messages) if (m.sender === 'staff' && !prev.m.has(m.id)) notify(t.member, 'support_reply', t.bk, { thread: t.id, subject: t.subject });
+  }
+  function run(fn) { const prev = S ? capture() : null; const r = fn(); if (prev) emit(prev); return r; }
+
+  function memberMeFull(id) {
+    const m = memberOf(id); const v = memberView(m); if (!v || !v.profile) return v; hubInit();
+    return { ...v, member_no: 'M-' + String(m.id).toUpperCase().padStart(8, '0'), last_sign_in: m.lastLogin || null,
+      bookings: S.bookings.filter(b => b.member === id).length, reviews: S.reviews.filter(r => r.member === id).length };
+  }
+  function memberPayments(id) {
+    return asMember(id, () => {
+      const out = [], pad = n => String(n).padStart(6, '0');
+      for (const b of S.bookings.filter(x => x.member === id)) {
+        for (const p of b.pays) out.push({ no: 'PAY-' + pad(p.id), at: p.at || (p.date + 'T12:00:00Z'), code: b.code, kind: p.refund ? 'refund' : 'payment', method: p.m, amount: p.amt, ref: p.ref || null, status: 'done', type_id: b.type });
+        for (const c of S.claims.filter(x => x.bk === b.id && (x.status === 'pending' || x.status === 'rejected'))) out.push({ no: 'SLP-' + pad(c.id), at: c.at, code: b.code, kind: 'slip', method: 'qr', amount: c.amt, ref: null, status: c.status, type_id: b.type });
+        for (const r of (S.refunds || []).filter(x => x.bk === b.id && x.status === 'owed' && x.amount > 0)) out.push({ no: 'RF-' + pad(r.id), at: r.at, code: b.code, kind: 'refund_owed', method: null, amount: r.amount, ref: null, status: 'owed', type_id: b.type });
+      }
+      return out.sort((a, b) => String(b.at).localeCompare(String(a.at)) || b.no.localeCompare(a.no));
+    });
+  }
+  const threadView = (t, staffSide) => ({ id: t.id, category: t.category, subject: t.subject, status: t.status, code: t.bk ? (S.bookings.find(b => b.id === t.bk) || {}).code : null, bk: t.bk,
+    created: t.created, updated: t.updated, member: t.member,
+    unread: t.messages.some(m => m.sender === (staffSide ? 'member' : 'staff') && m.at > ((staffSide ? t.staffSeen : t.memberSeen) || '')),
+    messages: t.messages.map(m => ({ sender: m.sender, body: m.body, at: m.at, staff: m.staff ? (staffSide ? m.staff : m.staff.split(' ')[0]) : null })) });
+  function memberThreads(id) { return asMember(id, () => { hubInit(); return S.threads.filter(t => t.member === id).sort((a, b) => b.updated.localeCompare(a.updated)).map(t => threadView(t)); }); }
+  function dailyMsgs(id) { const since = new Date(Date.now() - 864e5).toISOString(); return S.threads.filter(t => t.member === id).reduce((n, t) => n + t.messages.filter(m => m.sender === 'member' && m.at > since).length, 0); }
+  function memberThreadNew(id, cat, subject, body, code) {
+    return asMember(id, m => {
+      hubInit();
+      if (!['question', 'problem', 'booking', 'payment', 'other'].includes(cat)) fail('invalid_kind');
+      if (String(subject || '').trim().length < 3) fail('subject_required');
+      if (String(body || '').trim().length < 5 || String(body).length > 2000) fail('message_required');
+      if (S.threads.filter(t => t.member === id && t.status !== 'closed').length >= 5) fail('too_many_threads');
+      if (dailyMsgs(id) >= 30) fail('too_many_messages');
+      let bid = null; if (String(code || '').trim()) bid = myBooking(id, code).id;
+      const now = new Date().toISOString();
+      const t = { id: S.seq.th++, member: id, bk: bid, category: cat, subject: String(subject).trim().slice(0, 120), status: 'open', created: now, updated: now, memberSeen: now, staffSeen: null,
+        messages: [{ id: S.seq.msg++, sender: 'member', body: String(body).trim(), at: now }] };
+      S.threads.push(t); log('support.new', 'T-' + t.id, { category: cat, subject: t.subject, booking: bid }); return t.id;
+    });
+  }
+  const myThread = (id, tid) => S.threads.find(t => t.id === +tid && t.member === id) || fail('not_found');
+  function memberThreadReply(id, tid, body) {
+    return asMember(id, () => {
+      hubInit(); const t = myThread(id, tid);
+      if (!String(body || '').trim() || String(body).length > 2000) fail('message_required');
+      if (dailyMsgs(id) >= 30) fail('too_many_messages');
+      const now = new Date().toISOString(); t.messages.push({ id: S.seq.msg++, sender: 'member', body: String(body).trim(), at: now }); t.status = 'open'; t.updated = now; t.memberSeen = now;
+      log('support.reply', 'T-' + t.id, null);
+    });
+  }
+  function memberThreadClose(id, tid) { return asMember(id, () => { hubInit(); const t = myThread(id, tid); t.status = 'closed'; t.updated = new Date().toISOString(); log('support.close', 'T-' + t.id, { by: 'member' }); }); }
+  function memberThreadSeen(id, tid) {
+    return asMember(id, () => { hubInit(); const t = myThread(id, tid); t.memberSeen = new Date().toISOString(); S.notifs.filter(n => n.member === id && n.kind === 'support_reply' && !n.read && +n.data.thread === t.id).forEach(n => n.read = true); });
+  }
+  function memberReview(id, code, p) {
+    return asMember(id, () => {
+      hubInit(); const b = myBooking(id, code);
+      if (b.status !== 'out') fail('review_after_stay');
+      const rating = +p.rating; if (!(rating >= 1 && rating <= 5)) fail('rating_required');
+      if (String(p.body || '').length > 2000 || String(p.title || '').length > 120) fail('invalid_amount');
+      const sub = k => (+p[k] >= 1 && +p[k] <= 5) ? +p[k] : null, now = new Date().toISOString();
+      const r = S.reviews.find(x => x.bk === b.id);
+      const vals = { rating, r_clean: sub('r_clean'), r_service: sub('r_service'), r_location: sub('r_location'), r_value: sub('r_value'), title: String(p.title || '').trim() || null, body: String(p.body || '').trim() || null };
+      if (!r) { S.reviews.unshift({ id: S.seq.rv++, bk: b.id, member: id, status: 'published', reply: null, replied_at: null, created: now, updated: now, ...vals }); log('review.create', b.id, { rating }); }
+      else { if (r.reply) fail('review_locked'); const was = r.rating; Object.assign(r, vals, { updated: now }); log('review.update', b.id, { rating, was }); }
+    });
+  }
+  function memberReviews(id) {
+    return asMember(id, () => { hubInit(); return S.reviews.filter(r => r.member === id).map(r => ({ code: (S.bookings.find(b => b.id === r.bk) || {}).code, rating: r.rating, r_clean: r.r_clean, r_service: r.r_service, r_location: r.r_location, r_value: r.r_value,
+      title: r.title, body: r.body, status: r.status, reply: r.reply, replied_at: r.replied_at, created: r.created, updated: r.updated })); });
+  }
+  function memberNotifications(id) { return asMember(id, () => { hubInit(); return S.notifs.filter(n => n.member === id).slice(0, 80).map(n => ({ id: n.id, kind: n.kind, code: n.bk ? (S.bookings.find(b => b.id === n.bk) || {}).code : null, data: n.data, read: n.read, at: n.at })); }); }
+  function memberNotifRead(id, ids) { return asMember(id, () => { hubInit(); S.notifs.filter(n => n.member === id && !n.read && (!ids || ids.includes(n.id))).forEach(n => n.read = true); }); }
+  function memberHub(id) {
+    return asMember(id, () => { expireUnpaid(); hubInit();
+      return { me: memberMeFull(id), bookings: memberBookings(id), payments: memberPayments(id), threads: memberThreads(id), reviews: memberReviews(id), notifications: memberNotifications(id),
+        unread: S.notifs.filter(n => n.member === id && !n.read).length }; });
+  }
+  function memberPassword(id, current, next) {
+    return asMember(id, m => {
+      if (m.pw !== current) fail('bad_password');
+      if (String(next || '').length < 6) fail('weak_password');
+      m.pw = next; log('member.password_changed', m.email, null); notify(id, 'password_changed', null, {});
+    });
+  }
+  // staff side
+  function adminSupport() {
+    hubInit();
+    return { threads: S.threads.slice().sort((a, b) => b.updated.localeCompare(a.updated)).map(t => { const m = memberOf(t.member) || {}; return { ...threadView(t, true), name: m.name, email: m.email, phone: m.phone }; }),
+      reviews: S.reviews.map(r => { const m = memberOf(r.member) || {}; return { id: r.id, bk: r.bk, name: m.name, email: m.email, rating: r.rating, r_clean: r.r_clean, r_service: r.r_service, r_location: r.r_location, r_value: r.r_value,
+        title: r.title, body: r.body, status: r.status, reply: r.reply, replied_at: r.replied_at, replier: r.replier || null, created: r.created }; }) };
+  }
+  function threadReply(tid, body, close) {
+    need('manager', 'frontdesk', 'accountant'); hubInit(); const t = S.threads.find(x => x.id === +tid) || fail('not_found');
+    if (!String(body || '').trim() || String(body).length > 2000) fail('message_required');
+    const now = new Date().toISOString(); t.messages.push({ id: S.seq.msg++, sender: 'staff', staff: S.me.name, body: String(body).trim(), at: now }); t.status = close ? 'closed' : 'answered'; t.updated = now; t.staffSeen = now;
+    log('support.answer', 'T-' + t.id, { close: !!close });
+  }
+  function threadStatus(tid, st) {
+    need('manager', 'frontdesk', 'accountant'); hubInit(); const t = S.threads.find(x => x.id === +tid) || fail('not_found');
+    if (st === 'seen') { t.staffSeen = new Date().toISOString(); return; }
+    if (!['open', 'closed'].includes(st)) fail('invalid_kind');
+    t.status = st; t.updated = new Date().toISOString(); log('support.' + st, 'T-' + t.id, { by: 'staff' });
+  }
+  function reviewReply(rid, text) {
+    need('manager', 'frontdesk'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found');
+    if (String(text || '').trim().length < 2) fail('message_required');
+    Object.assign(r, { reply: String(text).trim(), replier: S.me.name, replied_at: new Date().toISOString() }); log('review.reply', r.bk, null);
+    notify(r.member, 'review_reply', r.bk, { code: (S.bookings.find(b => b.id === r.bk) || {}).code });
+  }
+  function reviewStatus(rid, st) { need('manager'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found'); if (!['published', 'hidden'].includes(st)) fail('invalid_kind'); r.status = st; log('review.' + st, r.bk, null); }
+  function publicReviews() {
+    hubInit(); const pub = S.reviews.filter(r => r.status === 'published');
+    return { count: pub.length, avg: pub.length ? Math.round(pub.reduce((s, r) => s + r.rating, 0) / pub.length * 10) / 10 : null,
+      items: pub.slice(0, 12).map(r => { const m = memberOf(r.member) || {}, b = S.bookings.find(x => x.id === r.bk) || {}; return { name: String(m.name || '').split(' ')[0], country: m.country, rating: r.rating, title: r.title, body: r.body, month: String(b.ci || '').slice(0, 7), type: b.type, reply: r.reply, at: r.created }; }) };
+  }
+
   // ---------- reporting ----------
   function balances(from, to) { const m = {}; for (const k in S.accounts) m[k] = 0; for (const e of S.journal) { if (e.date < from || e.date > to) continue; for (const l of e.lines) m[l.a] += l.dr - l.cr; } return m; }
   const DEBIT_NORMAL = t => ['ca', 'nca', 'cos', 'opx', 'fin'].includes(t);
@@ -943,7 +1259,7 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 8, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 9, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
         cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
@@ -1021,6 +1337,22 @@ const Core = (function () {
     const occ = new Set(S.bookings.filter(b => b.status === 'inhouse').map(b => b.room));
     S.rooms.forEach((r, i) => r.hk = occ.has(r.no) ? 'dirty' : (i % 5 === 0 ? 'clean' : 'inspected'));
     const r = roomOf(ooo); r.hk = 'ooo'; r.note = 'AC';
+    // demo member: two past stays (one reviewed and answered), one answered message, a few notifications
+    hubInit();
+    const past = S.bookings.filter(b => b.status === 'out' && b.ch === 'DIR').slice(-2);
+    past.forEach(b => { b.member = 'M1'; b.source = 'website'; Object.assign(b.guest, { name: 'Noy Sayavong', phone: '+856 20 5555 1234', email: 'demo@saynam.la', country: 'LA' }); });
+    if (past[0]) {
+      const at = past[0].co + 'T10:00:00Z';
+      S.reviews.push({ id: S.seq.rv++, bk: past[0].id, member: 'M1', rating: 5, r_clean: 5, r_service: 5, r_location: 4, r_value: 5, title: 'Demo review', body: 'Sample review written for the demo data.', status: 'published',
+        reply: 'Thank you, we hope to welcome you again. (demo)', replier: 'Manivanh', replied_at: at, created: at, updated: at });
+      notify('M1', 'checked_out', past[0].id, { code: past[0].code, ci: past[0].ci, co: past[0].co, total: past[0].rate * nightsOf(past[0]) });
+    }
+    if (past[1]) notify('M1', 'checked_out', past[1].id, { code: past[1].code, ci: past[1].ci, co: past[1].co, total: past[1].rate * nightsOf(past[1]) });
+    { const t0 = addD(today, -1) + 'T08:30:00Z', t1 = addD(today, -1) + 'T09:05:00Z';
+      S.threads.push({ id: S.seq.th++, member: 'M1', bk: null, category: 'question', subject: 'Airport pickup', status: 'answered', created: t0, updated: t1, memberSeen: t0, staffSeen: t1,
+        messages: [{ id: S.seq.msg++, sender: 'member', body: 'Do you offer airport pickup in the evening?', at: t0 }, { id: S.seq.msg++, sender: 'staff', staff: 'Manivanh', body: 'Yes, until 23:00. Write your flight number in the booking request. (demo)', at: t1 }] });
+      notify('M1', 'support_reply', null, { thread: 1, subject: 'Airport pickup' }); }
+    S.bookings.filter(b => b.member === 'M1' && b.status === 'pending').forEach(b => notify('M1', 'booking_received', b.id, { code: b.code, ci: b.ci, co: b.co, total: b.rate * nightsOf(b) }));
     S.bizDate = today; S.audit = [];
     S.me = S.staff[0];
     log('demo.seed', SIM0, { note: 'two months of simulated operations' });
@@ -1031,7 +1363,9 @@ const Core = (function () {
   return {
     set: s => { S = s; }, get: () => S, addD, diffD, dow, monthEnd, mulberry32, nightsOf, LIVE, HOLD, DEBIT_NORMAL, seed,
     catalog, availability, publicBook, lookup, claim, acceptBooking, openSlip, refundPaid, cancelDeadline,
-    memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, promoPct, directRate,
+    memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, run,
+    memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
+    adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
     expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
@@ -1044,7 +1378,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v8', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v9', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1052,7 +1386,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1061,7 +1395,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 8) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 9) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1081,7 +1415,7 @@ const API = (function () {
   function demoRun(fn, asStaff) {
     demoLoad();
     const S = Core.get(); S.me = asStaff ? demoMe : null;
-    try { const r = fn(); S.me = null; demoSave(); return Promise.resolve(r); }
+    try { const r = Core.run(fn); S.me = null; demoSave(); return Promise.resolve(r); }
     catch (e) { S.me = null; demoLoad(); return Promise.reject(toErr(e)); }   // reload drops any half-applied change
   }
 
@@ -1131,6 +1465,10 @@ const API = (function () {
     payment: (id, m, amt, ref) => ['staff_payment', { p_id: id, p_method: m, p_amount: amt, p_ref: ref || null }],
     verifyClaim: (cid, ok, m, ref) => ['staff_verify_claim', { p_claim: cid, p_approve: ok, p_method: m || 'qr', p_bank_ref: ref || null }],
     refundPaid: (rid, m, ref) => ['staff_refund_paid', { p_refund: rid, p_method: m, p_ref: ref || null }],
+    threadReply: (id, body, close) => ['staff_thread_reply', { p_thread: id, p_body: body, p_close: !!close }],
+    threadStatus: (id, st) => ['staff_thread_status', { p_thread: id, p_status: st }],
+    reviewReply: (id, text) => ['staff_review_reply', { p_id: id, p_reply: text }],
+    reviewStatus: (id, st) => ['staff_review_status', { p_id: id, p_status: st }],
     acceptBooking: id => ['staff_accept_booking', { p_id: id }],
     setHk: (no, st) => ['staff_set_hk', { p_room: no, p_status: st }],
     nightAudit: () => ['staff_night_audit', {}],
@@ -1193,8 +1531,26 @@ const API = (function () {
       book: p => LIVE ? rpc('member_book', { p }) : demoRun(() => Core.memberBook(demoMember(), p)),
       bookings: () => LIVE ? rpc('member_bookings') : demoRun(() => Core.memberBookings(demoMember())),
       claim: (code, amt, slip) => LIVE ? rpc('member_claim', { p_code: code, p_amount: amt, p_slip: slip }) : demoRun(() => Core.memberClaim(demoMember(), code, amt, slip)),
-      cancel: code => LIVE ? rpc('member_cancel', { p_code: code }) : demoRun(() => Core.memberCancel(demoMember(), code))
+      cancel: code => LIVE ? rpc('member_cancel', { p_code: code }) : demoRun(() => Core.memberCancel(demoMember(), code)),
+      hub: () => LIVE ? rpc('member_hub') : demoRun(() => Core.memberHub(demoMember())),
+      threadNew: (cat, subject, body, code) => LIVE ? rpc('member_thread_new', { p_category: cat, p_subject: subject, p_body: body, p_code: code || null }) : demoRun(() => Core.memberThreadNew(demoMember(), cat, subject, body, code)),
+      threadReply: (id, body) => LIVE ? rpc('member_thread_reply', { p_thread: id, p_body: body }) : demoRun(() => Core.memberThreadReply(demoMember(), id, body)),
+      threadClose: id => LIVE ? rpc('member_thread_close', { p_thread: id }) : demoRun(() => Core.memberThreadClose(demoMember(), id)),
+      threadSeen: id => LIVE ? rpc('member_thread_seen', { p_thread: id }) : demoRun(() => Core.memberThreadSeen(demoMember(), id)),
+      review: (code, p) => LIVE ? rpc('member_review', { p_code: code, p_rating: p.rating, p_clean: p.r_clean || null, p_service: p.r_service || null, p_location: p.r_location || null, p_value: p.r_value || null, p_title: p.title || null, p_body: p.body || null })
+        : demoRun(() => Core.memberReview(demoMember(), code, p)),
+      notifRead: ids => LIVE ? rpc('member_notifications_read', { p_ids: ids || null }) : demoRun(() => Core.memberNotifRead(demoMember(), ids || null)),
+      // the current password is checked by signing in again before the new one is set
+      async changePassword(current, next) {
+        if (!LIVE) return demoRun(() => Core.memberPassword(demoMember(), current, next));
+        const c = await client(); const { data } = await c.auth.getSession(); const email = data.session && data.session.user.email;
+        if (!email) throw toErr('login_required');
+        const chk = await c.auth.signInWithPassword({ email, password: current }); if (chk.error) throw toErr('bad_password');
+        const { error } = await c.auth.updateUser({ password: next }); if (error) throw toErr(error);
+        await rpc('member_security_event', { p_kind: 'password_changed' });
+      }
     },
+    reviews: () => LIVE ? rpc('public_reviews') : demoRun(() => Core.publicReviews()),
     // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
     async uploadSlip(code, blob) {
       if (!LIVE) return await blobToDataURL(blob);
@@ -1236,9 +1592,10 @@ const API = (function () {
     },
     async logout() { if (LIVE) { const c = await client(); await c.auth.signOut(); } demoMe = null; try { sessionStorage.removeItem(USER_KEY); } catch (e) { } },
     async snapshot() {
-      if (!LIVE) { const s = demoLoad(); s.me = null; const copy = JSON.parse(JSON.stringify(s)); copy.me = demoMe; copy.live = false; return copy; }
+      if (!LIVE) { const s = demoLoad(); s.me = null; const copy = JSON.parse(JSON.stringify(s)); copy.me = demoMe; copy.live = false; Core.set(s); copy.support = Core.adminSupport(); return copy; }
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
+      try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
       return s;
     },
     act(name, ...args) {
@@ -1444,6 +1801,114 @@ Object.assign(SX, {
   noneInFilter: ['ບໍ່ມີການຈອງໃນໝວດນີ້', 'ไม่มีการจองในหมวดนี้', 'Nothing in this group']
 });
 
+// ---- member hub ----
+Object.assign(SX, {
+  tab_home: ['ພາບລວມ', 'ภาพรวม', 'Overview'], tab_pay: ['ການຊຳລະເງິນ', 'การชำระเงิน', 'Payments'], tab_msg: ['ຕິດຕໍ່ເຮົາ', 'ติดต่อเรา', 'Contact us'], tab_rev: ['ຣີວິວ', 'รีวิว', 'Reviews'],
+  tab_notif: ['ແຈ້ງເຕືອນ', 'แจ้งเตือน', 'Notifications'], tab_help: ['ຊ່ວຍເຫຼືອ', 'ช่วยเหลือ', 'Help'], tab_profile: ['ຂໍ້ມູນສ່ວນຕົວ', 'ข้อมูลส่วนตัว', 'Profile'],
+  rt_now: ['ຫາກໍ່ນີ້', 'เมื่อสักครู่', 'just now'], rt_min: ['{n} ນາທີກ່ອນ', '{n} นาทีที่แล้ว', '{n} min ago'], rt_hr: ['{n} ຊົ່ວໂມງກ່ອນ', '{n} ชั่วโมงที่แล้ว', '{n} h ago'],
+  d_today: ['ມື້ນີ້', 'วันนี้', 'Today'], d_yesterday: ['ມື້ວານ', 'เมื่อวาน', 'Yesterday'],
+  m_qr: ['QR / ໂອນ', 'QR / โอน', 'QR transfer'], m_cash: ['ເງິນສົດ', 'เงินสด', 'Cash'], m_card: ['ບັດ', 'บัตร', 'Card'], m_transfer: ['ໂອນຜ່ານທະນາຄານ', 'โอนผ่านธนาคาร', 'Bank transfer'],
+  // payments
+  pt_in: ['ຊຳລະແລ້ວ', 'ชำระแล้ว', 'Paid'], pt_out: ['ໄດ້ຮັບເງິນຄືນ', 'ได้รับเงินคืน', 'Refunded'], pt_owed: ['ເງິນຄືນລໍຖ້າໂອນ', 'เงินคืนรอโอน', 'Refund pending'], pt_rev: ['ກຳລັງກວດສະລິບ', 'กำลังตรวจสลิป', 'Being checked'],
+  pf_all: ['ທັງໝົດ', 'ทั้งหมด', 'All'], pf_in: ['ການຊຳລະ', 'การชำระ', 'Payments'], pf_refund: ['ເງິນຄືນ', 'เงินคืน', 'Refunds'], pf_slip: ['ສະລິບ', 'สลิป', 'Slips'],
+  tx_payment: ['ຊຳລະຄ່າຫ້ອງ', 'ชำระค่าห้อง', 'Room payment'], tx_refund: ['ເງິນຄືນ', 'เงินคืน', 'Refund'], tx_refund_owed: ['ເງິນຄືນ (ລໍຖ້າໂອນ)', 'เงินคืน (รอโอน)', 'Refund (to be transferred)'],
+  tx_slip: ['ສະລິບລໍຖ້າກວດ', 'สลิปรอตรวจ', 'Slip awaiting check'], tx_slip_rej: ['ສະລິບບໍ່ຜ່ານ', 'สลิปไม่ผ่าน', 'Slip not accepted'],
+  tx_done: ['ສຳເລັດ', 'สำเร็จ', 'Completed'], tx_refunded: ['ໂອນຄືນແລ້ວ', 'โอนคืนแล้ว', 'Refunded'], tx_waiting_transfer: ['ລໍຖ້າໂອນ', 'รอโอน', 'Awaiting transfer'], tx_checking: ['ກຳລັງກວດ', 'กำลังตรวจ', 'Checking'], tx_rejected: ['ບໍ່ພົບເງິນ', 'ไม่พบเงิน', 'Not found'],
+  tx_no: ['ເລກທີລາຍການ', 'เลขที่รายการ', 'Transaction no.'], tx_date: ['ວັນທີ-ເວລາ', 'วันที่-เวลา', 'Date & time'], tx_method: ['ວິທີຊຳລະ', 'วิธีชำระ', 'Method'], tx_ref: ['ເລກອ້າງອີງ', 'เลขอ้างอิง', 'Reference'], tx_status: ['ສະຖານະ', 'สถานะ', 'Status'],
+  noTx: ['ຍັງບໍ່ມີລາຍການ', 'ยังไม่มีรายการ', 'No transactions yet'],
+  txHint: ['ທຸກລາຍການບັນທຶກໃນລະບົບບັນຊີຂອງໂຮງແຮມ ແລະ ກວດສອບຍ້ອນຫຼັງໄດ້. ດາວໂຫຼດ CSV ເພື່ອເກັບໄວ້.', 'ทุกรายการบันทึกในระบบบัญชีของโรงแรมและตรวจสอบย้อนหลังได้ ดาวน์โหลด CSV เพื่อเก็บไว้', 'Every transaction is recorded in the hotel ledger and can be checked later. Download a CSV for your records.'],
+  // messages
+  callUs: ['ໂທຫາເຮົາ', 'โทรหาเรา', 'Call us'], emailUs: ['ສົ່ງອີເມວ', 'ส่งอีเมล', 'E-mail us'],
+  myMessages: ['ຂໍ້ຄວາມຂອງຂ້ອຍ', 'ข้อความของฉัน', 'My messages'], newMessage: ['ສົ່ງຂໍ້ຄວາມໃໝ່', 'ส่งข้อความใหม่', 'New message'], allMessages: ['← ຂໍ້ຄວາມທັງໝົດ', '← ข้อความทั้งหมด', '← All messages'],
+  noMessages: ['ຍັງບໍ່ມີຂໍ້ຄວາມ. ມີຄຳຖາມ ຫຼື ບັນຫາ? ສົ່ງຫາເຮົາໄດ້ເລີຍ.', 'ยังไม่มีข้อความ มีคำถามหรือปัญหา? ส่งหาเราได้เลย', 'No messages yet. A question or a problem? Write to us.'],
+  msgHint: ['ພະນັກງານຈະຕອບພາຍໃນ 24 ຊົ່ວໂມງ. ເລື່ອງດ່ວນ ກະລຸນາໂທຫາເຮົາ.', 'พนักงานจะตอบภายใน 24 ชั่วโมง เรื่องด่วนกรุณาโทรหาเรา', 'We reply within 24 hours. For anything urgent, please call.'],
+  msgTopic: ['ຫົວຂໍ້', 'หัวข้อ', 'Topic'], msgBooking: ['ກ່ຽວກັບການຈອງ (ບໍ່ບັງຄັບ)', 'เกี่ยวกับการจอง (ไม่บังคับ)', 'About a booking (optional)'], msgNoBooking: ['— ບໍ່ກ່ຽວກັບການຈອງ —', '— ไม่เกี่ยวกับการจอง —', '— Not about a booking —'],
+  msgSubject: ['ເລື່ອງ', 'เรื่อง', 'Subject'], msgBody: ['ຂໍ້ຄວາມ', 'ข้อความ', 'Message'], msgBodyPh: ['ຂຽນລາຍລະອຽດ...', 'เขียนรายละเอียด...', 'Tell us the details...'],
+  cat_question: ['ສອບຖາມ', 'สอบถาม', 'Question'], cat_booking: ['ການຈອງ', 'การจอง', 'Booking'], cat_payment: ['ການຊຳລະ', 'การชำระเงิน', 'Payment'], cat_problem: ['ແຈ້ງບັນຫາ', 'แจ้งปัญหา', 'Problem'], cat_other: ['ອື່ນໆ', 'อื่นๆ', 'Other'],
+  ts_open: ['ລໍຖ້າຕອບ', 'รอตอบกลับ', 'Awaiting reply'], ts_answered: ['ຕອບແລ້ວ', 'ตอบแล้ว', 'Answered'], ts_closed: ['ປິດແລ້ວ', 'ปิดแล้ว', 'Closed'],
+  yourReply: ['ຕອບກັບ', 'ตอบกลับ', 'Your reply'], reopenReply: ['ສົ່ງຂໍ້ຄວາມເພື່ອເປີດເລື່ອງນີ້ອີກຄັ້ງ', 'ส่งข้อความเพื่อเปิดเรื่องนี้อีกครั้ง', 'Write to reopen this conversation'], replyPh: ['ພິມຂໍ້ຄວາມ...', 'พิมพ์ข้อความ...', 'Type a message...'],
+  send: ['ສົ່ງ', 'ส่ง', 'Send'], closeThread: ['ປິດເລື່ອງ', 'ปิดเรื่อง', 'Close'], sentOk: ['ສົ່ງຂໍ້ຄວາມແລ້ວ', 'ส่งข้อความแล้ว', 'Message sent'], askAbout: ['ສອບຖາມກ່ຽວກັບການຈອງນີ້', 'สอบถามเกี่ยวกับการจองนี้', 'Ask about this booking'],
+  // reviews
+  toReview: ['ລໍຖ້າການຣີວິວຂອງທ່ານ', 'รอรีวิวจากคุณ', 'Waiting for your review'], writeReview: ['ຂຽນຣີວິວ', 'เขียนรีวิว', 'Write a review'], myReviews: ['ຣີວິວຂອງຂ້ອຍ', 'รีวิวของฉัน', 'My reviews'], editReview: ['ແກ້ໄຂຣີວິວ', 'แก้ไขรีวิว', 'Edit review'],
+  r_rating: ['ຄວາມພໍໃຈໂດຍລວມ', 'ความพึงพอใจโดยรวม', 'Overall'], r_clean: ['ຄວາມສະອາດ', 'ความสะอาด', 'Cleanliness'], r_service: ['ການບໍລິການ', 'การบริการ', 'Service'], r_location: ['ທີ່ຕັ້ງ', 'ทำเล', 'Location'], r_value: ['ຄຸ້ມຄ່າ', 'ความคุ้มค่า', 'Value'],
+  rl_1: ['ບໍ່ພໍໃຈ', 'ไม่พอใจ', 'Poor'], rl_2: ['ພໍໃຊ້', 'พอใช้', 'Fair'], rl_3: ['ດີ', 'ดี', 'Good'], rl_4: ['ດີຫຼາຍ', 'ดีมาก', 'Very good'], rl_5: ['ດີເລີດ', 'ยอดเยี่ยม', 'Excellent'], tapStars: ['ແຕະດາວເພື່ອໃຫ້ຄະແນນ', 'แตะดาวเพื่อให้คะแนน', 'Tap the stars to rate'],
+  revTitle: ['ຫົວຂໍ້', 'หัวข้อ', 'Title'], revTitlePh: ['ເຊັ່ນ: ວິວແມ່ນ້ຳງາມຫຼາຍ', 'เช่น วิวแม่น้ำสวยมาก', 'e.g. Beautiful river view'], revBody: ['ຄຳເຫັນຂອງທ່ານ', 'ความคิดเห็นของคุณ', 'Your comments'],
+  revBodyPh: ['ເລົ່າປະສົບການເຂົ້າພັກ...', 'เล่าประสบการณ์การเข้าพัก...', 'Tell us about your stay...'], revSubmit: ['ສົ່ງຣີວິວ', 'ส่งรีวิว', 'Submit review'], revSaved: ['ຂອບໃຈສຳລັບຣີວິວ!', 'ขอบคุณสำหรับรีวิว!', 'Thank you for your review!'],
+  revPublicNote: ['ຣີວິວຈະສະແດງໃນເວັບໄຊພ້ອມຊື່ທຳອິດຂອງທ່ານເທົ່ານັ້ນ. ແກ້ໄຂໄດ້ຈົນກວ່າໂຮງແຮມຈະຕອບກັບ.', 'รีวิวจะแสดงบนเว็บไซต์พร้อมชื่อแรกของคุณเท่านั้น แก้ไขได้จนกว่าโรงแรมจะตอบกลับ', 'Your review shows on the website with your first name only. You can edit it until the hotel replies.'],
+  hotelReply: ['ຄຳຕອບຈາກໂຮງແຮມ', 'คำตอบจากโรงแรม', 'Reply from the hotel'], revHidden: ['ຣີວິວນີ້ບໍ່ໄດ້ສະແດງສາທາລະນະ', 'รีวิวนี้ไม่ได้แสดงสาธารณะ', 'This review is not shown publicly'],
+  noReviewsT: ['ຍັງບໍ່ມີຣີວິວ', 'ยังไม่มีรีวิว', 'No reviews yet'], noReviewsD: ['ຫຼັງຈາກເຊັກເອົ້າ ທ່ານຈະໃຫ້ຄະແນນ ແລະ ຂຽນຣີວິວໄດ້ທີ່ນີ້.', 'หลังเช็คเอาท์ คุณจะให้คะแนนและเขียนรีวิวได้ที่นี่', 'After you check out you can rate your stay and write a review here.'],
+  // notifications
+  markAllRead: ['ອ່ານທັງໝົດແລ້ວ', 'อ่านทั้งหมดแล้ว', 'Mark all read'], noNotifT: ['ບໍ່ມີແຈ້ງເຕືອນ', 'ไม่มีการแจ้งเตือน', 'No notifications'], noNotifD: ['ຄວາມຄືບໜ້າຂອງການຈອງ ແລະ ການຊຳລະຈະສະແດງທີ່ນີ້.', 'ความคืบหน้าของการจองและการชำระเงินจะแสดงที่นี่', 'Updates about your bookings and payments appear here.'],
+  n_booking_received: ['ໄດ້ຮັບຄຳຂໍຈອງ {code} ແລ້ວ — ກະລຸນາຊຳລະເພື່ອຢືນຢັນ', 'ได้รับคำขอจอง {code} แล้ว — กรุณาชำระเพื่อยืนยัน', 'Booking request {code} received: please pay to confirm'],
+  n_slip_received: ['ໄດ້ຮັບສະລິບ {a} ສຳລັບ {code} — ກຳລັງກວດ', 'ได้รับสลิป {a} สำหรับ {code} — กำลังตรวจ', 'Slip for {a} on {code} received: being checked'],
+  n_payment_verified: ['ຢືນຢັນການຊຳລະ {a} ສຳລັບ {code} ແລ້ວ', 'ยืนยันการชำระ {a} สำหรับ {code} แล้ว', 'Payment of {a} for {code} confirmed'],
+  n_payment_rejected: ['ສະລິບ {a} ສຳລັບ {code} ບໍ່ຜ່ານການກວດ — ກະລຸນາກວດ ແລະ ສົ່ງໃໝ່', 'สลิป {a} สำหรับ {code} ไม่ผ่านการตรวจ — กรุณาตรวจและส่งใหม่', 'Slip for {a} on {code} was not accepted: please check and resend'],
+  n_booking_confirmed: ['ການຈອງ {code} ສຳເລັດແລ້ວ 🎉', 'การจอง {code} สำเร็จแล้ว 🎉', 'Booking {code} is confirmed 🎉'],
+  n_booking_cancelled: ['ທ່ານໄດ້ຍົກເລີກການຈອງ {code}', 'คุณได้ยกเลิกการจอง {code}', 'You cancelled booking {code}'],
+  n_booking_declined: ['ການຈອງ {code} ຖືກປະຕິເສດ ເພາະບໍ່ພົບການຊຳລະ', 'การจอง {code} ถูกปฏิเสธเนื่องจากไม่พบการชำระ', 'Booking {code} was declined: no payment found'],
+  n_booking_cancelled_hotel: ['ໂຮງແຮມໄດ້ຍົກເລີກການຈອງ {code}', 'โรงแรมได้ยกเลิกการจอง {code}', 'The hotel cancelled booking {code}'],
+  n_booking_expired: ['ການຈອງ {code} ໝົດເວລາ ເພາະບໍ່ໄດ້ຊຳລະທັນ', 'การจอง {code} หมดเวลาเพราะไม่ได้ชำระทัน', 'Booking {code} expired: not paid in time'],
+  n_booking_noshow: ['ການຈອງ {code} ຖືກບັນທຶກວ່າບໍ່ໄດ້ມາພັກ', 'การจอง {code} ถูกบันทึกว่าไม่ได้มาเข้าพัก', 'Booking {code} was marked as no-show'],
+  n_refund_owed: ['ເງິນຄືນ {a} ສຳລັບ {code} — ລໍຖ້າໂຮງແຮມໂອນ', 'เงินคืน {a} สำหรับ {code} — รอโรงแรมโอน', 'Refund of {a} for {code}: waiting for the hotel to transfer'],
+  n_refund_paid: ['ໂຮງແຮມໂອນເງິນຄືນ {a} ສຳລັບ {code} ແລ້ວ', 'โรงแรมโอนเงินคืน {a} สำหรับ {code} แล้ว', 'The hotel refunded {a} for {code}'],
+  n_checked_in: ['ຍິນດີຕ້ອນຮັບ! ເຊັກອິນ {code} ແລ້ວ', 'ยินดีต้อนรับ! เช็คอิน {code} แล้ว', 'Welcome! You are checked in ({code})'],
+  n_checked_out: ['ຂອບໃຈທີ່ມາພັກ ({code}) — ຊ່ວຍຂຽນຣີວິວໃຫ້ເຮົາແດ່', 'ขอบคุณที่เข้าพัก ({code}) — ช่วยเขียนรีวิวให้เราหน่อย', 'Thanks for staying ({code}): please leave a review'],
+  n_support_reply: ['ໂຮງແຮມຕອບຂໍ້ຄວາມ "{s}" ແລ້ວ', 'โรงแรมตอบข้อความ "{s}" แล้ว', 'The hotel replied to "{s}"'],
+  n_review_reply: ['ໂຮງແຮມຕອບຣີວິວຂອງທ່ານ ({code})', 'โรงแรมตอบรีวิวของคุณ ({code})', 'The hotel replied to your review ({code})'],
+  n_password_changed: ['ລະຫັດຜ່ານຂອງທ່ານຖືກປ່ຽນແລ້ວ. ຖ້າບໍ່ແມ່ນທ່ານ ກະລຸນາໂທຫາໂຮງແຮມທັນທີ.', 'รหัสผ่านของคุณถูกเปลี่ยนแล้ว หากไม่ใช่คุณ กรุณาโทรหาโรงแรมทันที', 'Your password was changed. If this was not you, call the hotel right away.'],
+  // help
+  helpT: ['ມີຫຍັງໃຫ້ເຮົາຊ່ວຍ?', 'มีอะไรให้เราช่วย?', 'How can we help?'], helpSearch: ['ຄົ້ນຫາ ເຊັ່ນ "ຄືນເງິນ", "ເຊັກອິນ"', 'ค้นหา เช่น "คืนเงิน", "เช็คอิน"', 'Search, e.g. "refund", "check-in"'], helpNone: ['ບໍ່ພົບຄຳຕອບ — ລອງຄຳອື່ນ ຫຼື ສົ່ງຂໍ້ຄວາມຫາເຮົາ', 'ไม่พบคำตอบ — ลองคำอื่นหรือส่งข้อความหาเรา', 'Nothing found: try other words or send us a message'],
+  helpMore: ['ຍັງບໍ່ພົບຄຳຕອບ?', 'ยังไม่พบคำตอบ?', 'Still need help?'], helpMoreD: ['ສົ່ງຂໍ້ຄວາມຫາພະນັກງານ — ເຮົາຕອບພາຍໃນ 24 ຊົ່ວໂມງ', 'ส่งข้อความหาพนักงาน — เราตอบภายใน 24 ชั่วโมง', 'Message our team: we reply within 24 hours'],
+  pc_times: ['ເວລາເຂົ້າ-ອອກ', 'เวลาเข้า-ออก', 'Check-in / out'], pc_pay: ['ການຊຳລະ', 'การชำระเงิน', 'Payment'], pc_payD: ['ເຕັມຈຳນວນຜ່ານ QR ພາຍໃນ {hold} ຊມ', 'เต็มจำนวนผ่าน QR ภายใน {hold} ชม.', 'In full by QR within {hold} h'],
+  pc_cancel: ['ການຍົກເລີກ', 'การยกเลิก', 'Cancellation'], pc_cancelD: ['ກ່ອນເຊັກອິນ {h} ຊົ່ວໂມງ', 'ก่อนเช็คอิน {h} ชั่วโมง', 'Up to {h} h before check-in'], pc_refund: ['ເງິນຄືນ', 'เงินคืน', 'Refund'], pc_refundD: ['{p} ຂອງຄ່າຫ້ອງ', '{p} ของค่าห้อง', '{p} of the room price'],
+  fc_book: ['ການຈອງ', 'การจอง', 'Booking'], fc_pay: ['ການຊຳລະເງິນ', 'การชำระเงิน', 'Payment'], fc_cancel: ['ການຍົກເລີກ ແລະ ຄືນເງິນ', 'การยกเลิกและคืนเงิน', 'Cancellation & refunds'], fc_stay: ['ເງື່ອນໄຂການເຂົ້າພັກ', 'เงื่อนไขการเข้าพัก', 'Your stay'], fc_acct: ['ບັນຊີ ແລະ ຄວາມປອດໄພ', 'บัญชีและความปลอดภัย', 'Account & security'],
+  fq_b1: ['ຈອງຫ້ອງແນວໃດ?', 'จองห้องอย่างไร?', 'How do I book?'], fa_b1: ['ເລືອກວັນ ແລະ ຫ້ອງ, ກວດລາຍລະອຽດ ແລ້ວກົດຢືນຢັນ. ຈາກນັ້ນໂອນເງິນເຕັມຈຳນວນຜ່ານ QR ແລະ ແນບສະລິບ. ການຈອງຈະສຳເລັດເມື່ອພະນັກງານກວດເງິນແລ້ວ.', 'เลือกวันและห้อง ตรวจรายละเอียดแล้วกดยืนยัน จากนั้นโอนเงินเต็มจำนวนผ่าน QR และแนบสลิป การจองจะสำเร็จเมื่อพนักงานตรวจเงินแล้ว', 'Pick dates and a room, review and confirm. Then transfer the full amount by QR and attach the slip. The booking is confirmed once staff have checked the money.'],
+  fq_b2: ['ເປັນຫຍັງຕ້ອງສະໝັກສະມາຊິກ?', 'ทำไมต้องสมัครสมาชิก?', 'Why do I need an account?'], fa_b2: ['ເພື່ອໃຫ້ທ່ານເບິ່ງສະຖານະການຈອງ, ການຊຳລະ, ເງິນຄືນ ແລະ ຂໍ້ຄວາມຈາກໂຮງແຮມໄດ້ທຸກເວລາ ແລະ ຂໍ້ມູນຂອງທ່ານປອດໄພ — ເຫັນໄດ້ສະເພາະທ່ານ ແລະ ພະນັກງານ.', 'เพื่อให้คุณดูสถานะการจอง การชำระ เงินคืน และข้อความจากโรงแรมได้ทุกเวลา และข้อมูลของคุณปลอดภัย — เห็นได้เฉพาะคุณและพนักงาน', 'So you can follow your bookings, payments, refunds and messages at any time, and your data stays private: only you and hotel staff can see it.'],
+  fq_b3: ['ປ່ຽນວັນເຂົ້າພັກໄດ້ບໍ?', 'เปลี่ยนวันเข้าพักได้ไหม?', 'Can I change my dates?'], fa_b3: ['ສົ່ງຂໍ້ຄວາມຫາເຮົາໃນແຖບ "ຕິດຕໍ່ເຮົາ" ພ້ອມເລືອກການຈອງ. ພະນັກງານຈະກວດຫ້ອງວ່າງ ແລະ ປ່ຽນໃຫ້ຖ້າເປັນໄປໄດ້.', 'ส่งข้อความหาเราในแท็บ "ติดต่อเรา" พร้อมเลือกการจอง พนักงานจะตรวจห้องว่างและเปลี่ยนให้ถ้าเป็นไปได้', 'Send us a message under "Contact us" and pick the booking. We check availability and change it if we can.'],
+  fq_p1: ['ຊຳລະເງິນແນວໃດ?', 'ชำระเงินอย่างไร?', 'How do I pay?'], fa_p1: ['ສະແກນ QR ຂອງໂຮງແຮມດ້ວຍແອັບທະນາຄານ, ໂອນເງິນເຕັມຈຳນວນ, ຖ່າຍຮູບສະລິບ ແລ້ວແນບໃນໜ້າການຈອງ ພາຍໃນ {hold} ຊົ່ວໂມງ.', 'สแกน QR ของโรงแรมด้วยแอปธนาคาร โอนเงินเต็มจำนวน ถ่ายรูปสลิปแล้วแนบในหน้าการจอง ภายใน {hold} ชั่วโมง', 'Scan the hotel QR in your banking app, transfer the full amount, then attach a photo of the slip to the booking within {hold} hours.'],
+  fq_p2: ['ຈະຮູ້ໄດ້ແນວໃດວ່າໂຮງແຮມໄດ້ຮັບເງິນແລ້ວ?', 'จะรู้ได้อย่างไรว่าโรงแรมได้รับเงินแล้ว?', 'How do I know the hotel received my money?'], fa_p2: ['ເມື່ອພະນັກງານກວດພົບເງິນໃນບັນຊີ ທ່ານຈະໄດ້ຮັບແຈ້ງເຕືອນ "ຢືນຢັນການຊຳລະ" ແລະ ສະຖານະຈະເປັນ "ຈອງສຳເລັດ". ທຸກລາຍການເບິ່ງໄດ້ໃນແຖບ "ການຊຳລະເງິນ".', 'เมื่อพนักงานตรวจพบเงินในบัญชี คุณจะได้รับแจ้งเตือน "ยืนยันการชำระ" และสถานะจะเป็น "จองสำเร็จ" ทุกรายการดูได้ในแท็บ "การชำระเงิน"', 'When staff find the money in the account you get a "payment confirmed" notification and the booking shows "confirmed". Every transaction is listed under "Payments".'],
+  fq_p3: ['ສະລິບບໍ່ຜ່ານການກວດ ເຮັດແນວໃດ?', 'สลิปไม่ผ่านการตรวจ ทำอย่างไร?', 'My slip was not accepted. What now?'], fa_p3: ['ກວດຍອດເງິນ ແລະ ບັນຊີປາຍທາງ ແລ້ວສົ່ງສະລິບໃໝ່. ຖ້າໝັ້ນໃຈວ່າໂອນຖືກແລ້ວ ກະລຸນາສົ່ງຂໍ້ຄວາມ ຫຼື ໂທ {phone}.', 'ตรวจยอดเงินและบัญชีปลายทางแล้วส่งสลิปใหม่ หากมั่นใจว่าโอนถูกแล้ว กรุณาส่งข้อความหรือโทร {phone}', 'Check the amount and the receiving account, then send a new slip. If you are sure the transfer was right, message us or call {phone}.'],
+  fq_p4: ['ລາຄາລວມອາກອນບໍ?', 'ราคารวมภาษีไหม?', 'Do prices include tax?'], fa_p4: ['ລາຄາທີ່ສະແດງລວມອາກອນມູນຄ່າເພີ່ມ {vat}% ແລ້ວ.', 'ราคาที่แสดงรวมภาษีมูลค่าเพิ่ม {vat}% แล้ว', 'Prices shown include {vat}% VAT.'],
+  fq_c1: ['ຍົກເລີກການຈອງໄດ້ຮອດເມື່ອໃດ?', 'ยกเลิกการจองได้ถึงเมื่อไร?', 'Until when can I cancel?'], fa_c1: ['ຍົກເລີກເອງໄດ້ໃນໜ້າການຈອງ ຈົນຮອດ {h} ຊົ່ວໂມງກ່ອນເວລາເຊັກອິນ ({ci}). ຫຼັງຈາກນັ້ນລະບົບຈະບໍ່ໃຫ້ຍົກເລີກ.', 'ยกเลิกเองได้ในหน้าการจอง จนถึง {h} ชั่วโมงก่อนเวลาเช็คอิน ({ci}) หลังจากนั้นระบบจะไม่ให้ยกเลิก', 'You can cancel yourself on the booking page until {h} hours before check-in time ({ci}). After that the system does not allow it.'],
+  fq_c2: ['ຍົກເລີກແລ້ວໄດ້ເງິນຄືນເທົ່າໃດ?', 'ยกเลิกแล้วได้เงินคืนเท่าไร?', 'How much do I get back?'], fa_c2: ['ການຈອງທີ່ຊຳລະແລ້ວ ຈະໄດ້ຄືນ {p} ຂອງຄ່າຫ້ອງ, ອີກ {f} ເປັນຄ່າທຳນຽມຍົກເລີກ. ການຈອງທີ່ຍັງບໍ່ໄດ້ຊຳລະ ຍົກເລີກໄດ້ຟຣີ.', 'การจองที่ชำระแล้ว จะได้คืน {p} ของค่าห้อง อีก {f} เป็นค่าธรรมเนียมการยกเลิก การจองที่ยังไม่ได้ชำระยกเลิกได้ฟรี', 'For a paid booking you get {p} of the room price back; {f} is kept as a cancellation fee. Unpaid bookings can be cancelled free.'],
+  fq_c3: ['ເງິນຄືນຈະໄດ້ຮັບເມື່ອໃດ?', 'จะได้รับเงินคืนเมื่อไร?', 'When will I receive the refund?'], fa_c3: ['ໂຮງແຮມຈະໂອນຄືນພາຍໃນ 3 ວັນເຮັດການ. ສະຖານະ "ລໍຖ້າໂອນ" ຈະປ່ຽນເປັນ "ໂອນຄືນແລ້ວ" ພ້ອມເລກອ້າງອີງ ແລະ ທ່ານຈະໄດ້ຮັບແຈ້ງເຕືອນ.', 'โรงแรมจะโอนคืนภายใน 3 วันทำการ สถานะ "รอโอน" จะเปลี่ยนเป็น "โอนคืนแล้ว" พร้อมเลขอ้างอิง และคุณจะได้รับการแจ้งเตือน', 'The hotel transfers it within 3 working days. The status changes from "awaiting transfer" to "refunded" with a reference, and you get a notification.'],
+  fq_c4: ['ຖ້າບໍ່ມາພັກໂດຍບໍ່ຍົກເລີກ?', 'ถ้าไม่มาเข้าพักโดยไม่ยกเลิก?', 'What if I do not show up?'], fa_c4: ['ການຈອງຈະຖືກບັນທຶກວ່າບໍ່ມາພັກ ແລະ ບໍ່ສາມາດຄືນເງິນໄດ້.', 'การจองจะถูกบันทึกว่าไม่มาเข้าพัก และไม่สามารถคืนเงินได้', 'The booking is recorded as a no-show and cannot be refunded.'],
+  fq_s1: ['ເວລາເຊັກອິນ ແລະ ເຊັກເອົ້າ?', 'เวลาเช็คอินและเช็คเอาท์?', 'Check-in and check-out times?'], fa_s1: ['ເຊັກອິນຈາກ {ci}, ເຊັກເອົ້າກ່ອນ {co}. ຕ້ອງການເຂົ້າກ່ອນ ຫຼື ອອກຊ້າ ກະລຸນາແຈ້ງລ່ວງໜ້າ.', 'เช็คอินตั้งแต่ {ci} เช็คเอาท์ก่อน {co} หากต้องการเข้าก่อนหรือออกช้า กรุณาแจ้งล่วงหน้า', 'Check-in from {ci}, check-out by {co}. Ask us in advance for early arrival or late departure.'],
+  fq_s2: ['ຕ້ອງໃຊ້ເອກະສານຫຍັງຕອນເຊັກອິນ?', 'ต้องใช้เอกสารอะไรตอนเช็คอิน?', 'What do I need at check-in?'], fa_s2: ['ບັດປະຈຳຕົວ ຫຼື ໜັງສືຜ່ານແດນ ແລະ ລະຫັດການຈອງ.', 'บัตรประชาชนหรือหนังสือเดินทาง และรหัสการจอง', 'An ID card or passport and your booking code.'],
+  fq_s3: ['ມາຮອດເດິກໄດ້ບໍ?', 'มาถึงดึกได้ไหม?', 'Can I arrive late at night?'], fa_s3: ['ໄດ້ — ເຄົາເຕີເປີດ 24 ຊົ່ວໂມງ. ແຈ້ງເວລາມາຮອດໃນ "ຕິດຕໍ່ເຮົາ" ເພື່ອໃຫ້ເຮົາກຽມພ້ອມ.', 'ได้ — เคาน์เตอร์เปิด 24 ชั่วโมง แจ้งเวลามาถึงใน "ติดต่อเรา" เพื่อให้เราเตรียมพร้อม', 'Yes, the desk is open 24 hours. Tell us your arrival time under "Contact us".'],
+  fq_a1: ['ລືມລະຫັດຜ່ານ?', 'ลืมรหัสผ่าน?', 'Forgot your password?'], fa_a1: ['ໂທຫາໂຮງແຮມ {phone} ຫຼື ສົ່ງອີເມວ {email} ເພື່ອໃຫ້ພະນັກງານຊ່ວຍຕັ້ງໃໝ່.', 'โทรหาโรงแรม {phone} หรืออีเมล {email} เพื่อให้พนักงานช่วยตั้งใหม่', 'Call the hotel on {phone} or e-mail {email} and our team will help you reset it.'],
+  fq_a2: ['ຂໍ້ມູນຂອງຂ້ອຍປອດໄພບໍ?', 'ข้อมูลของฉันปลอดภัยไหม?', 'Is my data safe?'], fa_a2: ['ຂໍ້ມູນເກັບໃນຖານຂໍ້ມູນທີ່ເຂົ້າລະຫັດ. ສະມາຊິກແຕ່ລະຄົນເຫັນສະເພາະຂໍ້ມູນຂອງຕົນເອງ, ສະລິບເປີດໄດ້ສະເພາະພະນັກງານ ແລະ ທຸກການປ່ຽນແປງຖືກບັນທຶກໄວ້.', 'ข้อมูลเก็บในฐานข้อมูลที่เข้ารหัส สมาชิกแต่ละคนเห็นเฉพาะข้อมูลของตนเอง สลิปเปิดได้เฉพาะพนักงาน และทุกการเปลี่ยนแปลงถูกบันทึกไว้', 'Data is kept in an encrypted database. Each member sees only their own data, slips are visible to staff only, and every change is logged.'],
+  // profile
+  memberCard: ['ບັດສະມາຊິກ', 'บัตรสมาชิก', 'Member card'], memberSinceL: ['ສະມາຊິກຕັ້ງແຕ່', 'สมาชิกตั้งแต่', 'Member since'], lastLogin: ['ເຂົ້າລະບົບລ່າສຸດ', 'เข้าระบบล่าสุด', 'Last sign-in'],
+  personalInfo: ['ຂໍ້ມູນສ່ວນຕົວ', 'ข้อมูลส่วนตัว', 'Personal details'], emailLocked: ['ປ່ຽນອີເມວ ກະລຸນາຕິດຕໍ່ໂຮງແຮມ', 'เปลี่ยนอีเมลกรุณาติดต่อโรงแรม', 'Contact the hotel to change your e-mail'],
+  profileSaved: ['ບັນທຶກຂໍ້ມູນແລ້ວ', 'บันทึกข้อมูลแล้ว', 'Details saved'], changePw: ['ປ່ຽນລະຫັດຜ່ານ', 'เปลี่ยนรหัสผ่าน', 'Change password'], pwCurrent: ['ລະຫັດຜ່ານປັດຈຸບັນ', 'รหัสผ่านปัจจุบัน', 'Current password'], pwNew: ['ລະຫັດຜ່ານໃໝ່', 'รหัสผ่านใหม่', 'New password'],
+  pwChanged: ['ປ່ຽນລະຫັດຜ່ານແລ້ວ', 'เปลี่ยนรหัสผ่านแล้ว', 'Password changed'], pwSame: ['ລະຫັດໃໝ່ຕ້ອງບໍ່ຊ້ຳກັບລະຫັດເກົ່າ', 'รหัสใหม่ต้องไม่ซ้ำกับรหัสเดิม', 'The new password must be different'],
+  pwWeak: ['ອ່ອນ', 'อ่อน', 'Weak'], pwOk: ['ພໍໃຊ້', 'พอใช้', 'Fair'], pwStrong: ['ແຂງແຮງ', 'แข็งแรง', 'Strong'],
+  secT: ['ຄຳແນະນຳຄວາມປອດໄພ', 'คำแนะนำความปลอดภัย', 'Security tips'], sec1: ['ໃຊ້ລະຫັດຜ່ານທີ່ບໍ່ຊ້ຳກັບເວັບອື່ນ', 'ใช้รหัสผ่านที่ไม่ซ้ำกับเว็บอื่น', 'Use a password you do not use elsewhere'],
+  sec2: ['ໂຮງແຮມຈະບໍ່ຂໍລະຫັດຜ່ານຂອງທ່ານທາງໂທລະສັບ ຫຼື ຂໍ້ຄວາມ', 'โรงแรมจะไม่ขอรหัสผ่านของคุณทางโทรศัพท์หรือข้อความ', 'The hotel will never ask for your password by phone or message'], sec3: ['ອອກຈາກລະບົບເມື່ອໃຊ້ຄອມພິວເຕີສາທາລະນະ', 'ออกจากระบบเมื่อใช้คอมพิวเตอร์สาธารณะ', 'Log out on shared computers'],
+  e_subject_required: ['ກະລຸນາໃສ່ເລື່ອງ', 'กรุณาใส่เรื่อง', 'Please add a subject'], e_message_required: ['ກະລຸນາຂຽນຂໍ້ຄວາມ (ຢ່າງໜ້ອຍ 5 ຕົວ)', 'กรุณาเขียนข้อความ (อย่างน้อย 5 ตัว)', 'Please write a message (at least 5 characters)'],
+  e_too_many_threads: ['ທ່ານມີເລື່ອງທີ່ເປີດຢູ່ 5 ເລື່ອງແລ້ວ — ກະລຸນາປິດ ຫຼື ຕອບໃນເລື່ອງເກົ່າ', 'คุณมีเรื่องที่เปิดอยู่ 5 เรื่องแล้ว — กรุณาปิดหรือตอบในเรื่องเดิม', 'You have 5 open conversations: please close one or reply in an existing one'],
+  e_too_many_messages: ['ສົ່ງຂໍ້ຄວາມຫຼາຍເກີນໄປໃນມື້ນີ້ — ກະລຸນາໂທຫາເຮົາ', 'ส่งข้อความมากเกินไปในวันนี้ — กรุณาโทรหาเรา', 'Too many messages today: please call us'],
+  e_review_after_stay: ['ຣີວິວໄດ້ຫຼັງຈາກເຊັກເອົ້າແລ້ວ', 'รีวิวได้หลังเช็คเอาท์แล้ว', 'You can review after checking out'], e_rating_required: ['ກະລຸນາໃຫ້ຄະແນນດາວ', 'กรุณาให้คะแนนดาว', 'Please choose a star rating'],
+  e_review_locked: ['ໂຮງແຮມຕອບຣີວິວນີ້ແລ້ວ ຈຶ່ງແກ້ໄຂບໍ່ໄດ້', 'โรงแรมตอบรีวิวนี้แล้ว จึงแก้ไขไม่ได้', 'The hotel has replied, so this review can no longer be edited'], e_bad_password: ['ລະຫັດຜ່ານປັດຈຸບັນບໍ່ຖືກ', 'รหัสผ่านปัจจุบันไม่ถูกต้อง', 'Current password is wrong'],
+  // public reviews on the home page
+  revSecT: ['ສິ່ງທີ່ແຂກເວົ້າເຖິງເຮົາ', 'แขกพูดถึงเราว่าอย่างไร', 'What our guests say'], revCount: ['{n} ຣີວິວຈາກແຂກທີ່ເຂົ້າພັກຈິງ', '{n} รีวิวจากแขกที่เข้าพักจริง', '{n} reviews from verified stays'], stayed: ['ເຂົ້າພັກ {m}', 'เข้าพัก {m}', 'Stayed {m}']
+});
+const FAQ = [
+  { icon: 'bed', title: 'fc_book', items: [['fq_b1', 'fa_b1'], ['fq_b2', 'fa_b2'], ['fq_b3', 'fa_b3']] },
+  { icon: 'card', title: 'fc_pay', items: [['fq_p1', 'fa_p1'], ['fq_p2', 'fa_p2'], ['fq_p3', 'fa_p3'], ['fq_p4', 'fa_p4']] },
+  { icon: 'x', title: 'fc_cancel', items: [['fq_c1', 'fa_c1'], ['fq_c2', 'fa_c2'], ['fq_c3', 'fa_c3'], ['fq_c4', 'fa_c4']] },
+  { icon: 'home', title: 'fc_stay', items: [['fq_s1', 'fa_s1'], ['fq_s2', 'fa_s2'], ['fq_s3', 'fa_s3']] },
+  { icon: 'lock', title: 'fc_acct', items: [['fq_a1', 'fa_a1'], ['fq_a2', 'fa_a2']] }
+];
+Object.assign(SX, {
+  fa_c3: ['ໂຮງແຮມຈະໂອນຄືນໃຫ້ໄວທີ່ສຸດ. ສະຖານະ "ລໍຖ້າໂອນ" ຈະປ່ຽນເປັນ "ໂອນຄືນແລ້ວ" ພ້ອມເລກອ້າງອີງ ແລະ ທ່ານຈະໄດ້ຮັບແຈ້ງເຕືອນ.', 'โรงแรมจะโอนคืนให้เร็วที่สุด สถานะ "รอโอน" จะเปลี่ยนเป็น "โอนคืนแล้ว" พร้อมเลขอ้างอิง และคุณจะได้รับการแจ้งเตือน', 'The hotel transfers it as soon as possible. The status changes from "awaiting transfer" to "refunded" with a reference, and you get a notification.'],
+  fa_s3: ['ໄດ້ — ກະລຸນາແຈ້ງເວລາມາຮອດໃນ "ຕິດຕໍ່ເຮົາ" ເພື່ອໃຫ້ເຮົາກຽມຕ້ອນຮັບ.', 'ได้ — กรุณาแจ้งเวลามาถึงใน "ติดต่อเรา" เพื่อให้เราเตรียมต้อนรับ', 'Yes: tell us your arrival time under "Contact us" so we are ready for you.'],
+  msgHint: ['ພະນັກງານຈະຕອບກັບໂດຍໄວ ແລະ ທ່ານຈະໄດ້ຮັບແຈ້ງເຕືອນ. ເລື່ອງດ່ວນ ກະລຸນາໂທຫາເຮົາ.', 'พนักงานจะตอบกลับโดยเร็ว และคุณจะได้รับการแจ้งเตือน เรื่องด่วนกรุณาโทรหาเรา', 'Our team replies as soon as possible and you will get a notification. For anything urgent, please call.'],
+  helpMoreD: ['ສົ່ງຂໍ້ຄວາມຫາພະນັກງານ ແລ້ວຕິດຕາມຄຳຕອບໄດ້ທີ່ນີ້', 'ส่งข้อความหาพนักงาน แล้วติดตามคำตอบได้ที่นี่', 'Message our team and follow the reply here'],
+  fa_a2: ['ສະມາຊິກແຕ່ລະຄົນເຫັນສະເພາະຂໍ້ມູນຂອງຕົນເອງ, ສະລິບເປີດໄດ້ສະເພາະພະນັກງານ ແລະ ທຸກການປ່ຽນແປງຖືກບັນທຶກໄວ້ເພື່ອກວດສອບ.', 'สมาชิกแต่ละคนเห็นเฉพาะข้อมูลของตนเอง สลิปเปิดได้เฉพาะพนักงาน และทุกการเปลี่ยนแปลงถูกบันทึกไว้เพื่อตรวจสอบ', 'Each member sees only their own data, slips are visible to staff only, and every change is logged for audit.']
+});
+
 // ===== GUEST WEBSITE =====
 (function () {
   const LANGS = ['lo', 'th', 'en'];
@@ -1464,7 +1929,7 @@ Object.assign(SX, {
   let CAT = null;
   const Q = { ci: null, co: null, ad: 2 };
   const F = { view: null, step: 1, avail: null, sel: null, request: '', promo: '', promoPct: 0, agree: false, result: null, trk: null, claimed: false, busy: false, msg: '',
-    authTab: 'login', authReason: null, afterType: null, authMsg: null, myList: null, accFilter: 'all', accSel: null, accMsg: null, cxlAsk: null };
+    authTab: 'login', authReason: null, afterType: null, authMsg: null, myList: null, hub: null, hubSig: '', accTab: 'home', accFilter: 'all', payFilter: 'all', notifFresh: new Set(), msgSel: null, msgNew: false, revCode: null, accSel: null, accMsg: null, cxlAsk: null };
 
   // ---------- art ----------
   const ICONS = {
@@ -1486,7 +1951,12 @@ Object.assign(SX, {
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     area: '<path d="M4 4h16v16H4zM4 9h5M15 20v-5"/>',
     tag: '<path d="M3 12V3h9l9 9-9 9zM7.5 7.5h.01"/>', shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>', qr: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>',
-    dot: '<circle cx="12" cy="12" r="3"/>'
+    dot: '<circle cx="12" cy="12" r="3"/>',
+    bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/>', chat: '<path d="M4 5h16v11H9l-5 4z"/>', star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+    help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/>', card: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
+    home: '<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>', mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+    down: '<path d="M12 4v15M6 13l6 6 6-6"/>', up: '<path d="M12 20V5M6 11l6-6 6 6"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', check: '<path d="m5 12 5 5 9-10"/>',
+    send: '<path d="M4 12 20 4l-6 16-3-7z"/>', download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>'
   };
   const ico = (k, s) => `<svg width="${s || 18}" height="${s || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.dot}</svg>`;
 
@@ -1525,6 +1995,16 @@ Object.assign(SX, {
     </svg>`;
   }
 
+  // ---------- reviews from verified stays (only members who checked out can write one) ----------
+  let REV = null;
+  async function loadReviews() { try { REV = await API.reviews(); } catch (e) { REV = null; } if (!F.view || F.view !== 'book') { const y = window.scrollY; render(); window.scrollTo(0, y); } }
+  function reviewsSection() {
+    const MON = MONS(), mon = m => m ? MON[+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4) : '';
+    return `<section class="blk" id="reviews"><div class="wrap"><div class="blk-h"><h2>${t('revSecT')}</h2><p class="revavg"><b>${REV.avg}</b>${stars(Math.round(REV.avg), 18)}<span>${t('revCount', { n: REV.count })}</span></p></div>
+      <div class="revgrid">${REV.items.map(r => `<article class="revc"><header><span class="ava">${esc(String(r.name || '?')[0])}</span><div><b>${esc(r.name)}</b><small>${esc((SCOUNTRIES[r.country] || SCOUNTRIES.OT)[li()])} · ${t('stayed', { m: mon(r.month) })}</small></div>${stars(r.rating, 14)}</header>
+        ${r.title ? `<h4>${esc(r.title)}</h4>` : ''}${r.body ? `<p>${esc(r.body)}</p>` : ''}${r.reply ? `<div class="hreply"><b>${t('hotelReply')}</b><p>${esc(r.reply)}</p></div>` : ''}</article>`).join('')}</div></div></section>`;
+  }
+
   // ---------- page ----------
   function render() {
     document.documentElement.lang = lang;
@@ -1539,7 +2019,7 @@ Object.assign(SX, {
       <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="var(--river)"/><path d="M6 18c3-2.4 5.5-2.4 8.5 0s5.5 2.4 8.5 0 2.6-1.8 3-1.4M6 22c3-2.4 5.5-2.4 8.5 0s5.5 2.4 8.5 0" stroke="#fff6e8" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="21" cy="11" r="3.4" fill="var(--champa)"/></svg><b>${esc(h.name)}</b></a>
       <nav class="links" aria-label="Sections"><a href="#rooms">${t('nav_rooms')}</a><a href="#amenities">${t('nav_amen')}</a><a href="#location">${t('nav_loc')}</a><a href="#" data-act="account">${t('nav_manage')}</a></nav>
       <div class="lang" role="group" aria-label="Language">${[['lo', 'ລາວ'], ['th', 'ไทย'], ['en', 'EN']].map(([k, l]) => `<button class="${lang === k ? 'on' : ''}" data-act="lang" data-l="${k}">${l}</button>`).join('')}</div>
-      <button class="btn acct" data-act="${ME ? 'account' : 'login'}">${ico('user', 16)}<span>${ME && ME.profile ? esc(String(ME.name).split(' ')[0]) : t('login')}</span></button>
+      <button class="btn acct ${F.hub && F.hub.unread ? 'has' : ''}" data-act="${ME ? 'account' : 'login'}">${ico('user', 16)}<span>${ME && ME.profile ? esc(String(ME.name).split(' ')[0]) : t('login')}</span></button>
       <button class="btn cta" data-act="book">${t('bookNow')}</button>
     </div></header>
     <section class="hero" id="top">${scene()}<div class="wrap"><span class="eyebrow">Vientiane · Lao PDR</span><h1>${esc(L(h.tagline))}</h1><p>${esc(L(h.about))}</p></div></section>
@@ -1563,6 +2043,7 @@ Object.assign(SX, {
         <div class="chips">${(x.amenities || []).map(a => `<span class="chip">${ico(amenIcon(a), 14)}${esc(amenName(a))}</span>`).join('')}</div>
         <div class="foot"><div class="price"><small>${t('perNight')}</small><b>${kip(x.direct_rate)}</b>${x.base_rate > x.direct_rate ? `<s>${kip(x.base_rate)}</s>` : ''}</div><button class="btn dark" data-act="book" data-t="${x.id}">${t('choose')}</button></div>
       </div></article>`).join('')}</div></div></section>
+    ${REV && REV.count ? reviewsSection() : ''}
     <section class="blk" id="amenities" style="background:var(--mist)"><div class="wrap"><div class="blk-h"><h2>${t('amenTitle')}</h2></div>
       <div class="amen">${CAT.amenities.map(a => `<div><i>${ico(a.icon)}</i>${esc(L(a.name))}</div>`).join('')}</div></div></section>
     <section class="blk" id="location"><div class="wrap two">
@@ -1588,8 +2069,8 @@ Object.assign(SX, {
   let ME = null;                                   // null = not logged in; { profile:false } = account without member details yet
   const isMember = () => !!(ME && ME.profile);
   const stepNames = ['step1', 'step2', 'step3', 'step4'];
-  function sheetShell(title, body, foot, step) {
-    return `<div class="scrim" data-act="closeSheet"></div><div class="pane" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+  function sheetShell(title, body, foot, step, cls) {
+    return `<div class="scrim" data-act="closeSheet"></div><div class="pane ${cls || ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
       <div class="pane-h"><h2>${esc(title)}</h2><button class="btn ghost" data-act="closeSheet" aria-label="${esc(t('close'))}">✕</button></div>
       ${step ? `<div class="steps">${stepNames.map((_, i) => `<span class="${i < step ? 'on' : ''}"></span>`).join('')}</div><div class="steplabel">${step}/4 · ${t(stepNames[step - 1])}</div>` : ''}
       <div class="pane-b">${body}</div>${foot ? `<div class="pane-f">${foot}</div>` : ''}</div>`;
@@ -1771,33 +2252,53 @@ Object.assign(SX, {
         ${['cancelled', 'noshow'].includes(d.status) ? '' : `<div class="paybox"><div class="r1"><span>${t('payStatusL')}</span>${payState(d)}</div><div class="bar big"><i style="--w:${pp}%"></i></div><div class="r1 tnum"><span>${t('paid')} ${kip(d.paid)}</span><span>${t('total')} ${kip(d.total)}</span></div></div>`}
         <div class="summary"><span class="k">${t('bookedOn')}</span><span class="v">${fmtTs(d.created)}</span>
         ${d.pending_claims ? `<span class="k">${t('checking')}</span><span class="v">${kip(d.pending_claims)}</span>` : ''}</div>
-        ${v.body}${slips}${cx}${m}`, v.foot, 0);
+        ${v.body}${slips}${cx}
+        <div class="dlinks">${d.status === 'out' ? `<button class="btn sm cta" data-act="revWrite" data-c="${esc(d.code)}">★ ${(F.hub && (F.hub.reviews || []).some(r => r.code === d.code)) ? t('editReview') : t('writeReview')}</button>` : ''}<button class="btn sm" data-act="msgAbout" data-c="${esc(d.code)}">${ico('chat', 15)} ${t('askAbout')}</button></div>${m}`, v.foot, 0, 'wide');
     }
-    // ---- account home: profile, stats, filters, booking cards ----
-    const today = CAT.hotel.business_date;
+    // ---- account hub: profile header, section tabs, one section at a time ----
+    const H = F.hub || {}, today = CAT.hotel.business_date;
     const initials = String(ME.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const unread = H.unread || 0, msgUnread = (H.threads || []).filter(x => x.unread).length;
+    const reviewable = (list || []).filter(b => b.status === 'out' && !(H.reviews || []).some(r => r.code === b.code));
     const head = `<section class="ahero">
       <svg class="ahero-wave" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70c40-18 80-18 120 0s80 18 120 0 80-18 120 0 40 18 40 18V120H0Z" fill="currentColor" opacity=".12"/><path d="M0 92c40-16 80-16 120 0s80 16 120 0 80-16 120 0 40 16 40 16V120H0Z" fill="currentColor" opacity=".16"/></svg>
       <div class="avatar" aria-hidden="true">${esc(initials)}</div>
       <div class="ahero-t"><small>${t('welcome', { n: '' }).trim()}</small><h3>${esc(ME.name)}</h3>
-        <div class="ahero-meta"><span>${ico('tag', 14)}${esc(ME.email || '')}</span><span>${ico('user', 14)}${esc(ME.phone || '')}</span>${ME.since ? `<span>${ico('clock', 14)}${t('memberSince', { d: dfm(String(ME.since).slice(0, 10)) })}</span>` : ''}</div></div>
-      <div class="ahero-act"><button class="pillbtn" data-act="editProfile">${t('editProfile')}</button><button class="pillbtn ghost" data-act="logout">${t('logout')}</button></div>
+        <div class="ahero-meta"><span>${ico('mail', 14)}${esc(ME.email || '')}</span><span>${ico('phone', 14)}${esc(ME.phone || '')}</span>${ME.member_no ? `<span>${ico('user', 14)}${esc(ME.member_no)}</span>` : ''}</div></div>
+      <button class="bell ${unread ? 'has' : ''}" data-act="accTab" data-t="notif" aria-label="${esc(t('tab_notif'))}${unread ? ' (' + unread + ')' : ''}">${ico('bell', 20)}${unread ? `<em>${unread > 99 ? '99+' : unread}</em>` : ''}</button>
     </section>`;
+    const TABS = [['home', 'home', 0], ['pay', 'card', 0], ['msg', 'chat', msgUnread], ['rev', 'star', reviewable.length], ['notif', 'bell', unread], ['help', 'help', 0], ['profile', 'lock', 0]];
+    const tab = TABS.some(x => x[0] === F.accTab) ? F.accTab : 'home';
+    const nav = `<nav class="hubnav" role="tablist" aria-label="${esc(t('myAccount'))}">${TABS.map(([k, ic, n]) => `<button role="tab" aria-selected="${tab === k}" class="${tab === k ? 'on' : ''}" data-act="accTab" data-t="${k}">${ico(ic, 17)}<span>${t('tab_' + k)}</span>${n ? `<em>${n}</em>` : ''}</button>`).join('')}</nav>`;
     if (!list) {
       const sk = '<div class="sk"><i></i><div><b></b><b></b><b></b></div></div>';
-      return sheetShell(t('myAccount'), `${head}<div class="stats">${'<div class="stat sk-tile"></div>'.repeat(3)}</div>${sk.repeat(3)}${m}`, '', 0);
+      return sheetShell(t('myAccount'), `${head}${nav}<div class="stats">${'<div class="stat sk-tile"></div>'.repeat(3)}</div>${sk.repeat(3)}${m}`, '', 0, 'wide');
     }
-    const live = b => ['pending', 'confirmed', 'inhouse'].includes(b.status);
+    const sec = { home: hubHome, pay: hubPay, msg: hubMsg, rev: hubRev, notif: hubNotif, help: hubHelp, profile: hubProfile }[tab](list, reviewable);
+    return sheetShell(t('myAccount'), `${head}${nav}<div class="hubsec" data-sec="${tab}">${sec.body}</div>${m}`, sec.foot || '', 0, 'wide');
+  }
+
+  const MONS = () => [['ມ.ກ.', 'ກ.ພ.', 'ມ.ນ.', 'ມ.ສ.', 'ພ.ພ.', 'ມິ.ຖ.', 'ກ.ລ.', 'ສ.ຫ.', 'ກ.ຍ.', 'ຕ.ລ.', 'ພ.ຈ.', 'ທ.ວ.'], ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'], ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']][li()];
+  const stars = (n, size) => `<span class="stars-ro" aria-label="${n}/5" style="--s:${size || 14}px">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
+  const relTime = iso => {
+    const x = new Date(iso), s = (Date.now() - x.getTime()) / 1000;
+    if (isNaN(x)) return ''; if (s < 60) return t('rt_now'); if (s < 3600) return t('rt_min', { n: Math.floor(s / 60) }); if (s < 86400) return t('rt_hr', { n: Math.floor(s / 3600) });
+    return fmtTs(iso);
+  };
+  const methodName = m => m ? t('m_' + m) : '—';
+
+  // ---- 1. overview: stats, filters, booking cards ----
+  function hubHome(list) {
+    const today = CAT.hotel.business_date, live = b => ['pending', 'confirmed', 'inhouse'].includes(b.status);
     const upcoming = list.filter(b => live(b) && b.co >= today);
     const paidSum = list.reduce((x, b) => x + Math.max(0, b.paid || 0), 0);
     const groups = { all: list, up: list.filter(b => ['confirmed', 'inhouse'].includes(b.status)), pend: list.filter(b => b.status === 'pending'), past: list.filter(b => ['out', 'cancelled', 'noshow'].includes(b.status)) };
-    const flt = groups[F.accFilter] ? F.accFilter : 'all', shown = groups[flt];
+    const flt = groups[F.accFilter] ? F.accFilter : 'all', shown = groups[flt], MON = MONS();
     const stats = `<div class="stats">
       <div class="stat" style="--i:0"><span>${t('statBookings')}</span><b data-count="${list.length}">${list.length}</b></div>
       <div class="stat" style="--i:1"><span>${t('statUpcoming')}</span><b data-count="${upcoming.length}">${upcoming.length}</b></div>
       <div class="stat" style="--i:2"><span>${t('statPaid')}</span><b class="tnum" data-count="${paidSum}" data-kip="1">${kip(paidSum)}</b></div></div>`;
     const tabs = `<div class="ftabs" role="tablist">${['all', 'up', 'pend', 'past'].map(k => `<button role="tab" aria-selected="${flt === k}" class="${flt === k ? 'on' : ''}" data-act="accFilter" data-f="${k}">${t('f_' + k)}<em>${groups[k].length}</em></button>`).join('')}</div>`;
-    const MON = [['ມ.ກ.', 'ກ.ພ.', 'ມ.ນ.', 'ມ.ສ.', 'ພ.ພ.', 'ມິ.ຖ.', 'ກ.ລ.', 'ສ.ຫ.', 'ກ.ຍ.', 'ຕ.ລ.', 'ພ.ຈ.', 'ທ.ວ.'], ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'], ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']][li()];
     const when = b => {
       if (!live(b) || b.status === 'inhouse') return b.status === 'inhouse' ? `<span class="when now">${t('st_inhouse')}</span>` : '';
       const n = nights(today, b.ci); if (n < 0) return '';
@@ -1820,7 +2321,150 @@ Object.assign(SX, {
     const empty = !list.length
       ? `<div class="aempty"><svg viewBox="0 0 120 90" aria-hidden="true"><rect x="14" y="22" width="92" height="56" rx="10" fill="var(--river-soft)"/><rect x="26" y="12" width="68" height="20" rx="6" fill="var(--champa-soft)"/><path d="M30 60c8-6 14-6 22 0s14 6 22 0 14-6 16-4" stroke="var(--river)" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="84" cy="44" r="6" fill="var(--champa)"/></svg><b>${t('emptyT')}</b><p>${t('emptyD')}</p><button class="btn cta" data-act="book">${t('bookNow')}</button></div>`
       : !shown.length ? `<div class="aempty small"><p>${t('noneInFilter')}</p></div>` : `<div class="bk2-list">${shown.map(card).join('')}</div>`;
-    return sheetShell(t('myAccount'), `${head}${list.length ? stats + tabs : ''}${empty}${m}`, list.length ? `<button class="btn cta block" data-act="book">${ico('bed', 16)} ${t('bookNow')}</button>` : '', 0);
+    const latest = (F.hub.notifications || []).filter(n => !n.read).slice(0, 2);
+    const strip = latest.length ? `<div class="nstrip">${latest.map(n => `<button data-act="notifOpen" data-id="${n.id}">${ico(notifIcon(n.kind), 16)}<span>${notifText(n)}</span><small>${relTime(n.at)}</small></button>`).join('')}</div>` : '';
+    return { body: `${strip}${list.length ? stats + tabs : ''}${empty}`, foot: list.length ? `<button class="btn cta block" data-act="book">${ico('bed', 16)} ${t('bookNow')}</button>` : '' };
+  }
+
+  // ---- 2. payment history ----
+  function hubPay() {
+    const P = F.hub.payments || [];
+    const sum = f => P.filter(f).reduce((s, x) => s + (+x.amount || 0), 0);
+    const tot = { in: sum(x => x.kind === 'payment'), out: sum(x => x.kind === 'refund'), owed: sum(x => x.kind === 'refund_owed'), rev: sum(x => x.kind === 'slip' && x.status === 'pending') };
+    const groups = { all: P, in: P.filter(x => x.kind === 'payment'), refund: P.filter(x => x.kind === 'refund' || x.kind === 'refund_owed'), slip: P.filter(x => x.kind === 'slip') };
+    const flt = groups[F.payFilter] ? F.payFilter : 'all', rows = groups[flt];
+    const look = x => x.kind === 'payment' ? ['in', 'down', 'tx_payment', 'ok', 'tx_done']
+      : x.kind === 'refund' ? ['out', 'up', 'tx_refund', 'ok', 'tx_refunded']
+      : x.kind === 'refund_owed' ? ['wait', 'clock', 'tx_refund_owed', 'warn', 'tx_waiting_transfer']
+      : x.status === 'pending' ? ['wait', 'clock', 'tx_slip', 'warn', 'tx_checking'] : ['bad', 'x', 'tx_slip_rej', 'bad', 'tx_rejected'];
+    const row = (x, i) => {
+      const [cls, ic, title, pill, st] = look(x), sign = x.kind === 'payment' ? '+' : x.kind === 'refund' ? '−' : '';
+      return `<details class="txn ${cls}" style="--i:${i}"><summary><span class="ti">${ico(ic, 16)}</span><span class="tt"><b>${t(title)}</b><small>${fmtTs(x.at)} · <span class="code">${esc(x.code)}</span></small></span>
+        <span class="ta"><b class="tnum">${sign}${kip(x.amount)}</b><span class="tpill ${pill}">${t(st)}</span></span></summary>
+        <dl class="tgrid"><dt>${t('tx_no')}</dt><dd class="mono">${esc(x.no)}</dd><dt>${t('tx_date')}</dt><dd>${fmtTs(x.at)}</dd><dt>${t('code')}</dt><dd><button class="linkbtn" data-act="accOpen" data-c="${esc(x.code)}">${esc(x.code)}</button></dd>
+          <dt>${t('tx_method')}</dt><dd>${methodName(x.method)}</dd><dt>${t('tx_ref')}</dt><dd class="mono">${esc(x.ref || '—')}</dd><dt>${t('tx_status')}</dt><dd>${t(st)}</dd></dl></details>`;
+    };
+    const body = `<div class="paytiles">
+        <div class="pt in"><span>${t('pt_in')}</span><b class="tnum">${kip(tot.in)}</b></div><div class="pt out"><span>${t('pt_out')}</span><b class="tnum">${kip(tot.out)}</b></div>
+        <div class="pt wait"><span>${t('pt_owed')}</span><b class="tnum">${kip(tot.owed)}</b></div><div class="pt rev"><span>${t('pt_rev')}</span><b class="tnum">${kip(tot.rev)}</b></div></div>
+      <div class="sechead"><div class="ftabs" role="tablist">${['all', 'in', 'refund', 'slip'].map(k => `<button role="tab" aria-selected="${flt === k}" class="${flt === k ? 'on' : ''}" data-act="payFilter" data-f="${k}">${t('pf_' + k)}<em>${groups[k].length}</em></button>`).join('')}</div>
+        ${P.length ? `<button class="btn sm" data-act="payCsv">${ico('download', 15)} CSV</button>` : ''}</div>
+      ${rows.length ? `<div class="txns">${rows.map(row).join('')}</div>` : `<div class="aempty small"><p>${t('noTx')}</p></div>`}
+      <p class="hint">${t('txHint')}</p>`;
+    return { body };
+  }
+
+  // ---- 3. messages to the hotel ----
+  function hubMsg(list) {
+    const TH = F.hub.threads || [], h = CAT.hotel, msg = F.msgMsg ? `<div class="msg ${F.msgMsg.k}">${F.msgMsg.t}</div>` : '';
+    const contact = `<div class="contacts">
+      <a class="ccard" href="tel:${esc(String(h.phone || '').replace(/\s/g, ''))}">${ico('phone', 18)}<span><b>${t('callUs')}</b><small class="tnum">${esc(h.phone || '')}</small></span></a>
+      <a class="ccard" href="mailto:${esc(h.email || '')}">${ico('mail', 18)}<span><b>${t('emailUs')}</b><small>${esc(h.email || '')}</small></span></a>
+      ${h.map_url ? `<a class="ccard" href="${esc(h.map_url)}" target="_blank" rel="noopener">${ico('map', 18)}<span><b>${t('openMap')}</b><small>${esc(h.address || '')}</small></span></a>` : ''}</div>`;
+    const th = F.msgSel ? TH.find(x => x.id === F.msgSel) : null;
+    if (th) {
+      const bubbles = th.messages.map(x => `<div class="bub ${x.sender}"><div>${esc(x.body).replace(/\n/g, '<br>')}</div><small>${x.sender === 'staff' ? esc(x.staff || h.name) + ' · ' : ''}${relTime(x.at)}</small></div>`).join('');
+      return { body: `<button class="pillbtn back" data-act="msgBack">${t('allMessages')}</button>
+        <div class="thhead"><div><b>${esc(th.subject)}</b><small>${t('cat_' + th.category)}${th.code ? ` · <button class="linkbtn" data-act="accOpen" data-c="${esc(th.code)}">${esc(th.code)}</button>` : ''} · T-${th.id}</small></div><span class="tpill ${th.status === 'answered' ? 'ok' : th.status === 'closed' ? '' : 'warn'}">${t('ts_' + th.status)}</span></div>
+        <div class="chat">${bubbles}</div>${msg}
+        <label class="field"><span>${t(th.status === 'closed' ? 'reopenReply' : 'yourReply')}</span><textarea class="in" id="msg_reply" rows="3" maxlength="2000" placeholder="${esc(t('replyPh'))}">${esc(F.msgDraft || '')}</textarea></label>`,
+        foot: `${th.status !== 'closed' ? `<button class="btn" data-act="msgClose" data-id="${th.id}">${t('closeThread')}</button>` : ''}<button class="btn cta" data-act="msgSend" data-id="${th.id}" ${F.busy ? 'disabled' : ''}>${ico('send', 15)} ${t('send')}</button>` };
+    }
+    if (F.msgNew) {
+      const cats = ['question', 'booking', 'payment', 'problem', 'other'], cur = F.msgCat || 'question';
+      return { body: `<button class="pillbtn back" data-act="msgBack">${t('allMessages')}</button><h3 class="sech">${t('newMessage')}</h3>
+        <div class="field"><span>${t('msgTopic')}</span><div class="chips2" role="radiogroup">${cats.map(c => `<button role="radio" aria-checked="${cur === c}" class="${cur === c ? 'on' : ''}" data-act="msgCat" data-c="${c}">${t('cat_' + c)}</button>`).join('')}</div></div>
+        <label class="field"><span>${t('msgBooking')}</span><select class="in" id="msg_code"><option value="">${t('msgNoBooking')}</option>${list.map(b => `<option value="${esc(b.code)}" ${F.msgCode === b.code ? 'selected' : ''}>${esc(b.code)} · ${esc(L(b.type))} · ${dfm(b.ci)}</option>`).join('')}</select></label>
+        <label class="field"><span>${t('msgSubject')}</span><input class="in" id="msg_subj" maxlength="120" value="${esc(F.msgSubj || '')}"></label>
+        <label class="field"><span>${t('msgBody')}</span><textarea class="in" id="msg_body" rows="5" maxlength="2000" placeholder="${esc(t('msgBodyPh'))}">${esc(F.msgBody || '')}</textarea><small class="counter" id="msg_cnt">${(F.msgBody || '').length}/2000</small></label>${msg}`,
+        foot: `<button class="btn" data-act="msgBack">${t('back')}</button><button class="btn cta" data-act="msgCreate" ${F.busy ? 'disabled' : ''}>${ico('send', 15)} ${t('send')}</button>` };
+    }
+    const items = TH.map((x, i) => { const last = x.messages[x.messages.length - 1] || {}; return `<button class="thread ${x.unread ? 'unread' : ''}" style="--i:${i}" data-act="msgOpen" data-id="${x.id}">
+      <span class="ti">${ico('chat', 16)}</span><span class="tt"><b>${esc(x.subject)}</b><small>${last.sender === 'staff' ? '↩ ' : ''}${esc(String(last.body || '').slice(0, 90))}</small></span>
+      <span class="ta"><small>${relTime(x.updated)}</small><span class="tpill ${x.status === 'answered' ? 'ok' : x.status === 'closed' ? '' : 'warn'}">${t('ts_' + x.status)}</span></span></button>`; }).join('');
+    return { body: `${contact}<div class="sechead"><h3 class="sech">${t('myMessages')}</h3><button class="btn sm cta" data-act="msgNew">${ico('chat', 15)} ${t('newMessage')}</button></div>
+      ${TH.length ? `<div class="threads">${items}</div>` : `<div class="aempty small"><p>${t('noMessages')}</p></div>`}<p class="hint">${t('msgHint')}</p>${msg}` };
+  }
+
+  // ---- 4. reviews after the stay ----
+  function hubRev(list, reviewable) {
+    const R = F.hub.reviews || [], msg = F.revMsg ? `<div class="msg ${F.revMsg.k}">${F.revMsg.t}</div>` : '';
+    if (F.revCode) {
+      const b = list.find(x => x.code === F.revCode) || {}, d = F.revDraft || {};
+      const starIn = (k, big) => `<div class="stars-in ${big ? 'big' : ''}" role="radiogroup" aria-label="${esc(t('r_' + k))}">${[5, 4, 3, 2, 1].map(v => `<button role="radio" aria-checked="${d[k] === v}" aria-label="${v}/5" class="${(d[k] || 0) >= v ? 'on' : ''}" data-act="revStar" data-k="${k}" data-v="${v}">★</button>`).join('')}</div>`;
+      return { body: `<button class="pillbtn back" data-act="revBack">${t('back')}</button>
+        <div class="revhead"><div class="bk2-art">${roomArt(b.type_id, true)}</div><div><b>${esc(L(b.type))}</b><small class="tnum">${dfm(b.ci)} → ${dfm(b.co)} · ${esc(b.code)}</small></div></div>
+        <div class="field center"><span>${t('r_rating')}</span>${starIn('rating', true)}<small class="rlabel">${d.rating ? t('rl_' + d.rating) : t('tapStars')}</small></div>
+        <div class="subr">${['r_clean', 'r_service', 'r_location', 'r_value'].map(k => `<div><span>${t(k)}</span>${starIn(k)}</div>`).join('')}</div>
+        <label class="field"><span>${t('revTitle')}</span><input class="in" id="rv_title" maxlength="120" value="${esc(d.title || '')}" placeholder="${esc(t('revTitlePh'))}"></label>
+        <label class="field"><span>${t('revBody')}</span><textarea class="in" id="rv_body" rows="5" maxlength="2000" placeholder="${esc(t('revBodyPh'))}">${esc(d.body || '')}</textarea></label>
+        <p class="hint">${t('revPublicNote')}</p>${msg}`,
+        foot: `<button class="btn" data-act="revBack">${t('back')}</button><button class="btn cta" data-act="revSave" ${F.busy ? 'disabled' : ''}>${t('revSubmit')}</button>` };
+    }
+    const todo = reviewable.length ? `<h3 class="sech">${t('toReview')}</h3><div class="revtodo">${reviewable.map((b, i) => `<div class="rcard" style="--i:${i}"><div class="bk2-art">${roomArt(b.type_id, true)}</div><div><b>${esc(L(b.type))}</b><small class="tnum">${dfm(b.ci)} → ${dfm(b.co)}</small></div>
+        <button class="btn cta sm" data-act="revWrite" data-c="${esc(b.code)}">★ ${t('writeReview')}</button></div>`).join('')}</div>` : '';
+    const mine = R.length ? `<h3 class="sech">${t('myReviews')}</h3><div class="revlist">${R.map((r, i) => { const b = list.find(x => x.code === r.code) || {}; return `<article class="rev" style="--i:${i}">
+        <header><div>${stars(r.rating, 16)}<b>${esc(r.title || '')}</b></div><small>${esc(L(b.type) || '')} · ${fmtTs(r.created)}</small></header>
+        ${r.body ? `<p>${esc(r.body)}</p>` : ''}
+        <div class="subrs">${['r_clean', 'r_service', 'r_location', 'r_value'].filter(k => r[k]).map(k => `<span>${t(k)} ${stars(r[k], 11)}</span>`).join('')}</div>
+        ${r.reply ? `<div class="hreply"><b>${t('hotelReply')}</b><p>${esc(r.reply)}</p><small>${fmtTs(r.replied_at)}</small></div>` : `<button class="linkbtn" data-act="revWrite" data-c="${esc(r.code)}">${t('editReview')}</button>`}
+        ${r.status === 'hidden' ? `<small class="faint">${t('revHidden')}</small>` : ''}</article>`; }).join('')}</div>` : '';
+    return { body: `${todo}${mine}${!todo && !mine ? `<div class="aempty"><svg viewBox="0 0 120 70" aria-hidden="true">${[0, 1, 2, 3, 4].map(i => `<text x="${12 + i * 22}" y="44" font-size="26" fill="${i < 4 ? 'var(--champa)' : 'var(--line)'}">★</text>`).join('')}</svg><b>${t('noReviewsT')}</b><p>${t('noReviewsD')}</p></div>` : ''}${msg}` };
+  }
+
+  // ---- 5. notifications ----
+  const NICON = { booking_received: 'bed', booking_confirmed: 'check', payment_verified: 'check', slip_received: 'clock', payment_rejected: 'x', booking_cancelled: 'x', booking_declined: 'x',
+    booking_cancelled_hotel: 'x', booking_expired: 'clock', booking_noshow: 'x', refund_owed: 'card', refund_paid: 'card', checked_in: 'home', checked_out: 'star', support_reply: 'chat', review_reply: 'star', password_changed: 'lock' };
+  const notifIcon = k => NICON[k] || 'bell';
+  const notifTone = k => /confirmed|verified|refund_paid|checked_in/.test(k) ? 'ok' : /rejected|cancel|declined|expired|noshow/.test(k) ? 'bad' : /owed|slip_received/.test(k) ? 'warn' : '';
+  const notifText = n => t('n_' + n.kind, { code: `<b>${esc(n.code || n.data.code || '')}</b>`, a: n.data.amount != null ? kip(n.data.amount) : '', s: esc(n.data.subject || '') });
+  function hubNotif() {
+    const N = F.hub.notifications || [];
+    if (!N.length) return { body: `<div class="aempty"><span class="bigico">${ico('bell', 34)}</span><b>${t('noNotifT')}</b><p>${t('noNotifD')}</p></div>` };
+    const day = iso => { const d = new Date(iso), k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, now = new Date(), td = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const yd = new Date(now - 864e5), yk = `${yd.getFullYear()}-${String(yd.getMonth() + 1).padStart(2, '0')}-${String(yd.getDate()).padStart(2, '0')}`; return k === td ? t('d_today') : k === yk ? t('d_yesterday') : dfm(k); };
+    let last = '', html = '';
+    N.forEach((n, i) => { const g = day(n.at); if (g !== last) { html += `<h4 class="ngroup">${g}</h4>`; last = g; }
+      html += `<button class="notif ${n.read && !F.notifFresh.has(n.id) ? '' : 'unread'} ${notifTone(n.kind)}" style="--i:${Math.min(i, 12)}" data-act="notifOpen" data-id="${n.id}"><span class="ti">${ico(notifIcon(n.kind), 16)}</span><span class="tt"><span>${notifText(n)}</span><small>${relTime(n.at)}</small></span>${n.code || n.data.thread ? '<span class="chev">›</span>' : ''}</button>`; });
+    return { body: `<div class="sechead"><h3 class="sech">${t('tab_notif')}</h3>${(F.hub.unread || 0) ? `<button class="btn sm" data-act="notifAll">${ico('check', 15)} ${t('markAllRead')}</button>` : ''}</div><div class="notifs">${html}</div>` };
+  }
+
+  // ---- 6. help centre & FAQ ----
+  function hubHelp() {
+    const h = CAT.hotel, rp = refundPct(), q = String(F.helpQ || '').trim().toLowerCase();
+    const vars = { h: h.cancel_cutoff_hours ?? 3, p: pct(rp), f: pct(100 - rp), hold: h.pending_hold_hours || 24, ci: h.check_in_time, co: h.check_out_time, phone: esc(h.phone || ''), email: esc(h.email || ''), vat: +h.vat_rate };
+    const cats = FAQ.map(c => ({ ...c, items: c.items.filter(([qk, ak]) => !q || (t(qk, vars) + ' ' + t(ak, vars)).toLowerCase().includes(q)) })).filter(c => c.items.length);
+    const policy = `<div class="polcard"><div><span>${ico('clock', 18)}</span><b>${t('pc_times')}</b><small>${t('pol_in', { t: h.check_in_time })} · ${t('pol_out', { t: h.check_out_time })}</small></div>
+      <div><span>${ico('card', 18)}</span><b>${t('pc_pay')}</b><small>${t('pc_payD', vars)}</small></div>
+      <div><span>${ico('x', 18)}</span><b>${t('pc_cancel')}</b><small>${t('pc_cancelD', vars)}</small></div>
+      <div><span>${ico('down', 18)}</span><b>${t('pc_refund')}</b><small>${t('pc_refundD', vars)}</small></div></div>`;
+    return { body: `<div class="helphero"><b>${t('helpT')}</b><label class="hsearch">${ico("search", 17)}<input id="help_q" type="search" placeholder="${esc(t('helpSearch'))}" value="${esc(F.helpQ || '')}" autocomplete="off"></label></div>
+      ${q ? '' : policy}
+      ${cats.length ? cats.map(c => `<section class="faqcat"><h4>${ico(c.icon, 16)} ${t(c.title)}</h4>${c.items.map(([qk, ak]) => `<details class="faq" ${q ? 'open' : ''}><summary>${t(qk, vars)}</summary><p>${t(ak, vars)}</p></details>`).join('')}</section>`).join('') : `<div class="aempty small"><p>${t('helpNone')}</p></div>`}
+      <div class="helpcta"><div><b>${t('helpMore')}</b><small>${t('helpMoreD')}</small></div><button class="btn cta sm" data-act="msgNewFromHelp">${ico('chat', 15)} ${t('newMessage')}</button></div>` };
+  }
+
+  // ---- 7. profile & security ----
+  function hubProfile() {
+    const me = ME, pm = F.profMsg ? `<div class="msg ${F.profMsg.k}">${F.profMsg.t}</div>` : '', pw = F.pwMsg ? `<div class="msg ${F.pwMsg.k}">${F.pwMsg.t}</div>` : '';
+    const countries = sel => Object.keys(SCOUNTRIES).map(k => `<option value="${k}" ${sel === k ? 'selected' : ''}>${esc(SCOUNTRIES[k][li()])}</option>`).join('');
+    return { body: `<div class="mcard"><div class="mcard-top"><span>${esc(CAT.hotel.name)}</span><b>${t('memberCard')}</b></div>
+        <div class="mcard-name">${esc(me.name)}</div><div class="mcard-no mono">${esc(me.member_no || '')}</div>
+        <dl><dt>${t('memberSinceL')}</dt><dd>${me.since ? dfm(String(me.since).slice(0, 10)) : '—'}</dd><dt>${t('lastLogin')}</dt><dd>${me.last_sign_in ? fmtTs(me.last_sign_in) : '—'}</dd>
+          <dt>${t('statBookings')}</dt><dd>${me.bookings ?? (F.myList || []).length}</dd><dt>${t('tab_rev')}</dt><dd>${me.reviews ?? (F.hub.reviews || []).length}</dd></dl></div>
+      <section class="pform"><h3 class="sech">${ico('user', 17)} ${t('personalInfo')}</h3>
+        <div class="grid2"><label class="field"><span>${t('name')}</span><input class="in" id="p_name" value="${esc(me.name || '')}" autocomplete="name"></label>
+        <label class="field"><span>${t('phone')}</span><input class="in" id="p_phone" value="${esc(me.phone || '')}" inputmode="tel" autocomplete="tel"></label>
+        <label class="field"><span>${t('country')}</span><select class="in" id="p_country">${countries(me.country || 'LA')}</select></label>
+        <label class="field"><span>${t('email')}</span><input class="in" value="${esc(me.email || '')}" disabled><small>${t('emailLocked')}</small></label></div>${pm}
+        <div class="row-end"><button class="btn cta" data-act="profSave" ${F.busy ? 'disabled' : ''}>${t('saveProfile')}</button></div></section>
+      <section class="pform"><h3 class="sech">${ico('lock', 17)} ${t('changePw')}</h3>
+        <label class="field"><span>${t('pwCurrent')}</span><input class="in" type="password" id="pw_cur" autocomplete="current-password"></label>
+        <div class="grid2"><label class="field"><span>${t('pwNew')}</span><input class="in" type="password" id="pw_new" autocomplete="new-password" minlength="6"><span class="meter"><i id="pw_meter"></i></span><small id="pw_hint">${t('pwHint')}</small></label>
+        <label class="field"><span>${t('password2')}</span><input class="in" type="password" id="pw_new2" autocomplete="new-password" minlength="6"></label></div>${pw}
+        <div class="row-end"><button class="btn cta" data-act="pwSave" ${F.busy ? 'disabled' : ''}>${t('changePw')}</button></div></section>
+      <section class="secnote">${ico('shield', 18)}<div><b>${t('secT')}</b><ul><li>${t('sec1')}</li><li>${t('sec2')}</li><li>${t('sec3')}</li></ul></div></section>
+      <button class="btn block" data-act="logout">${t('logout')}</button>` };
   }
 
   function payBlock(amount, code) {
@@ -1891,7 +2535,16 @@ Object.assign(SX, {
     lockScroll(true); renderSheet();
     await loadMine(); renderSheet(); startPoll();
   }
-  async function loadMine() { try { F.myList = await API.member.bookings(); } catch (e) { F.accMsg = { k: 'bad', t: esc(errText(e)) }; if (e.code === 'login_required') { ME = null; render(); } } }
+  async function loadMine() {
+    try { applyHub(await API.member.hub()); }
+    catch (e) { F.accMsg = { k: 'bad', t: esc(errText(e)) }; if (e.code === 'login_required') { ME = null; render(); } }
+  }
+  function applyHub(h) {
+    F.hub = h; F.myList = h.bookings; if (h.me && h.me.profile) ME = { ...ME, ...h.me };
+    const sig = JSON.stringify([h.bookings, h.payments, h.threads, h.reviews, h.unread]), changed = sig !== F.hubSig; F.hubSig = sig;
+    const dot = document.querySelector('.btn.acct'); if (dot) dot.classList.toggle('has', !!h.unread);
+    return changed;
+  }
   function afterLogin() {
     try { localStorage.setItem('saynam-member-known', '1'); } catch (e) { }
     render();
@@ -1919,11 +2572,12 @@ Object.assign(SX, {
   const pollCode = () => F.view === 'account' && F.accSel ? F.accSel : F.view === 'book' && F.step === 4 && F.result ? F.result.code : null;
   const findMine = code => (F.myList || []).find(x => x.code === code) || null;
   async function pollOnce() {
+    if (F.view === 'account' && !F.accSel) { let h; try { h = await API.member.hub(); } catch (e) { return false; } return F.view === 'account' ? applyHub(h) : false; }
     const code = pollCode(); if (!code) return false;
     const before = F.view === 'book' ? F.trk : findMine(code);
-    let list; try { list = await API.member.bookings(); } catch (e) { return false; }
+    let list; try { const h = await API.member.hub(); applyHub(h); list = h.bookings; } catch (e) { return false; }
     if (pollCode() !== code) return false;
-    F.myList = list; const x = findMine(code); if (!x) return false;
+    const x = findMine(code); if (!x) return false;
     if (F.view === 'book') F.trk = x;
     const changed = !before || before.status !== x.status || before.pending_claims !== x.pending_claims || before.paid !== x.paid || lastClaim(before) !== lastClaim(x);
     if (changed && x.pending_claims === 0) F.slipJustSent = false;
@@ -1932,10 +2586,12 @@ Object.assign(SX, {
   function startPoll() {
     clearInterval(pollT);
     pollT = setInterval(async () => {
-      const code = pollCode(); if (!code) { if (!F.view) clearInterval(pollT); return; }
-      const d = F.view === 'book' ? F.trk : findMine(code);
-      if (d && (isDone(d) || d.status === 'cancelled' || d.status === 'noshow')) return;
-      if (document.hidden || F.busy || F.slipBlob || F.cxlAsk) return;      // never redraw while the guest is choosing a slip or confirming a cancel
+      if (!F.view) { clearInterval(pollT); return; }
+      const code = pollCode();
+      const d = code ? (F.view === 'book' ? F.trk : findMine(code)) : null;
+      if (F.view === 'book' && (!d || isDone(d) || d.status === 'cancelled' || d.status === 'noshow')) return;
+      const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName) && document.activeElement.closest('#sheet');
+      if (document.hidden || F.busy || F.slipBlob || F.cxlAsk || typing || F.msgNew || F.revCode) return;      // never redraw while the guest is typing, choosing a slip or confirming
       if (await pollOnce()) { renderSheet(); const n = F.view === 'book' ? F.trk : findMine(code); toast(n && isDone(n) ? t('booked') : t('updated')); }
     }, 15000);
   }
@@ -1944,6 +2600,8 @@ Object.assign(SX, {
     const g = id => (document.getElementById(id) || {}).value;
     if (document.getElementById('f_req')) { F.request = g('f_req'); F.promo = String(g('f_promo') || '').trim().toUpperCase(); }
   }
+  function readMsg() { const g = id => (document.getElementById(id) || {}).value; if (document.getElementById('msg_body')) { F.msgSubj = g('msg_subj') || ''; F.msgBody = g('msg_body') || ''; F.msgCode = g('msg_code') || ''; } }
+  function readRev() { if (!F.revDraft) F.revDraft = {}; const g = id => (document.getElementById(id) || {}).value; if (document.getElementById('rv_body')) { F.revDraft.title = g('rv_title') || ''; F.revDraft.body = g('rv_body') || ''; } }
   function readAuth() { const g = id => (document.getElementById(id) || {}).value; F.aName = (g('a_name') ?? F.aName ?? '').trim(); F.aPhone = (g('a_phone') ?? F.aPhone ?? '').trim(); F.aCountry = g('a_country') || F.aCountry; F.aEmail = (g('a_email') ?? F.aEmail ?? '').trim(); }
   let toastT;
   function toast(m) { const el = $('#toast'); el.textContent = m; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2400); }
@@ -1957,7 +2615,7 @@ Object.assign(SX, {
     lang: d => { lang = d.l; try { localStorage.setItem('saynam-lang', lang); } catch (e) { } render(); },
     book: d => openBooking(d.t),
     closeSheet,
-    account: () => openAccount(),
+    account: () => { F.accTab = 'home'; openAccount(); },
     manage: () => openAccount(),
     login: () => openAuth(null),
     authTab: d => { readAuth(); F.authTab = d.t; F.authMsg = null; renderSheet(); },
@@ -1976,14 +2634,17 @@ Object.assign(SX, {
       catch (e) { F.authMsg = e.code === 'confirm_email' ? { k: 'ok', t: t('confirmEmailSent', { e: esc(F.aEmail) }) } : { k: 'bad', t: esc(errText(e)) }; if (e.code === 'confirm_email') F.authTab = 'login'; }
       F.busy = false; renderSheet();
     },
-    editProfile: () => { F.view = 'auth'; F.authTab = 'profile'; F.authMsg = null; lockScroll(true); renderSheet(); },
+    editProfile: () => {
+      if (isMember() && F.view !== 'book') { F.accTab = 'profile'; openAccount(); return; }
+      F.view = 'auth'; F.authTab = 'profile'; F.authMsg = null; lockScroll(true); renderSheet();
+    },
     saveProfile: async () => {
       readAuth(); F.busy = true; F.authMsg = null; renderSheet();
       try { ME = await API.member.register(F.aName, F.aPhone, F.aCountry || 'LA'); F.busy = false; F.authTab = 'login'; toast(t('saved')); afterLogin(); return; }
       catch (e) { F.authMsg = { k: 'bad', t: esc(errText(e)) }; }
       F.busy = false; renderSheet();
     },
-    logout: async () => { try { await API.member.signOut(); } catch (e) { } ME = null; F.myList = null; closeSheet(); render(); toast(t('signedOut')); },
+    logout: async () => { try { await API.member.signOut(); } catch (e) { } ME = null; F.myList = null; F.hub = null; F.hubSig = ''; F.accTab = 'home'; closeSheet(); render(); toast(t('signedOut')); },
     pick: d => { F.sel = d.t; F.step = 2; F.msg = ''; renderSheet(); },
     step: d => { readDetails(); F.step = +d.s; F.msg = ''; if (F.step === 1 && !F.avail) loadAvail(); else renderSheet(); },
     promo: async () => {
@@ -2014,8 +2675,98 @@ Object.assign(SX, {
       try { await sendSlip(F.result.code, dueOf(F.trk || F.result)); F.claimed = true; F.slipJustSent = true; await loadMine(); F.trk = findMine(F.result.code) || F.trk; } catch (e) { F.msg = errText(e); }
       F.busy = false; renderSheet();
     },
-    accOpen: d => { clearSlip(); F.accSel = d.c; F.cxlAsk = null; F.accMsg = null; F.slipJustSent = false; renderSheet(); startPoll(); },
+    accOpen: d => { clearSlip(); F.accSel = d.c; F.revCode = null; F.cxlAsk = null; F.accMsg = null; F.slipJustSent = false; renderSheet(); startPoll(); },
     accFilter: d => { F.accFilter = d.f; renderSheet(); },
+    accTab: d => {
+      Object.assign(F, { accTab: d.t, accSel: null, msgSel: null, msgNew: false, revCode: null, msgMsg: null, revMsg: null, profMsg: null, pwMsg: null, accMsg: null, cxlAsk: null });
+      if (d.t === 'notif' && F.hub && F.hub.unread) {
+        // keep the highlight for this visit, but record them as read
+        F.notifFresh = new Set(F.hub.notifications.filter(n => !n.read).map(n => n.id));
+        F.hub.notifications.forEach(n => n.read = true); F.hub.unread = 0;
+        API.member.notifRead(null).catch(() => { });
+      }
+      renderSheet(); const b = document.querySelector('.pane-b'); if (b) b.scrollTop = 0;
+    },
+    payFilter: d => { F.payFilter = d.f; renderSheet(); },
+    payCsv: () => {
+      const rows = [['no', 'date', 'booking', 'type', 'method', 'reference', 'amount_lak', 'status']].concat((F.hub.payments || []).map(x => [x.no, x.at, x.code, x.kind, x.method || '', x.ref || '', (x.kind === 'refund' ? -1 : 1) * x.amount, x.status]));
+      const csv = '\ufeff' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'payments-' + (ME.member_no || 'member') + '.csv';
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    },
+    msgNew: () => { Object.assign(F, { msgNew: true, msgSel: null, msgCat: 'question', msgCode: '', msgSubj: '', msgBody: '', msgMsg: null }); renderSheet(); },
+    msgNewFromHelp: () => { F.accTab = 'msg'; A.msgNew(); },
+    msgAbout: d => { F.accSel = null; F.accTab = 'msg'; Object.assign(F, { msgNew: true, msgSel: null, msgCat: 'booking', msgCode: d.c, msgSubj: '', msgBody: '', msgMsg: null }); renderSheet(); },
+    msgBack: () => { Object.assign(F, { msgNew: false, msgSel: null, msgMsg: null, msgDraft: '' }); renderSheet(); },
+    msgCat: d => { readMsg(); F.msgCat = d.c; renderSheet(); },
+    msgOpen: async d => {
+      F.msgSel = +d.id; F.msgNew = false; F.msgMsg = null; F.msgDraft = ''; renderSheet();
+      const th = (F.hub.threads || []).find(x => x.id === +d.id);
+      if (th && th.unread) { try { await API.member.threadSeen(th.id); th.unread = false; F.hub.notifications.forEach(n => { if (n.kind === 'support_reply' && +n.data.thread === th.id && !n.read) { n.read = true; F.hub.unread = Math.max(0, F.hub.unread - 1); } }); renderSheet(); } catch (e) { } }
+      const c = document.querySelector('.chat'); if (c) c.scrollTop = c.scrollHeight;
+    },
+    msgCreate: async () => {
+      readMsg(); if (F.busy) return;
+      if (F.msgSubj.trim().length < 3) { F.msgMsg = { k: 'bad', t: t('e_subject_required') }; renderSheet(); return; }
+      if (F.msgBody.trim().length < 5) { F.msgMsg = { k: 'bad', t: t('e_message_required') }; renderSheet(); return; }
+      F.busy = true; renderSheet();
+      try { const id = await API.member.threadNew(F.msgCat || 'question', F.msgSubj, F.msgBody, F.msgCode || null); await loadMine(); Object.assign(F, { msgNew: false, msgSel: +id, msgMsg: { k: 'ok', t: t('sentOk') } }); }
+      catch (e) { F.msgMsg = { k: 'bad', t: esc(errText(e)) }; }
+      F.busy = false; renderSheet();
+    },
+    msgSend: async d => {
+      const el = $('#msg_reply'), body = el ? el.value : ''; if (F.busy) return;
+      if (!body.trim()) { F.msgMsg = { k: 'bad', t: t('e_message_required') }; renderSheet(); return; }
+      F.busy = true; F.msgDraft = body; renderSheet();
+      try { await API.member.threadReply(+d.id, body); F.msgDraft = ''; F.msgMsg = null; await loadMine(); }
+      catch (e) { F.msgMsg = { k: 'bad', t: esc(errText(e)) }; }
+      F.busy = false; renderSheet(); const c = document.querySelector('.chat'); if (c) c.scrollTop = c.scrollHeight;
+    },
+    msgClose: async d => { if (F.busy) return; F.busy = true; try { await API.member.threadClose(+d.id); await loadMine(); } catch (e) { F.msgMsg = { k: 'bad', t: esc(errText(e)) }; } F.busy = false; renderSheet(); },
+    revWrite: d => {
+      const r = (F.hub.reviews || []).find(x => x.code === d.c);
+      if (r && r.reply) { F.accTab = 'rev'; F.accSel = null; F.revCode = null; F.revMsg = { k: 'info', t: t('e_review_locked') }; renderSheet(); return; }
+      Object.assign(F, { accTab: 'rev', accSel: null, revCode: d.c, revMsg: null, revDraft: r ? { rating: r.rating, r_clean: r.r_clean, r_service: r.r_service, r_location: r.r_location, r_value: r.r_value, title: r.title || '', body: r.body || '' } : {} });
+      renderSheet(); const b = document.querySelector('.pane-b'); if (b) b.scrollTop = 0;
+    },
+    revBack: () => { F.revCode = null; F.revMsg = null; renderSheet(); },
+    revStar: d => { readRev(); F.revDraft[d.k] = +d.v; renderSheet(); },
+    revSave: async () => {
+      readRev(); if (F.busy) return; const dr = F.revDraft || {};
+      if (!dr.rating) { F.revMsg = { k: 'bad', t: t('e_rating_required') }; renderSheet(); return; }
+      F.busy = true; renderSheet();
+      try { await API.member.review(F.revCode, dr); await loadMine(); F.revCode = null; F.revMsg = { k: 'ok', t: t('revSaved') }; loadReviews(); }
+      catch (e) { F.revMsg = { k: 'bad', t: esc(errText(e)) }; }
+      F.busy = false; renderSheet();
+    },
+    notifOpen: d => {
+      const n = (F.hub.notifications || []).find(x => x.id === +d.id); if (!n) return;
+      if (!n.read) { n.read = true; F.hub.unread = Math.max(0, (F.hub.unread || 0) - 1); API.member.notifRead([n.id]).catch(() => { }); }
+      if (n.data && n.data.thread) { A.accTab({ t: 'msg' }); A.msgOpen({ id: n.data.thread }); return; }
+      if (n.kind === 'review_reply' || n.kind === 'checked_out') { A.accTab({ t: 'rev' }); return; }
+      if (n.kind === 'password_changed') { A.accTab({ t: 'profile' }); return; }
+      if (n.code) { F.accTab = 'home'; A.accOpen({ c: n.code }); return; }
+      renderSheet();
+    },
+    notifAll: async () => { (F.hub.notifications || []).forEach(n => n.read = true); F.hub.unread = 0; renderSheet(); try { await API.member.notifRead(null); } catch (e) { } },
+    profSave: async () => {
+      const name = ($('#p_name') || {}).value || '', phone = ($('#p_phone') || {}).value || '', country = ($('#p_country') || {}).value || 'LA';
+      if (name.trim().length < 2) { F.profMsg = { k: 'bad', t: t('e_name_required') }; renderSheet(); return; }
+      if (phone.replace(/\D/g, '').length < 8) { F.profMsg = { k: 'bad', t: t('e_phone_required') }; renderSheet(); return; }
+      if (F.busy) return; F.busy = true; F.pwMsg = null; renderSheet();
+      try { const me = await API.member.register(name.trim(), phone.trim(), country); ME = { ...ME, ...me }; await loadMine(); F.profMsg = { k: 'ok', t: t('profileSaved') }; render(); }
+      catch (e) { F.profMsg = { k: 'bad', t: esc(errText(e)) }; }
+      F.busy = false; renderSheet();
+    },
+    pwSave: async () => {
+      const cur = $('#pw_cur').value, nw = $('#pw_new').value, nw2 = $('#pw_new2').value;
+      const bad = !cur ? 'e_bad_password' : nw.length < 6 ? 'e_weak_password' : nw !== nw2 ? 'e_pw_mismatch' : nw === cur ? 'pwSame' : '';
+      if (bad) { F.pwMsg = { k: 'bad', t: t(bad) }; renderSheet(); return; }
+      if (F.busy) return; F.busy = true; F.pwMsg = null; F.profMsg = null; renderSheet();
+      try { await API.member.changePassword(cur, nw); await loadMine(); F.pwMsg = { k: 'ok', t: t('pwChanged') }; }
+      catch (e) { F.pwMsg = { k: 'bad', t: esc(errText(e)) }; }
+      F.busy = false; renderSheet();
+    },
     accBack: () => { clearSlip(); F.accSel = null; F.cxlAsk = null; F.accMsg = null; renderSheet(); },
     accClaim: async () => {
       const d = findMine(F.accSel); if (!d || F.busy) return; F.busy = true; F.accMsg = null; renderSheet();
@@ -2064,6 +2815,16 @@ Object.assign(SX, {
     }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && F.view) closeSheet(); });
+  document.addEventListener('input', e => {
+    const id = e.target.id;
+    if (id === 'help_q') { F.helpQ = e.target.value; const pos = e.target.selectionStart; renderSheet(); const i = $('#help_q'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (x) { } } }
+    if (id === 'msg_body') { const c = $('#msg_cnt'); if (c) c.textContent = e.target.value.length + '/2000'; }
+    if (id === 'pw_new') {
+      const v = e.target.value, sc = (v.length >= 6) + (v.length >= 10) + (/[A-Z]/.test(v) && /[a-z]/.test(v)) + /\d/.test(v) + /[^A-Za-z0-9]/.test(v);
+      const m = $('#pw_meter'), h = $('#pw_hint'), lvl = !v ? 0 : sc <= 2 ? 1 : sc <= 3 ? 2 : 3;
+      if (m) { m.style.width = (lvl * 33.4) + '%'; m.dataset.l = lvl; } if (h) h.textContent = !v ? t('pwHint') : t(['pwHint', 'pwWeak', 'pwOk', 'pwStrong'][lvl]);
+    }
+  });
 
   // ---------- boot ----------
   (async function boot() {
@@ -2072,6 +2833,8 @@ Object.assign(SX, {
     Q.ci = addD(CAT.hotel.business_date, 2); Q.co = addD(Q.ci, 2);
     try { ME = await API.member.session(); ME = await API.member.finishPending(ME); } catch (e) { ME = null; }
     render();
+    loadReviews();
+    if (ME && ME.profile) loadMine().then(() => { const b = document.querySelector('.btn.acct'); if (b) b.classList.toggle('has', !!(F.hub && F.hub.unread)); });
     if (ME && !ME.profile) { F.view = 'auth'; F.authTab = 'profile'; lockScroll(true); renderSheet(); }
     else if (location.hash === '#book') openBooking(); else if (/^#(manage|account)/.test(location.hash)) openAccount();
   })();

@@ -329,6 +329,15 @@ body.busy .btn{pointer-events:none}
 .row label.btn{cursor:pointer}
 .row:focus-within label.btn{outline:2px solid var(--accent);outline-offset:2px}
 .p-pending{background:var(--warn-soft);color:var(--warn)}
+.stars{display:inline-flex;gap:1px;font-size:15px;vertical-align:middle} .stars i{font-style:normal;color:var(--line)} .stars i.on{color:#e0a12a}
+.revcard.muted{opacity:.65}
+.unreadrow td{font-weight:600} .unreadrow td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.schat{display:flex;flex-direction:column;gap:10px;max-height:46vh;overflow-y:auto;padding:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;flex-shrink:0}
+.sbub{max-width:80%;display:flex;flex-direction:column;gap:3px}
+.sbub>div{padding:8px 12px;border-radius:12px;font-size:14px;overflow-wrap:anywhere}
+.sbub small{font-size:11.5px;color:var(--faint)}
+.sbub.member{align-self:flex-start} .sbub.member>div{background:var(--surface);border:1px solid var(--line)}
+.sbub.staff{align-self:flex-end;align-items:flex-end} .sbub.staff>div{background:var(--accent);color:#fff}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -720,8 +729,8 @@ const Core = (function () {
     if (S.members.some(m => m.email === email)) fail('email_taken');
     const m = { id: 'M' + S.seq.m++, email, pw, since: new Date().toISOString() }; S.members.push(m); return m.id;
   }
-  function memberSignIn(email, pw) { const m = S.members.find(x => x.email === String(email || '').trim().toLowerCase() && x.pw === pw); if (!m) fail('bad_login'); return m.id; }
-  function memberMe(id) { return memberView(memberOf(id)); }
+  function memberSignIn(email, pw) { const m = S.members.find(x => x.email === String(email || '').trim().toLowerCase() && x.pw === pw); if (!m) fail('bad_login'); m.lastLogin = new Date().toISOString(); return m.id; }
+  function memberMe(id) { return memberMeFull(id); }
   function memberRegister(id, name, phone, country) {
     const m = memberOf(id) || fail('login_required');
     if (String(name || '').trim().length < 2) fail('name_required');
@@ -872,6 +881,158 @@ const Core = (function () {
   function saveSettings(p) { need('manager'); const old = { ...S.settings }; Object.assign(S.settings, p); log('settings.update', '1', { old, new: p }); }
   function saveStaff(p) { need('owner'); const i = S.staff.findIndex(x => x.id === p.id); if (i >= 0) S.staff[i] = { ...S.staff[i], ...p }; else S.staff.push({ id: 'U' + S.seq.u++, active: true, ...p }); log('staff.' + (i >= 0 ? 'update' : 'insert'), p.email || p.id, { new: p }); }
 
+
+  // ---------- member hub (mirrors sql/07_member_hub.sql) ----------
+  const hubInit = () => { S.threads = S.threads || []; S.reviews = S.reviews || []; S.notifs = S.notifs || []; S.seq.th = S.seq.th || 1; S.seq.msg = S.seq.msg || 1; S.seq.rv = S.seq.rv || 1; S.seq.nt = S.seq.nt || 1; };
+  function notify(mid, kind, bid, data) { if (!mid) return; hubInit(); S.notifs.unshift({ id: S.seq.nt++, member: mid, kind, bk: bid || null, data: data || {}, read: false, at: new Date().toISOString() }); if (S.notifs.length > 2000) S.notifs.length = 2000; }
+  // like the database triggers: compare before/after so every path (guest, staff, night audit) notifies the member
+  function capture() {
+    hubInit();
+    return { b: new Map(S.bookings.map(b => [b.id, b.status])), c: new Map(S.claims.map(c => [c.id, c.status])), r: new Map((S.refunds || []).map(r => [r.id, r.status])),
+      m: new Set(S.threads.flatMap(t => t.messages.map(m => m.id))) };
+  }
+  function emit(prev) {
+    hubInit();
+    const bd = b => ({ code: b.code, ci: b.ci, co: b.co, total: b.rate * nightsOf(b) });
+    for (const b of S.bookings) {
+      if (!b.member) continue;
+      const was = prev.b.get(b.id);
+      if (was === undefined) { notify(b.member, 'booking_received', b.id, bd(b)); continue; }
+      if (was === b.status) continue;
+      const k = { confirmed: 'booking_confirmed', inhouse: 'checked_in', out: 'checked_out', noshow: 'booking_noshow' }[b.status]
+        || (b.status === 'cancelled' ? ({ guest_cancelled: 'booking_cancelled', declined_by_staff: 'booking_declined', unpaid_expired: 'booking_expired', unpaid_at_arrival: 'booking_expired' }[b.cancel_reason] || 'booking_cancelled_hotel') : null);
+      if (k) notify(b.member, k, b.id, bd(b));
+    }
+    for (const c of S.claims) {
+      const b = S.bookings.find(x => x.id === c.bk); if (!b || !b.member) continue;
+      const was = prev.c.get(c.id);
+      if (was === undefined) notify(b.member, 'slip_received', b.id, { code: b.code, amount: c.amt });
+      else if (was !== c.status && (c.status === 'verified' || c.status === 'rejected')) notify(b.member, c.status === 'verified' ? 'payment_verified' : 'payment_rejected', b.id, { code: b.code, amount: c.amt, ref: c.bank_ref || null });
+    }
+    for (const r of S.refunds || []) {
+      const b = S.bookings.find(x => x.id === r.bk); if (!b || !b.member || r.amount <= 0) continue;
+      const was = prev.r.get(r.id);
+      if (was === undefined) notify(b.member, 'refund_owed', b.id, { code: b.code, amount: r.amount, fee: r.fee });
+      else if (was !== 'paid' && r.status === 'paid') notify(b.member, 'refund_paid', b.id, { code: b.code, amount: r.amount, ref: r.paid_ref || null });
+    }
+    for (const t of S.threads) for (const m of t.messages) if (m.sender === 'staff' && !prev.m.has(m.id)) notify(t.member, 'support_reply', t.bk, { thread: t.id, subject: t.subject });
+  }
+  function run(fn) { const prev = S ? capture() : null; const r = fn(); if (prev) emit(prev); return r; }
+
+  function memberMeFull(id) {
+    const m = memberOf(id); const v = memberView(m); if (!v || !v.profile) return v; hubInit();
+    return { ...v, member_no: 'M-' + String(m.id).toUpperCase().padStart(8, '0'), last_sign_in: m.lastLogin || null,
+      bookings: S.bookings.filter(b => b.member === id).length, reviews: S.reviews.filter(r => r.member === id).length };
+  }
+  function memberPayments(id) {
+    return asMember(id, () => {
+      const out = [], pad = n => String(n).padStart(6, '0');
+      for (const b of S.bookings.filter(x => x.member === id)) {
+        for (const p of b.pays) out.push({ no: 'PAY-' + pad(p.id), at: p.at || (p.date + 'T12:00:00Z'), code: b.code, kind: p.refund ? 'refund' : 'payment', method: p.m, amount: p.amt, ref: p.ref || null, status: 'done', type_id: b.type });
+        for (const c of S.claims.filter(x => x.bk === b.id && (x.status === 'pending' || x.status === 'rejected'))) out.push({ no: 'SLP-' + pad(c.id), at: c.at, code: b.code, kind: 'slip', method: 'qr', amount: c.amt, ref: null, status: c.status, type_id: b.type });
+        for (const r of (S.refunds || []).filter(x => x.bk === b.id && x.status === 'owed' && x.amount > 0)) out.push({ no: 'RF-' + pad(r.id), at: r.at, code: b.code, kind: 'refund_owed', method: null, amount: r.amount, ref: null, status: 'owed', type_id: b.type });
+      }
+      return out.sort((a, b) => String(b.at).localeCompare(String(a.at)) || b.no.localeCompare(a.no));
+    });
+  }
+  const threadView = (t, staffSide) => ({ id: t.id, category: t.category, subject: t.subject, status: t.status, code: t.bk ? (S.bookings.find(b => b.id === t.bk) || {}).code : null, bk: t.bk,
+    created: t.created, updated: t.updated, member: t.member,
+    unread: t.messages.some(m => m.sender === (staffSide ? 'member' : 'staff') && m.at > ((staffSide ? t.staffSeen : t.memberSeen) || '')),
+    messages: t.messages.map(m => ({ sender: m.sender, body: m.body, at: m.at, staff: m.staff ? (staffSide ? m.staff : m.staff.split(' ')[0]) : null })) });
+  function memberThreads(id) { return asMember(id, () => { hubInit(); return S.threads.filter(t => t.member === id).sort((a, b) => b.updated.localeCompare(a.updated)).map(t => threadView(t)); }); }
+  function dailyMsgs(id) { const since = new Date(Date.now() - 864e5).toISOString(); return S.threads.filter(t => t.member === id).reduce((n, t) => n + t.messages.filter(m => m.sender === 'member' && m.at > since).length, 0); }
+  function memberThreadNew(id, cat, subject, body, code) {
+    return asMember(id, m => {
+      hubInit();
+      if (!['question', 'problem', 'booking', 'payment', 'other'].includes(cat)) fail('invalid_kind');
+      if (String(subject || '').trim().length < 3) fail('subject_required');
+      if (String(body || '').trim().length < 5 || String(body).length > 2000) fail('message_required');
+      if (S.threads.filter(t => t.member === id && t.status !== 'closed').length >= 5) fail('too_many_threads');
+      if (dailyMsgs(id) >= 30) fail('too_many_messages');
+      let bid = null; if (String(code || '').trim()) bid = myBooking(id, code).id;
+      const now = new Date().toISOString();
+      const t = { id: S.seq.th++, member: id, bk: bid, category: cat, subject: String(subject).trim().slice(0, 120), status: 'open', created: now, updated: now, memberSeen: now, staffSeen: null,
+        messages: [{ id: S.seq.msg++, sender: 'member', body: String(body).trim(), at: now }] };
+      S.threads.push(t); log('support.new', 'T-' + t.id, { category: cat, subject: t.subject, booking: bid }); return t.id;
+    });
+  }
+  const myThread = (id, tid) => S.threads.find(t => t.id === +tid && t.member === id) || fail('not_found');
+  function memberThreadReply(id, tid, body) {
+    return asMember(id, () => {
+      hubInit(); const t = myThread(id, tid);
+      if (!String(body || '').trim() || String(body).length > 2000) fail('message_required');
+      if (dailyMsgs(id) >= 30) fail('too_many_messages');
+      const now = new Date().toISOString(); t.messages.push({ id: S.seq.msg++, sender: 'member', body: String(body).trim(), at: now }); t.status = 'open'; t.updated = now; t.memberSeen = now;
+      log('support.reply', 'T-' + t.id, null);
+    });
+  }
+  function memberThreadClose(id, tid) { return asMember(id, () => { hubInit(); const t = myThread(id, tid); t.status = 'closed'; t.updated = new Date().toISOString(); log('support.close', 'T-' + t.id, { by: 'member' }); }); }
+  function memberThreadSeen(id, tid) {
+    return asMember(id, () => { hubInit(); const t = myThread(id, tid); t.memberSeen = new Date().toISOString(); S.notifs.filter(n => n.member === id && n.kind === 'support_reply' && !n.read && +n.data.thread === t.id).forEach(n => n.read = true); });
+  }
+  function memberReview(id, code, p) {
+    return asMember(id, () => {
+      hubInit(); const b = myBooking(id, code);
+      if (b.status !== 'out') fail('review_after_stay');
+      const rating = +p.rating; if (!(rating >= 1 && rating <= 5)) fail('rating_required');
+      if (String(p.body || '').length > 2000 || String(p.title || '').length > 120) fail('invalid_amount');
+      const sub = k => (+p[k] >= 1 && +p[k] <= 5) ? +p[k] : null, now = new Date().toISOString();
+      const r = S.reviews.find(x => x.bk === b.id);
+      const vals = { rating, r_clean: sub('r_clean'), r_service: sub('r_service'), r_location: sub('r_location'), r_value: sub('r_value'), title: String(p.title || '').trim() || null, body: String(p.body || '').trim() || null };
+      if (!r) { S.reviews.unshift({ id: S.seq.rv++, bk: b.id, member: id, status: 'published', reply: null, replied_at: null, created: now, updated: now, ...vals }); log('review.create', b.id, { rating }); }
+      else { if (r.reply) fail('review_locked'); const was = r.rating; Object.assign(r, vals, { updated: now }); log('review.update', b.id, { rating, was }); }
+    });
+  }
+  function memberReviews(id) {
+    return asMember(id, () => { hubInit(); return S.reviews.filter(r => r.member === id).map(r => ({ code: (S.bookings.find(b => b.id === r.bk) || {}).code, rating: r.rating, r_clean: r.r_clean, r_service: r.r_service, r_location: r.r_location, r_value: r.r_value,
+      title: r.title, body: r.body, status: r.status, reply: r.reply, replied_at: r.replied_at, created: r.created, updated: r.updated })); });
+  }
+  function memberNotifications(id) { return asMember(id, () => { hubInit(); return S.notifs.filter(n => n.member === id).slice(0, 80).map(n => ({ id: n.id, kind: n.kind, code: n.bk ? (S.bookings.find(b => b.id === n.bk) || {}).code : null, data: n.data, read: n.read, at: n.at })); }); }
+  function memberNotifRead(id, ids) { return asMember(id, () => { hubInit(); S.notifs.filter(n => n.member === id && !n.read && (!ids || ids.includes(n.id))).forEach(n => n.read = true); }); }
+  function memberHub(id) {
+    return asMember(id, () => { expireUnpaid(); hubInit();
+      return { me: memberMeFull(id), bookings: memberBookings(id), payments: memberPayments(id), threads: memberThreads(id), reviews: memberReviews(id), notifications: memberNotifications(id),
+        unread: S.notifs.filter(n => n.member === id && !n.read).length }; });
+  }
+  function memberPassword(id, current, next) {
+    return asMember(id, m => {
+      if (m.pw !== current) fail('bad_password');
+      if (String(next || '').length < 6) fail('weak_password');
+      m.pw = next; log('member.password_changed', m.email, null); notify(id, 'password_changed', null, {});
+    });
+  }
+  // staff side
+  function adminSupport() {
+    hubInit();
+    return { threads: S.threads.slice().sort((a, b) => b.updated.localeCompare(a.updated)).map(t => { const m = memberOf(t.member) || {}; return { ...threadView(t, true), name: m.name, email: m.email, phone: m.phone }; }),
+      reviews: S.reviews.map(r => { const m = memberOf(r.member) || {}; return { id: r.id, bk: r.bk, name: m.name, email: m.email, rating: r.rating, r_clean: r.r_clean, r_service: r.r_service, r_location: r.r_location, r_value: r.r_value,
+        title: r.title, body: r.body, status: r.status, reply: r.reply, replied_at: r.replied_at, replier: r.replier || null, created: r.created }; }) };
+  }
+  function threadReply(tid, body, close) {
+    need('manager', 'frontdesk', 'accountant'); hubInit(); const t = S.threads.find(x => x.id === +tid) || fail('not_found');
+    if (!String(body || '').trim() || String(body).length > 2000) fail('message_required');
+    const now = new Date().toISOString(); t.messages.push({ id: S.seq.msg++, sender: 'staff', staff: S.me.name, body: String(body).trim(), at: now }); t.status = close ? 'closed' : 'answered'; t.updated = now; t.staffSeen = now;
+    log('support.answer', 'T-' + t.id, { close: !!close });
+  }
+  function threadStatus(tid, st) {
+    need('manager', 'frontdesk', 'accountant'); hubInit(); const t = S.threads.find(x => x.id === +tid) || fail('not_found');
+    if (st === 'seen') { t.staffSeen = new Date().toISOString(); return; }
+    if (!['open', 'closed'].includes(st)) fail('invalid_kind');
+    t.status = st; t.updated = new Date().toISOString(); log('support.' + st, 'T-' + t.id, { by: 'staff' });
+  }
+  function reviewReply(rid, text) {
+    need('manager', 'frontdesk'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found');
+    if (String(text || '').trim().length < 2) fail('message_required');
+    Object.assign(r, { reply: String(text).trim(), replier: S.me.name, replied_at: new Date().toISOString() }); log('review.reply', r.bk, null);
+    notify(r.member, 'review_reply', r.bk, { code: (S.bookings.find(b => b.id === r.bk) || {}).code });
+  }
+  function reviewStatus(rid, st) { need('manager'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found'); if (!['published', 'hidden'].includes(st)) fail('invalid_kind'); r.status = st; log('review.' + st, r.bk, null); }
+  function publicReviews() {
+    hubInit(); const pub = S.reviews.filter(r => r.status === 'published');
+    return { count: pub.length, avg: pub.length ? Math.round(pub.reduce((s, r) => s + r.rating, 0) / pub.length * 10) / 10 : null,
+      items: pub.slice(0, 12).map(r => { const m = memberOf(r.member) || {}, b = S.bookings.find(x => x.id === r.bk) || {}; return { name: String(m.name || '').split(' ')[0], country: m.country, rating: r.rating, title: r.title, body: r.body, month: String(b.ci || '').slice(0, 7), type: b.type, reply: r.reply, at: r.created }; }) };
+  }
+
   // ---------- reporting ----------
   function balances(from, to) { const m = {}; for (const k in S.accounts) m[k] = 0; for (const e of S.journal) { if (e.date < from || e.date > to) continue; for (const l of e.lines) m[l.a] += l.dr - l.cr; } return m; }
   const DEBIT_NORMAL = t => ['ca', 'nca', 'cos', 'opx', 'fin'].includes(t);
@@ -914,7 +1075,7 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 8, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 9, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
         cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
@@ -992,6 +1153,22 @@ const Core = (function () {
     const occ = new Set(S.bookings.filter(b => b.status === 'inhouse').map(b => b.room));
     S.rooms.forEach((r, i) => r.hk = occ.has(r.no) ? 'dirty' : (i % 5 === 0 ? 'clean' : 'inspected'));
     const r = roomOf(ooo); r.hk = 'ooo'; r.note = 'AC';
+    // demo member: two past stays (one reviewed and answered), one answered message, a few notifications
+    hubInit();
+    const past = S.bookings.filter(b => b.status === 'out' && b.ch === 'DIR').slice(-2);
+    past.forEach(b => { b.member = 'M1'; b.source = 'website'; Object.assign(b.guest, { name: 'Noy Sayavong', phone: '+856 20 5555 1234', email: 'demo@saynam.la', country: 'LA' }); });
+    if (past[0]) {
+      const at = past[0].co + 'T10:00:00Z';
+      S.reviews.push({ id: S.seq.rv++, bk: past[0].id, member: 'M1', rating: 5, r_clean: 5, r_service: 5, r_location: 4, r_value: 5, title: 'Demo review', body: 'Sample review written for the demo data.', status: 'published',
+        reply: 'Thank you, we hope to welcome you again. (demo)', replier: 'Manivanh', replied_at: at, created: at, updated: at });
+      notify('M1', 'checked_out', past[0].id, { code: past[0].code, ci: past[0].ci, co: past[0].co, total: past[0].rate * nightsOf(past[0]) });
+    }
+    if (past[1]) notify('M1', 'checked_out', past[1].id, { code: past[1].code, ci: past[1].ci, co: past[1].co, total: past[1].rate * nightsOf(past[1]) });
+    { const t0 = addD(today, -1) + 'T08:30:00Z', t1 = addD(today, -1) + 'T09:05:00Z';
+      S.threads.push({ id: S.seq.th++, member: 'M1', bk: null, category: 'question', subject: 'Airport pickup', status: 'answered', created: t0, updated: t1, memberSeen: t0, staffSeen: t1,
+        messages: [{ id: S.seq.msg++, sender: 'member', body: 'Do you offer airport pickup in the evening?', at: t0 }, { id: S.seq.msg++, sender: 'staff', staff: 'Manivanh', body: 'Yes, until 23:00. Write your flight number in the booking request. (demo)', at: t1 }] });
+      notify('M1', 'support_reply', null, { thread: 1, subject: 'Airport pickup' }); }
+    S.bookings.filter(b => b.member === 'M1' && b.status === 'pending').forEach(b => notify('M1', 'booking_received', b.id, { code: b.code, ci: b.ci, co: b.co, total: b.rate * nightsOf(b) }));
     S.bizDate = today; S.audit = [];
     S.me = S.staff[0];
     log('demo.seed', SIM0, { note: 'two months of simulated operations' });
@@ -1002,7 +1179,9 @@ const Core = (function () {
   return {
     set: s => { S = s; }, get: () => S, addD, diffD, dow, monthEnd, mulberry32, nightsOf, LIVE, HOLD, DEBIT_NORMAL, seed,
     catalog, availability, publicBook, lookup, claim, acceptBooking, openSlip, refundPaid, cancelDeadline,
-    memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, promoPct, directRate,
+    memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, run,
+    memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
+    adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
     expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
@@ -1015,7 +1194,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v8', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v9', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1023,7 +1202,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1032,7 +1211,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 8) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 9) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1052,7 +1231,7 @@ const API = (function () {
   function demoRun(fn, asStaff) {
     demoLoad();
     const S = Core.get(); S.me = asStaff ? demoMe : null;
-    try { const r = fn(); S.me = null; demoSave(); return Promise.resolve(r); }
+    try { const r = Core.run(fn); S.me = null; demoSave(); return Promise.resolve(r); }
     catch (e) { S.me = null; demoLoad(); return Promise.reject(toErr(e)); }   // reload drops any half-applied change
   }
 
@@ -1102,6 +1281,10 @@ const API = (function () {
     payment: (id, m, amt, ref) => ['staff_payment', { p_id: id, p_method: m, p_amount: amt, p_ref: ref || null }],
     verifyClaim: (cid, ok, m, ref) => ['staff_verify_claim', { p_claim: cid, p_approve: ok, p_method: m || 'qr', p_bank_ref: ref || null }],
     refundPaid: (rid, m, ref) => ['staff_refund_paid', { p_refund: rid, p_method: m, p_ref: ref || null }],
+    threadReply: (id, body, close) => ['staff_thread_reply', { p_thread: id, p_body: body, p_close: !!close }],
+    threadStatus: (id, st) => ['staff_thread_status', { p_thread: id, p_status: st }],
+    reviewReply: (id, text) => ['staff_review_reply', { p_id: id, p_reply: text }],
+    reviewStatus: (id, st) => ['staff_review_status', { p_id: id, p_status: st }],
     acceptBooking: id => ['staff_accept_booking', { p_id: id }],
     setHk: (no, st) => ['staff_set_hk', { p_room: no, p_status: st }],
     nightAudit: () => ['staff_night_audit', {}],
@@ -1164,8 +1347,26 @@ const API = (function () {
       book: p => LIVE ? rpc('member_book', { p }) : demoRun(() => Core.memberBook(demoMember(), p)),
       bookings: () => LIVE ? rpc('member_bookings') : demoRun(() => Core.memberBookings(demoMember())),
       claim: (code, amt, slip) => LIVE ? rpc('member_claim', { p_code: code, p_amount: amt, p_slip: slip }) : demoRun(() => Core.memberClaim(demoMember(), code, amt, slip)),
-      cancel: code => LIVE ? rpc('member_cancel', { p_code: code }) : demoRun(() => Core.memberCancel(demoMember(), code))
+      cancel: code => LIVE ? rpc('member_cancel', { p_code: code }) : demoRun(() => Core.memberCancel(demoMember(), code)),
+      hub: () => LIVE ? rpc('member_hub') : demoRun(() => Core.memberHub(demoMember())),
+      threadNew: (cat, subject, body, code) => LIVE ? rpc('member_thread_new', { p_category: cat, p_subject: subject, p_body: body, p_code: code || null }) : demoRun(() => Core.memberThreadNew(demoMember(), cat, subject, body, code)),
+      threadReply: (id, body) => LIVE ? rpc('member_thread_reply', { p_thread: id, p_body: body }) : demoRun(() => Core.memberThreadReply(demoMember(), id, body)),
+      threadClose: id => LIVE ? rpc('member_thread_close', { p_thread: id }) : demoRun(() => Core.memberThreadClose(demoMember(), id)),
+      threadSeen: id => LIVE ? rpc('member_thread_seen', { p_thread: id }) : demoRun(() => Core.memberThreadSeen(demoMember(), id)),
+      review: (code, p) => LIVE ? rpc('member_review', { p_code: code, p_rating: p.rating, p_clean: p.r_clean || null, p_service: p.r_service || null, p_location: p.r_location || null, p_value: p.r_value || null, p_title: p.title || null, p_body: p.body || null })
+        : demoRun(() => Core.memberReview(demoMember(), code, p)),
+      notifRead: ids => LIVE ? rpc('member_notifications_read', { p_ids: ids || null }) : demoRun(() => Core.memberNotifRead(demoMember(), ids || null)),
+      // the current password is checked by signing in again before the new one is set
+      async changePassword(current, next) {
+        if (!LIVE) return demoRun(() => Core.memberPassword(demoMember(), current, next));
+        const c = await client(); const { data } = await c.auth.getSession(); const email = data.session && data.session.user.email;
+        if (!email) throw toErr('login_required');
+        const chk = await c.auth.signInWithPassword({ email, password: current }); if (chk.error) throw toErr('bad_password');
+        const { error } = await c.auth.updateUser({ password: next }); if (error) throw toErr(error);
+        await rpc('member_security_event', { p_kind: 'password_changed' });
+      }
     },
+    reviews: () => LIVE ? rpc('public_reviews') : demoRun(() => Core.publicReviews()),
     // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
     async uploadSlip(code, blob) {
       if (!LIVE) return await blobToDataURL(blob);
@@ -1207,9 +1408,10 @@ const API = (function () {
     },
     async logout() { if (LIVE) { const c = await client(); await c.auth.signOut(); } demoMe = null; try { sessionStorage.removeItem(USER_KEY); } catch (e) { } },
     async snapshot() {
-      if (!LIVE) { const s = demoLoad(); s.me = null; const copy = JSON.parse(JSON.stringify(s)); copy.me = demoMe; copy.live = false; return copy; }
+      if (!LIVE) { const s = demoLoad(); s.me = null; const copy = JSON.parse(JSON.stringify(s)); copy.me = demoMe; copy.live = false; Core.set(s); copy.support = Core.adminSupport(); return copy; }
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
+      try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
       return s;
     },
     act(name, ...args) {
@@ -1631,11 +1833,31 @@ Object.assign(ACTIONS, {
   'member.register': ['ສະໝັກສະມາຊິກ', 'สมัครสมาชิก', 'Member signed up'], 'booking.guest_cancel': ['ລູກຄ້າຍົກເລີກການຈອງ', 'ลูกค้ายกเลิกการจอง', 'Guest cancelled booking'],
   'claim.viewed': ['ເປີດເບິ່ງສະລິບ', 'เปิดดูสลิป', 'Slip opened'], 'refund.paid': ['ໂອນເງິນຄືນ', 'โอนเงินคืน', 'Refund paid'], 'customers.insert': ['ສ້າງສະມາຊິກ', 'สร้างสมาชิก', 'Member created'], 'customers.update': ['ແກ້ໄຂສະມາຊິກ', 'แก้ไขสมาชิก', 'Member updated']
 });
+Object.assign(TX, {
+  nav_inbox: ['ຂໍ້ຄວາມ & ຣີວິວ', 'ข้อความ & รีวิว', 'Messages & reviews'], ib_msgs: ['ຂໍ້ຄວາມຈາກລູກຄ້າ', 'ข้อความจากลูกค้า', 'Guest messages'], ib_reviews: ['ຣີວິວ', 'รีวิว', 'Reviews'],
+  att_msgs: ['{n} ຂໍ້ຄວາມລູກຄ້າລໍຖ້າຕອບ', '{n} ข้อความลูกค้ารอตอบ', '{n} guest messages waiting for a reply'], att_reviews: ['{n} ຣີວິວຍັງບໍ່ໄດ້ຕອບ', '{n} รีวิวยังไม่ได้ตอบ', '{n} reviews without a reply'],
+  ibf_todo: ['ລໍຖ້າຕອບ', 'รอตอบ', 'To answer'], ibf_answered: ['ຕອບແລ້ວ', 'ตอบแล้ว', 'Answered'], ibf_closed: ['ປິດແລ້ວ', 'ปิดแล้ว', 'Closed'], ibf_all: ['ທັງໝົດ', 'ทั้งหมด', 'All'],
+  ibs_open: ['ລໍຖ້າຕອບ', 'รอตอบ', 'To answer'], ibs_answered: ['ຕອບແລ້ວ', 'ตอบแล้ว', 'Answered'], ibs_closed: ['ປິດແລ້ວ', 'ปิดแล้ว', 'Closed'],
+  ibc_question: ['ສອບຖາມ', 'สอบถาม', 'Question'], ibc_booking: ['ການຈອງ', 'การจอง', 'Booking'], ibc_payment: ['ການຊຳລະ', 'การชำระ', 'Payment'], ibc_problem: ['ແຈ້ງບັນຫາ', 'แจ้งปัญหา', 'Problem'], ibc_other: ['ອື່ນໆ', 'อื่นๆ', 'Other'],
+  ib_subject: ['ເລື່ອງ', 'เรื่อง', 'Subject'], ib_cat: ['ໝວດ', 'หมวด', 'Topic'], ib_updated: ['ອັບເດດ', 'อัปเดต', 'Updated'],
+  ib_reply: ['ຕອບກັບ', 'ตอบกลับ', 'Reply'], ib_replyPh: ['ຂຽນຄຳຕອບ — ລູກຄ້າຈະເຫັນໃນບັນຊີ ແລະ ໄດ້ຮັບແຈ້ງເຕືອນ', 'เขียนคำตอบ — ลูกค้าจะเห็นในบัญชีและได้รับแจ้งเตือน', 'Write a reply: the guest sees it in their account with a notification'],
+  ib_send: ['ສົ່ງຄຳຕອບ', 'ส่งคำตอบ', 'Send reply'], ib_replyClose: ['ຕອບ & ປິດເລື່ອງ', 'ตอบ & ปิดเรื่อง', 'Reply & close'], ib_close: ['ປິດເລື່ອງ', 'ปิดเรื่อง', 'Close'], ib_reopen: ['ເປີດຄືນ', 'เปิดใหม่', 'Reopen'], ib_sent: ['ສົ່ງຄຳຕອບແລ້ວ', 'ส่งคำตอบแล้ว', 'Reply sent'],
+  ib_avg: ['ຄະແນນສະເລ່ຍ', 'คะแนนเฉลี่ย', 'Average rating'], ib_noreply: ['ຍັງບໍ່ໄດ້ຕອບ', 'ยังไม่ได้ตอบ', 'Without reply'], ib_ourReply: ['ຄຳຕອບຂອງໂຮງແຮມ', 'คำตอบของโรงแรม', 'Our reply'],
+  ib_published: ['ສະແດງໃນເວັບ', 'แสดงบนเว็บ', 'Shown on website'], ib_hidden: ['ເຊື່ອງໄວ້', 'ซ่อนไว้', 'Hidden'], ib_hide: ['ເຊື່ອງຈາກເວັບ', 'ซ่อนจากเว็บ', 'Hide from website'], ib_show: ['ສະແດງໃນເວັບ', 'แสดงบนเว็บ', 'Show on website'],
+  ib_r_clean: ['ສະອາດ', 'สะอาด', 'Clean'], ib_r_service: ['ບໍລິການ', 'บริการ', 'Service'], ib_r_location: ['ທີ່ຕັ້ງ', 'ทำเล', 'Location'], ib_r_value: ['ຄຸ້ມຄ່າ', 'คุ้มค่า', 'Value'],
+  e_message_required: ['ກະລຸນາຂຽນຂໍ້ຄວາມ', 'กรุณาเขียนข้อความ', 'Please write a message']
+});
+Object.assign(ACTIONS, {
+  'support.new': ['ລູກຄ້າສົ່ງຂໍ້ຄວາມ', 'ลูกค้าส่งข้อความ', 'Guest message'], 'support.reply': ['ລູກຄ້າຕອບຂໍ້ຄວາມ', 'ลูกค้าตอบข้อความ', 'Guest replied'], 'support.answer': ['ພະນັກງານຕອບຂໍ້ຄວາມ', 'พนักงานตอบข้อความ', 'Staff answered'],
+  'support.close': ['ປິດເລື່ອງ', 'ปิดเรื่อง', 'Conversation closed'], 'support.closed': ['ປິດເລື່ອງ', 'ปิดเรื่อง', 'Conversation closed'], 'support.open': ['ເປີດເລື່ອງຄືນ', 'เปิดเรื่องใหม่', 'Conversation reopened'],
+  'review.create': ['ລູກຄ້າຂຽນຣີວິວ', 'ลูกค้าเขียนรีวิว', 'Review written'], 'review.update': ['ລູກຄ້າແກ້ໄຂຣີວິວ', 'ลูกค้าแก้ไขรีวิว', 'Review edited'], 'review.reply': ['ຕອບຣີວິວ', 'ตอบรีวิว', 'Review answered'],
+  'review.hidden': ['ເຊື່ອງຣີວິວ', 'ซ่อนรีวิว', 'Review hidden'], 'review.published': ['ສະແດງຣີວິວ', 'แสดงรีวิว', 'Review shown'], 'member.password_changed': ['ສະມາຊິກປ່ຽນລະຫັດຜ່ານ', 'สมาชิกเปลี่ยนรหัสผ่าน', 'Member changed password']
+});
 
 // ===== BACK OFFICE =====
 (function () {
   const LANGS = ['lo', 'th', 'en'];
-  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, gTab: 'members', gSel: null };
+  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, gTab: 'members', gSel: null, ibTab: 'msg', ibFilter: 'todo' };
   let S = null, lang = 'lo';
   try { const l = localStorage.getItem('saynam-lang'); if (LANGS.includes(l)) lang = l; } catch (e) { }
   const $ = s => document.querySelector(s);
@@ -1700,6 +1922,7 @@ Object.assign(ACTIONS, {
 
   // ---------- icons & nav ----------
   const IC = {
+    inbox: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
     dash: '<path d="M3 13h7V3H3zm11 8h7V11h-7zM3 21h7v-5H3zm11-13h7V3h-7z"/>', cal: '<path d="M4 5h16v15H4zM4 10h16M9 3v4m6-4v4"/>',
     bk: '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/>', guests: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
     rooms: '<path d="M3 20V9l9-5 9 5v11M9 20v-6h6v6"/>', setup: '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/>',
@@ -1708,7 +1931,7 @@ Object.assign(ACTIONS, {
   };
   const ico = k => `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
   const NAV = [
-    ['grp_ops', [['dash', 'nav_dash', ROLES], ['cal', 'nav_cal', ['manager', 'frontdesk']], ['bk', 'nav_bk', ['manager', 'frontdesk', 'accountant']], ['guests', 'nav_guests', ['manager', 'frontdesk', 'accountant']], ['rooms', 'nav_rooms', ['manager', 'frontdesk', 'housekeeping']]]],
+    ['grp_ops', [['dash', 'nav_dash', ROLES], ['cal', 'nav_cal', ['manager', 'frontdesk']], ['bk', 'nav_bk', ['manager', 'frontdesk', 'accountant']], ['guests', 'nav_guests', ['manager', 'frontdesk', 'accountant']], ['inbox', 'nav_inbox', ['manager', 'frontdesk', 'accountant']], ['rooms', 'nav_rooms', ['manager', 'frontdesk', 'housekeeping']]]],
     ['grp_grow', [['mkt', 'nav_mkt', ['manager', 'accountant']]]],
     ['grp_fin', [['acc', 'nav_acc', ['manager', 'accountant']]]],
     ['grp_admin', [['setup', 'nav_setup', ['manager']], ['audit', 'nav_audit', ['manager', 'accountant']], ['set', 'nav_set', ['manager']]]]
@@ -1718,6 +1941,8 @@ Object.assign(ACTIONS, {
   const pendingClaims = () => S.claims.filter(c => c.status === 'pending');
   const owedRefunds = () => (S.refunds || []).filter(r => r.status === 'owed' && r.amount > 0);
   const memberOf = id => (S.members || []).find(m => m.id === id) || null;
+  const SUP = () => S.support || { threads: [], reviews: [] };
+  const inboxTodo = () => SUP().threads.filter(x => x.status === 'open').length + SUP().reviews.filter(r => !r.reply).length;
   const pre = b => b.status === 'pending' || b.status === 'confirmed';   // not yet arrived: total is the booked stay
   const owed = b => pre(b) ? b.rate * nightsOf(b) - Core.paidOf(b) : Core.balanceOf(b);
 
@@ -1727,12 +1952,12 @@ Object.assign(ACTIONS, {
     $('#side').innerHTML = `
       <div class="brand"><div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f4efe2" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1"/><path d="M3 12c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1" opacity=".6"/><path d="M8 8V4h8v4"/></svg></div>
         <div><b>${esc(S.settings.hotel)}</b><span>${t('boName')}</span></div></div>
-      ${NAV.map(([g, items]) => { const vis = items.filter(([, , r]) => can(...r)); return vis.length ? `<div class="navgrp"><small>${t(g)}</small>${vis.map(([v, k]) => `<button class="navbtn ${V.view === v ? 'on' : ''}" data-act="nav" data-v="${v}">${ico(v)}<span>${t(k)}</span>${v === 'bk' && pc + owedRefunds().length ? `<em class="badge">${pc + owedRefunds().length}</em>` : ''}</button>`).join('')}</div>` : ''; }).join('')}
+      ${NAV.map(([g, items]) => { const vis = items.filter(([, , r]) => can(...r)); return vis.length ? `<div class="navgrp"><small>${t(g)}</small>${vis.map(([v, k]) => `<button class="navbtn ${V.view === v ? 'on' : ''}" data-act="nav" data-v="${v}">${ico(v)}<span>${t(k)}</span>${v === 'bk' && pc + owedRefunds().length ? `<em class="badge">${pc + owedRefunds().length}</em>` : ''}${v === 'inbox' && inboxTodo() ? `<em class="badge">${inboxTodo()}</em>` : ''}</button>`).join('')}</div>` : ''; }).join('')}
       <div class="navgrp"><a class="navbtn" href="index.html" target="_blank" rel="noopener">${ico('web')}<span>${t('viewSite')}</span></a></div>
       <div class="side-foot"><div class="me"><b>${esc(S.me.name)}</b><span>${t('r_' + S.me.role)}</span></div>
         <button class="navbtn" data-act="logout">${ico('out')}<span>${t('signOut')}</span></button>
         <span class="demo-tag">${S.live ? t('liveMode') : t('demoMode')}</span></div>`;
-    const title = { dash: 'nav_dash', cal: 'nav_cal', bk: 'nav_bk', guests: 'nav_guests', rooms: 'nav_rooms', setup: 'nav_setup', mkt: 'nav_mkt', acc: 'nav_acc', audit: 'nav_audit', set: 'nav_set' }[V.view];
+    const title = { dash: 'nav_dash', cal: 'nav_cal', bk: 'nav_bk', guests: 'nav_guests', inbox: 'nav_inbox', rooms: 'nav_rooms', setup: 'nav_setup', mkt: 'nav_mkt', acc: 'nav_acc', audit: 'nav_audit', set: 'nav_set' }[V.view];
     $('#top').innerHTML = `<h1>${t(title)}</h1>
       <div class="chip-date"><span class="muted">${t('bizDate')}</span><b>${dfm(S.bizDate)}</b>${can('manager', 'frontdesk') ? `<button class="btn sm pri" data-act="nightAudit">${t('nightAudit')}</button>` : ''}</div>
       <button class="btn sm ghost" data-act="reload" title="${esc(t('refresh'))}" aria-label="${esc(t('refresh'))}">↻</button>
@@ -1743,7 +1968,7 @@ Object.assign(ACTIONS, {
     if (!allowed(V.view)) V.view = firstView();
     if (!$('#side')) $('#root').innerHTML = `<div class="app"><aside class="side" id="side"></aside><div class="main"><header class="top" id="top"></header><main id="view"></main></div></div>`;
     renderShell();
-    const f = { dash: vDash, cal: vCal, bk: vBk, guests: vGuests, rooms: vRooms, setup: vSetup, mkt: vMkt, acc: vAcc, audit: vAudit, set: vSet }[V.view];
+    const f = { dash: vDash, cal: vCal, bk: vBk, guests: vGuests, inbox: vInbox, rooms: vRooms, setup: vSetup, mkt: vMkt, acc: vAcc, audit: vAudit, set: vSet }[V.view];
     $('#view').innerHTML = f();
   }
 
@@ -1781,6 +2006,8 @@ Object.assign(ACTIONS, {
     const att = []; const pc = pendingClaims();
     if (pc.length && can('frontdesk', 'accountant', 'manager')) att.push(['warn', `${t('claims')}: ${pc.length} · ${kip(pc.reduce((s, c) => s + c.amt, 0))}`, 'bk', 'claims']);
     const pend = S.bookings.filter(b => b.status === 'pending'); if (pend.length) att.unshift(['warn', t('att_pending', { n: pend.length }), 'bk', 'pending']);
+    const openTh = SUP().threads.filter(x => x.status === 'open').length; if (openTh) att.unshift(['warn', t('att_msgs', { n: openTh }), 'inbox', 'msg']);
+    const noRep = SUP().reviews.filter(r => !r.reply).length; if (noRep) att.push(['warn', t('att_reviews', { n: noRep }), 'inbox', 'rev']);
     const ro = owedRefunds(); if (ro.length && can('manager', 'accountant')) att.push(['warn', t('att_refunds', { n: ro.length, a: kip(ro.reduce((x, r) => x + r.amount, 0)) }), 'bk', 'refunds']);
     const dirty = S.rooms.filter(r => r.hk === 'dirty').length; if (dirty) att.push(['warn', t('att_dirty', { n: dirty }), 'rooms']);
     const old = S.arOTA.filter(x => !x.settled && diffD(x.date, biz) > 14).reduce((s, x) => s + x.amt, 0); if (old > 0) att.push(['bad', t('att_ota', { a: kip(old) }), 'acc']);
@@ -2061,6 +2288,42 @@ Object.assign(ACTIONS, {
     <div class="card tablewrap" id="gtable"><table class="t"><thead><tr><th>${t('guest')}</th><th>${t('phone')}</th><th>${t('country')}</th><th class="n">${t('stays')}</th><th class="n">${t('nights')}</th><th class="n">${t('spent')}</th><th>${t('lastStay')}</th></tr></thead><tbody>
       ${list.map(g => `<tr class="click" data-act="openBk" data-id="${g.ids[g.ids.length - 1]}"><td>${esc(g.name)}</td><td class="tnum">${esc(g.phone || '—')}</td><td>${nm(COUNTRIES[g.country] || COUNTRIES.OT)}</td><td class="n">${g.stays}</td><td class="n">${g.nights}</td><td class="n">${fm(g.spent)}</td><td class="tnum">${dfm(g.last)}</td></tr>`).join('')}
     </tbody></table></div>`;
+  }
+
+  // ---------- inbox: member messages & reviews ----------
+  const stars = n => `<span class="stars">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}">★</i>`).join('')}</span>`;
+  function vInbox() {
+    const T = SUP().threads, RV = SUP().reviews, open = T.filter(x => x.status === 'open').length, noRep = RV.filter(r => !r.reply).length;
+    const tabs = `<div class="tabs" role="tablist"><button class="${V.ibTab === 'msg' ? 'on' : ''}" data-act="ibTab" data-t="msg">${t('ib_msgs')}${open ? ` <em class="badge">${open}</em>` : ''}</button><button class="${V.ibTab === 'rev' ? 'on' : ''}" data-act="ibTab" data-t="rev">${t('ib_reviews')}${noRep ? ` <em class="badge">${noRep}</em>` : ''}</button></div>`;
+    if (V.ibTab === 'rev') {
+      const avg = RV.filter(r => r.status === 'published').reduce((x, r, _, a) => x + r.rating / a.length, 0);
+      return tabs + `<div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div class="kpi lead"><label>${t('ib_avg')}</label><div class="v">${RV.length ? avg.toFixed(1) : '—'}</div><div class="s">${stars(Math.round(avg))}</div></div>
+        <div class="kpi"><label>${t('ib_reviews')}</label><div class="v">${RV.length}</div></div><div class="kpi"><label>${t('ib_noreply')}</label><div class="v ${noRep ? 'warnc' : ''}">${noRep}</div></div></div>
+        ${RV.length ? `<div class="stack">${RV.map(r => `<div class="card revcard ${r.status === 'hidden' ? 'muted' : ''}"><div class="spread"><div>${stars(r.rating)} <b>${esc(r.title || '')}</b></div><span class="small muted">${esc(r.name || '')} · <button class="btn sm ghost mono" data-act="openBk" data-id="${esc(r.bk)}">${esc(r.bk)}</button> · ${tfm(r.created)}</span></div>
+          ${r.body ? `<p style="margin:6px 0">${esc(r.body)}</p>` : ''}
+          <div class="small muted">${['r_clean', 'r_service', 'r_location', 'r_value'].filter(k => r[k]).map(k => `${t('ib_' + k)} ${r[k]}/5`).join(' · ')}</div>
+          ${r.reply ? `<div class="note good" style="margin-top:8px"><b>${t('ib_ourReply')}</b> (${esc(r.replier || '')} · ${tfm(r.replied_at)}): ${esc(r.reply)}</div>`
+            : can('manager', 'frontdesk') ? `<div class="inline-form" style="grid-template-columns:1fr auto;margin-top:8px"><label class="field"><span>${t('ib_reply')}</span><textarea class="input" rows="2" id="rr_${r.id}" maxlength="2000"></textarea></label><button class="btn pri" data-act="revReply" data-id="${r.id}">${t('ib_send')}</button></div>` : ''}
+          <div class="row" style="justify-content:space-between;margin-top:6px"><span class="pill ${r.status === 'hidden' ? 'p-cancelled' : 'p-inhouse'}">${t('ib_' + r.status)}</span>${can('manager') ? `<button class="btn sm" data-act="revStatus" data-id="${r.id}" data-s="${r.status === 'hidden' ? 'published' : 'hidden'}">${t(r.status === 'hidden' ? 'ib_show' : 'ib_hide')}</button>` : ''}</div></div>`).join('')}</div>` : `<div class="card empty">${t('none')}</div>`}`;
+    }
+    const f = V.ibFilter, list = T.filter(x => f === 'all' || (f === 'todo' ? x.status === 'open' : x.status === f));
+    return tabs + `<div class="toolbar">${['todo', 'answered', 'closed', 'all'].map(k => `<button class="btn sm ${f === k ? 'pri' : ''}" data-act="ibFilter" data-f="${k}">${t('ibf_' + k)} · ${k === 'all' ? T.length : T.filter(x => k === 'todo' ? x.status === 'open' : x.status === k).length}</button>`).join('')}</div>
+      <div class="card tablewrap">${list.length ? `<table class="t"><thead><tr><th>${t('status')}</th><th>${t('guest')}</th><th>${t('ib_subject')}</th><th>${t('ib_cat')}</th><th>${t('nav_bk')}</th><th>${t('ib_updated')}</th></tr></thead><tbody>
+        ${list.map(x => { const last = x.messages[x.messages.length - 1] || {}; return `<tr class="click ${x.unread ? 'unreadrow' : ''}" data-act="ibOpen" data-id="${x.id}"><td><span class="pill ${x.status === 'open' ? 'p-pending' : x.status === 'answered' ? 'p-inhouse' : 'p-out'}">${t('ibs_' + x.status)}</span></td>
+          <td>${esc(x.name || '')}<div class="small faint">${esc(x.email || '')}</div></td><td><b>${esc(x.subject)}</b><div class="small faint">${last.sender === 'staff' ? '↩ ' : ''}${esc(String(last.body || '').slice(0, 80))}</div></td><td class="small">${t('ibc_' + x.category)}</td><td class="mono small">${esc(x.bk || '—')}</td><td class="tnum small">${tfm(x.updated)}</td></tr>`; }).join('')}
+        </tbody></table>` : `<div class="empty">${t('none')}</div>`}</div>`;
+  }
+  function showThread(id) {
+    const x = SUP().threads.find(y => y.id === id); if (!x) return;
+    V.modal = { k: 'th', id };
+    const bub = x.messages.map(m => `<div class="sbub ${m.sender}"><div>${esc(m.body).replace(/\n/g, '<br>')}</div><small>${m.sender === 'staff' ? esc(m.staff || '') : esc(x.name || '')} · ${tfm(m.at)}</small></div>`).join('');
+    openModal(`<div class="mh"><div><h2>${esc(x.subject)}</h2><p>${esc(x.name || '')} · ${esc(x.email || '')} · ${esc(x.phone || '')} · ${t('ibc_' + x.category)} · T-${x.id}${x.bk ? ` · <button class="btn sm ghost mono" data-act="openBk" data-id="${esc(x.bk)}">${esc(x.bk)}</button>` : ''}</p></div><div class="row"><span class="pill ${x.status === 'open' ? 'p-pending' : x.status === 'answered' ? 'p-inhouse' : 'p-out'}">${t('ibs_' + x.status)}</span><button class="btn ghost" data-act="closeModal" aria-label="${esc(t('close'))}">✕</button></div></div>
+      <div class="schat">${bub}</div>
+      ${can('manager', 'frontdesk', 'accountant') ? `<label class="field"><span>${t('ib_reply')}</span><textarea class="input" id="th_reply" rows="4" maxlength="2000" placeholder="${esc(t('ib_replyPh'))}"></textarea></label>
+      <div class="actions">${x.status !== 'closed' ? `<button class="btn" data-act="thStatus" data-id="${x.id}" data-s="closed">${t('ib_close')}</button>` : `<button class="btn" data-act="thStatus" data-id="${x.id}" data-s="open">${t('ib_reopen')}</button>`}
+        <button class="btn" data-act="thReply" data-id="${x.id}" data-c="1">${t('ib_replyClose')}</button><button class="btn pri" data-act="thReply" data-id="${x.id}">${t('ib_send')}</button></div>` : ''}`);
+    const c = $('#modal .schat'); if (c) c.scrollTop = c.scrollHeight;
+    if (x.unread) quiet(API.act('threadStatus', id, 'seen').then(() => { x.unread = false; renderShell(); }));
   }
 
   // ---------- rooms & housekeeping ----------
@@ -2344,9 +2607,9 @@ Object.assign(ACTIONS, {
   }
 
   // ---------- events ----------
-  const reopen = () => { const m = V.modal; if (m && m.k === 'bk') showBk(m.id); else if (m && m.k === 'na') naForm(); };
+  const reopen = () => { const m = V.modal; if (m && m.k === 'bk') showBk(m.id); else if (m && m.k === 'na') naForm(); else if (m && m.k === 'th') showThread(m.id); };
   const A = {
-    nav: d => { V.view = d.v; if (d.tab === 'pending') { V.bkTab = 'list'; V.bkSt = 'pending'; } else if (d.tab) V.bkTab = d.tab; closeModal(); render(); window.scrollTo(0, 0); },
+    nav: d => { V.view = d.v; if (d.v === 'inbox' && d.tab) V.ibTab = d.tab; if (d.tab === 'pending') { V.bkTab = 'list'; V.bkSt = 'pending'; } else if (d.tab) V.bkTab = d.tab; closeModal(); render(); window.scrollTo(0, 0); },
     lang: d => { lang = d.l; try { localStorage.setItem('saynam-lang', lang); } catch (e) { } if (S && S.me) { render(); reopen(); } else renderLogin(); },
     reload: async () => { await refresh(); render(); reopen(); },
     logout: async () => { await API.logout(); S = null; closeModal(); $('#root').innerHTML = ''; renderLogin(); },
@@ -2372,6 +2635,16 @@ Object.assign(ACTIONS, {
     voidDo: async () => { const v = V.voidAsk, r = $('#vd_r').value.trim(); try { await act('voidCharge', v.f, r); V.voidAsk = null; render(); showBk(v.b); } catch (e) { } },
     addPay: async d => { const a = Math.round(+$('#pf_a').value || 0); if (a <= 0) return toast(t('errAmt')); try { await act('payment', d.id, $('#pf_m').value, a, $('#pf_r').value.trim()); render(); showBk(d.id); } catch (e) { } },
     viewSlip: d => showSlip(+d.id),
+    ibTab: d => { V.ibTab = d.t; render(); },
+    ibFilter: d => { V.ibFilter = d.f; render(); },
+    ibOpen: d => showThread(+d.id),
+    thReply: async d => {
+      const body = ($('#th_reply') || {}).value || ''; if (!body.trim()) { toast(t('e_message_required')); return; }
+      try { await act('threadReply', +d.id, body.trim(), !!d.c); render(); showThread(+d.id); toast(t('ib_sent')); } catch (e) { }
+    },
+    thStatus: async d => { try { await act('threadStatus', +d.id, d.s); render(); showThread(+d.id); } catch (e) { } },
+    revReply: async d => { const v = ($('#rr_' + d.id) || {}).value || ''; if (v.trim().length < 2) { toast(t('e_message_required')); return; } try { await act('reviewReply', +d.id, v.trim()); render(); toast(t('ib_sent')); } catch (e) { } },
+    revStatus: async d => { try { await act('reviewStatus', +d.id, d.s); render(); } catch (e) { } },
     claimOk: async d => {
       const c = S.claims.find(x => x.id === +d.id), wasPend = c && (S.bookings.find(b => b.id === c.bk) || {}).status === 'pending';
       const ref = ($('#sv_ref') || {}).value || '', box = $('#sv_msg');
@@ -2478,7 +2751,7 @@ Object.assign(ACTIONS, {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
   // a booking made on the guest website in another tab shows up here (demo mode shares this browser's storage)
   // keep the back office current: new website bookings and slips appear without pressing refresh
-  const sig = () => S ? [S.bookings.length, S.claims.filter(c => c.status === 'pending').length, S.audit[0] ? S.audit[0].id : 0, S.journal.length, S.bizDate].join('|') : '';
+  const sig = () => S ? [S.bookings.length, S.claims.filter(c => c.status === 'pending').length, S.audit[0] ? S.audit[0].id : 0, S.journal.length, S.bizDate, SUP().threads.reduce((n, x) => n + x.messages.length, 0), SUP().reviews.length].join('|') : '';
   let polling = false;
   API.onExternalChange(async () => {
     if (!S || !S.me || V.busy || polling) return;
