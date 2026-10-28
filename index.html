@@ -261,6 +261,104 @@ footer a{color:var(--sub)}
 .empty{padding:22px;text-align:center;color:var(--sub);border:1px dashed var(--line);border-radius:12px}
 @media (max-width:720px){.btn.acct span{display:none}}
 
+/* ---- my account (redesign) ---- */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes shimmer{from{background-position:-200% 0}to{background-position:200% 0}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--champa) 45%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+.ahero{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;padding:18px 18px 16px;border-radius:18px;color:#fff;
+  background:radial-gradient(120% 140% at 100% 0%,#2a7d71 0%,transparent 55%),linear-gradient(135deg,#13524a 0%,#0c3a34 100%);box-shadow:0 10px 30px rgba(12,58,52,.28);animation:rise .45s ease both}
+.ahero-wave{position:absolute;inset:auto 0 0 0;width:100%;height:70px;color:#fff;pointer-events:none}
+.avatar{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-size:22px;font-weight:700;color:var(--champa-ink);
+  background:linear-gradient(140deg,#f6c46a,#df951f);box-shadow:0 0 0 3px rgba(255,255,255,.22),0 6px 16px rgba(0,0,0,.2);position:relative}
+.ahero-t{min-width:0;position:relative}
+.ahero-t small{font-size:12.5px;opacity:.75;letter-spacing:.02em}
+.ahero-t h3{font-size:22px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ahero-meta{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:12.5px;opacity:.9}
+.ahero-meta span{display:inline-flex;align-items:center;gap:5px;min-width:0;overflow-wrap:anywhere}
+.ahero-act{grid-column:1/-1;display:flex;gap:8px;margin-top:10px;position:relative}
+.pillbtn{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px);transition:background .2s,transform .2s}
+.pillbtn:hover{background:rgba(255,255,255,.26);transform:translateY(-1px)}
+.pillbtn.ghost{background:transparent}
+.pillbtn.back{align-self:flex-start;color:var(--river);border-color:var(--line);background:var(--mist);backdrop-filter:none}
+.pillbtn.back:hover{background:var(--river-soft)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0;animation:rise .45s ease both;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+.stat span{font-size:12px;color:var(--sub)}
+.stat b{font-family:var(--f-display);font-size:22px;font-weight:700;color:var(--river);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat:last-child b{font-size:17px;padding-top:4px}
+.ftabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;margin-inline:-2px}
+.ftabs::-webkit-scrollbar{display:none}
+.ftabs button{flex:none;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper);color:var(--sub);border-radius:999px;padding:6px 12px;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .2s}
+.ftabs button em{font-style:normal;font-size:11.5px;background:var(--mist);border-radius:999px;padding:0 7px;min-width:20px;text-align:center}
+.ftabs button.on{background:var(--river);border-color:var(--river);color:var(--paper)}
+.ftabs button.on em{background:color-mix(in srgb,var(--paper) 25%,transparent);color:var(--paper)}
+.bk2-list{display:flex;flex-direction:column;gap:10px}
+.bk2{position:relative;display:grid;grid-template-columns:52px 64px 1fr 14px;gap:12px;align-items:center;text-align:left;width:100%;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:12px;cursor:pointer;
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s;animation:rise .45s ease both;animation-delay:calc(var(--i,0)*60ms + 120ms)}
+.bk2:hover,.bk2:focus-visible{transform:translateY(-2px);box-shadow:var(--shadow);border-color:color-mix(in srgb,var(--river) 45%,var(--line))}
+.bk2.needs{border-color:color-mix(in srgb,var(--champa) 55%,var(--line))}
+.bk2.dead{opacity:.72}
+.bk2.dead .bk2-art{filter:grayscale(.8)}
+.bk2-date{display:flex;flex-direction:column;align-items:center;line-height:1.05;background:var(--river-soft);color:var(--river);border-radius:12px;padding:8px 0}
+.bk2-date b{font-family:var(--f-display);font-size:22px;font-weight:700}
+.bk2-date span{font-size:12px;font-weight:600}
+.bk2-date small{font-size:10.5px;opacity:.7}
+.bk2-art{width:64px;height:64px;border-radius:12px;overflow:hidden}
+.bk2-art svg{width:100%;height:100%;display:block;transition:transform .4s ease}
+.bk2:hover .bk2-art svg{transform:scale(1.08)}
+.bk2-main{min-width:0;display:flex;flex-direction:column;gap:5px}
+.bk2-main .r1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bk2-main .r1 b{font-family:var(--f-display);font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk2-main .r1 .status{flex:none;font-size:12px;padding:1px 10px}
+.bk2-main .r2{display:flex;flex-wrap:wrap;gap:2px 6px;font-size:12.5px;color:var(--sub)}
+.bk2-main .code{font-weight:700;letter-spacing:.08em;color:var(--ink)}
+.when{background:var(--champa-soft);color:var(--champa-ink);border-radius:999px;padding:0 8px;font-weight:600;font-size:11.5px}
+:root[data-theme="dark"] .when{color:var(--champa)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .when{color:var(--champa)}}
+.when.now{background:var(--good-soft);color:var(--good)}
+.bk2-main .r3{display:flex;align-items:center;gap:8px;font-size:13px}
+.bk2-main .r3 b{margin-left:auto;font-size:14px}
+.paynow{font-size:12px;font-weight:700;color:var(--champa-2);animation:pulse 2.2s ease infinite;border-radius:999px;padding:0 6px}
+.chev{font-size:22px;color:var(--faint);transition:transform .2s,color .2s}
+.bk2:hover .chev{transform:translateX(3px);color:var(--river)}
+.bar{height:6px;border-radius:999px;background:var(--mist);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:var(--w,0%);border-radius:inherit;background:linear-gradient(90deg,var(--river),#3fa192);transform-origin:left;animation:grow .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:.25s}
+.bar.big{height:10px}
+.aempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:26px 18px;border:1px dashed var(--line);border-radius:16px;animation:rise .45s ease both}
+.aempty svg{width:120px;height:90px}
+.aempty b{font-family:var(--f-display);font-size:19px}
+.aempty p{margin:0;color:var(--sub);max-width:36ch;font-size:14px}
+.aempty.small{padding:16px}
+.sk{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:12px;border:1px solid var(--line);border-radius:16px}
+.sk i,.sk b,.sk-tile{display:block;border-radius:10px;background:linear-gradient(90deg,var(--mist) 25%,var(--line) 50%,var(--mist) 75%);background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+.sk i{height:64px}
+.sk div{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.sk b{height:11px} .sk b:nth-child(2){width:70%} .sk b:nth-child(3){width:45%}
+.sk-tile{height:62px;border:0}
+.dhero{position:relative;border-radius:18px;overflow:hidden;min-height:170px;display:flex;align-items:flex-end;animation:rise .4s ease both}
+.dhero-art{position:absolute;inset:0}
+.dhero-art svg{width:100%;height:100%;display:block}
+.dhero-o{position:relative;width:100%;padding:40px 16px 14px;background:linear-gradient(180deg,transparent,rgba(8,30,27,.82));color:#fff;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.dhero-o h3{font-size:22px;color:#fff}
+.dhero-o p{margin:0;font-size:13.5px;opacity:.92}
+.codechip{display:inline-flex;align-items:center;gap:8px;margin-top:4px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:4px 12px;cursor:pointer;backdrop-filter:blur(4px);transition:background .2s}
+.codechip:hover{background:rgba(255,255,255,.26)}
+.codechip span{font-size:11.5px;opacity:.8} .codechip b{letter-spacing:.12em;font-size:14px}
+.paybox{display:flex;flex-direction:column;gap:8px;background:var(--mist);border:1px solid var(--line);border-radius:14px;padding:12px 14px;animation:rise .4s ease both;animation-delay:.08s}
+.paybox .r1{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--sub)}
+@media (max-width:480px){
+  .bk2{grid-template-columns:48px 1fr 10px;gap:10px}
+  .bk2-art{display:none}
+  .stats{gap:6px} .stat{padding:8px 10px} .stat b{font-size:19px} .stat:last-child b{font-size:14px}
+  .ahero-t h3{font-size:19px}
+}
+@media (prefers-reduced-motion:reduce){
+  .ahero,.stat,.bk2,.aempty,.dhero,.paybox,.bar i{animation:none!important}
+  .paynow,.sk i,.sk b,.sk-tile{animation:none!important}
+  .bk2,.bk2-art svg,.chev{transition:none}
+}
+
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
@@ -1336,6 +1434,15 @@ Object.assign(SX, {
   keepCode: ['ການຈອງນີ້ຢູ່ໃນ "ການຈອງຂອງຂ້ອຍ" ແລ້ວ — ເຂົ້າສູ່ລະບົບເພື່ອກວດສະຖານະ ຫຼື ຈ່າຍພາຍຫຼັງ.', 'การจองนี้อยู่ใน "การจองของฉัน" แล้ว — เข้าสู่ระบบเพื่อตรวจสถานะหรือชำระภายหลัง', 'This booking is saved in "My bookings": log in any time to check it or pay later.'],
   faq1q: ['ຈ່າຍເງິນແນວໃດ?', 'ชำระเงินอย่างไร', 'How do I pay?']
 });
+Object.assign(SX, {
+  welcome: ['ສະບາຍດີ {n}', 'สวัสดี {n}', 'Welcome {n}'],
+  statBookings: ['ການຈອງທັງໝົດ', 'การจองทั้งหมด', 'Bookings'], statUpcoming: ['ກຳລັງຈະມາເຖິງ', 'กำลังจะมาถึง', 'Upcoming'], statPaid: ['ຊຳລະແລ້ວທັງໝົດ', 'ชำระแล้วทั้งหมด', 'Total paid'],
+  f_all: ['ທັງໝົດ', 'ทั้งหมด', 'All'], f_up: ['ຢືນຢັນແລ້ວ', 'ยืนยันแล้ว', 'Confirmed'], f_pend: ['ລໍຖ້າຊຳລະ', 'รอชำระ', 'Awaiting payment'], f_past: ['ຜ່ານມາ / ຍົກເລີກ', 'ผ่านมา / ยกเลิก', 'Past / cancelled'],
+  w_today: ['ເຂົ້າພັກມື້ນີ້', 'เข้าพักวันนี้', 'Arriving today'], w_tomorrow: ['ເຂົ້າພັກມື້ອື່ນ', 'เข้าพักพรุ่งนี้', 'Arriving tomorrow'], w_in: ['ອີກ {n} ມື້', 'อีก {n} วัน', 'In {n} days'],
+  payNowShort: ['ຊຳລະດຽວນີ້', 'ชำระตอนนี้', 'Pay now'],
+  emptyT: ['ຍັງບໍ່ມີການຈອງ', 'ยังไม่มีการจอง', 'No bookings yet'], emptyD: ['ເລືອກຫ້ອງວິວແມ່ນ້ຳ ແລະ ຈອງໄດ້ໃນບໍ່ເທົ່າໃດນາທີ. ການຈອງຂອງທ່ານຈະສະແດງຢູ່ບ່ອນນີ້.', 'เลือกห้องวิวแม่น้ำและจองได้ในไม่กี่นาที การจองของคุณจะแสดงที่นี่', 'Pick a river-view room and book in a few minutes. Your bookings will appear here.'],
+  noneInFilter: ['ບໍ່ມີການຈອງໃນໝວດນີ້', 'ไม่มีการจองในหมวดนี้', 'Nothing in this group']
+});
 
 // ===== GUEST WEBSITE =====
 (function () {
@@ -1357,7 +1464,7 @@ Object.assign(SX, {
   let CAT = null;
   const Q = { ci: null, co: null, ad: 2 };
   const F = { view: null, step: 1, avail: null, sel: null, request: '', promo: '', promoPct: 0, agree: false, result: null, trk: null, claimed: false, busy: false, msg: '',
-    authTab: 'login', authReason: null, afterType: null, authMsg: null, myList: null, accSel: null, accMsg: null, cxlAsk: null };
+    authTab: 'login', authReason: null, afterType: null, authMsg: null, myList: null, accFilter: 'all', accSel: null, accMsg: null, cxlAsk: null };
 
   // ---------- art ----------
   const ICONS = {
@@ -1513,12 +1620,22 @@ Object.assign(SX, {
     return `<span class="flag bad">${t('payNone')}</span>`;
   }
 
+  // numbers in the account stats roll up once when the page opens (skipped for reduced motion)
+  function countUp(root) {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    root.querySelectorAll('[data-count]').forEach(el => {
+      const end = +el.dataset.count, isKip = !!el.dataset.kip, t0 = performance.now(), dur = 700;
+      if (!end) return;
+      const step = now => { const k = Math.min(1, (now - t0) / dur), v = Math.round(end * (1 - Math.pow(1 - k, 3))); el.textContent = isKip ? kip(v) : v; if (k < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }
   function renderSheet() {
     const el = $('#sheet');
     if (!F.view) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
     if (F.view === 'auth') { el.innerHTML = authView(); return; }
-    if (F.view === 'account') { el.innerHTML = accountView(); setTimeout(() => F.accSel && drawQR(F.accSel), 0); return; }
+    if (F.view === 'account') { const first = !el.querySelector('.ahero'); el.innerHTML = accountView(); if (first) countUp(el); setTimeout(() => F.accSel && drawQR(F.accSel), 0); return; }
     const msg = F.msg ? `<div class="msg bad">${esc(F.msg)}</div>` : '';
     if (F.step === 1) {
       const n = nights(Q.ci, Q.co);
@@ -1645,23 +1762,65 @@ Object.assign(SX, {
       }
       const v = trackView(d, 'accClaim', 'accBack', t('allBookings'));
       const slips = (d.claims || []).length ? `<div class="slipsl"><b>${t('slipHistory')}</b>${d.claims.map(c => `<div><span class="tnum">${fmtTs(c.at)}</span><span class="tnum">${kip(c.amount)}</span><span class="flag ${c.status === 'verified' ? 'ok' : c.status === 'rejected' ? 'bad' : ''}">${t('cl_' + c.status)}</span></div>`).join('')}</div>` : '';
-      return sheetShell(t('myBookings'), `<button class="linkbtn" data-act="accBack" style="align-self:flex-start">${t('allBookings')}</button>
-        <div class="summary"><span class="k">${t('code')}</span><span class="v" style="letter-spacing:.08em;font-weight:700">${esc(d.code)}</span>
-        <span class="k">${t('room')}</span><span class="v">${esc(L(d.type))}</span><span class="k">${t('stay')}</span><span class="v">${dfm(d.ci)} → ${dfm(d.co)} · ${d.nights} ${t('nights')}</span>
-        <span class="k">${t('bookedOn')}</span><span class="v">${fmtTs(d.created)}</span>
-        <span class="k">${t('bookStatusL')}</span><span class="v"><span class="status s-${d.status}">${t('st_' + d.status)}</span></span>
-        <span class="k">${t('payStatusL')}</span><span class="v">${payState(d)}</span>
-        <span class="k">${t('total')}</span><span class="v">${kip(d.total)}</span><span class="k">${t('paid')}</span><span class="v">${kip(d.paid)}</span>
+      const pp = d.total ? Math.min(100, Math.round(Math.max(0, d.paid) / d.total * 100)) : 0;
+      return sheetShell(t('myBookings'), `<button class="pillbtn back" data-act="accBack">${t('allBookings')}</button>
+        <section class="dhero"><div class="dhero-art">${roomArt(d.type_id)}</div><div class="dhero-o">
+          <span class="status s-${d.status}">${t('st_' + d.status)}</span><h3>${esc(L(d.type))}</h3>
+          <p class="tnum">${dfm(d.ci)} → ${dfm(d.co)} · ${d.nights} ${t('nights')} · ${d.adults} ${t('guests').toLowerCase()}</p>
+          <button class="codechip" data-act="copy" data-v="${esc(d.code)}" title="${esc(t('copy'))}"><span>${t('code')}</span><b>${esc(d.code)}</b>${ico('qr', 14)}</button></div></section>
+        ${['cancelled', 'noshow'].includes(d.status) ? '' : `<div class="paybox"><div class="r1"><span>${t('payStatusL')}</span>${payState(d)}</div><div class="bar big"><i style="--w:${pp}%"></i></div><div class="r1 tnum"><span>${t('paid')} ${kip(d.paid)}</span><span>${t('total')} ${kip(d.total)}</span></div></div>`}
+        <div class="summary"><span class="k">${t('bookedOn')}</span><span class="v">${fmtTs(d.created)}</span>
         ${d.pending_claims ? `<span class="k">${t('checking')}</span><span class="v">${kip(d.pending_claims)}</span>` : ''}</div>
         ${v.body}${slips}${cx}${m}`, v.foot, 0);
     }
-    const head = `<div class="memberbox"><span>${t('welcome', { n: esc(ME.name) })}</span><small>${esc(ME.email || '')} · ${esc(ME.phone)}</small>
-      <small class="faint">${ME.since ? t('memberSince', { d: dfm(String(ME.since).slice(0, 10)) }) : ''} · <button class="linkbtn" data-act="editProfile">${t('editProfile')}</button> · <button class="linkbtn" data-act="logout">${t('logout')}</button></small></div>`;
-    const body = !list ? `<div class="msg info">${t('loading')}</div>` : !list.length ? `<div class="empty">${t('noBookings')}</div>`
-      : `<div class="mybk">${list.map(b => `<button class="bkcard" data-act="accOpen" data-c="${esc(b.code)}"><div class="r1"><b class="tnum" style="letter-spacing:.06em">${esc(b.code)}</b><span class="status s-${b.status}">${t('st_' + b.status)}</span></div>
-          <div class="r2">${esc(L(b.type))} · ${dfm(b.ci)} → ${dfm(b.co)}</div><div class="r1"><span class="tnum">${kip(b.total)}</span>${['cancelled', 'noshow'].includes(b.status) ? (b.refund && b.refund.amount ? `<span class="flag">${t(b.refund.status === 'paid' ? 'refundDone' : 'refundOwed', { a: kip(b.refund.amount) })}</span>` : '') : payState(b)}</div></button>`).join('')}</div>`;
-    return sheetShell(t('myAccount'), `${head}<h3 style="font-size:19px;margin:6px 0 0">${t('myBookings')}</h3>${body}${m}`,
-      `<button class="btn cta block" data-act="book">${t('bookNow')}</button>`, 0);
+    // ---- account home: profile, stats, filters, booking cards ----
+    const today = CAT.hotel.business_date;
+    const initials = String(ME.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const head = `<section class="ahero">
+      <svg class="ahero-wave" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true"><path d="M0 70c40-18 80-18 120 0s80 18 120 0 80-18 120 0 40 18 40 18V120H0Z" fill="currentColor" opacity=".12"/><path d="M0 92c40-16 80-16 120 0s80 16 120 0 80-16 120 0 40 16 40 16V120H0Z" fill="currentColor" opacity=".16"/></svg>
+      <div class="avatar" aria-hidden="true">${esc(initials)}</div>
+      <div class="ahero-t"><small>${t('welcome', { n: '' }).trim()}</small><h3>${esc(ME.name)}</h3>
+        <div class="ahero-meta"><span>${ico('tag', 14)}${esc(ME.email || '')}</span><span>${ico('user', 14)}${esc(ME.phone || '')}</span>${ME.since ? `<span>${ico('clock', 14)}${t('memberSince', { d: dfm(String(ME.since).slice(0, 10)) })}</span>` : ''}</div></div>
+      <div class="ahero-act"><button class="pillbtn" data-act="editProfile">${t('editProfile')}</button><button class="pillbtn ghost" data-act="logout">${t('logout')}</button></div>
+    </section>`;
+    if (!list) {
+      const sk = '<div class="sk"><i></i><div><b></b><b></b><b></b></div></div>';
+      return sheetShell(t('myAccount'), `${head}<div class="stats">${'<div class="stat sk-tile"></div>'.repeat(3)}</div>${sk.repeat(3)}${m}`, '', 0);
+    }
+    const live = b => ['pending', 'confirmed', 'inhouse'].includes(b.status);
+    const upcoming = list.filter(b => live(b) && b.co >= today);
+    const paidSum = list.reduce((x, b) => x + Math.max(0, b.paid || 0), 0);
+    const groups = { all: list, up: list.filter(b => ['confirmed', 'inhouse'].includes(b.status)), pend: list.filter(b => b.status === 'pending'), past: list.filter(b => ['out', 'cancelled', 'noshow'].includes(b.status)) };
+    const flt = groups[F.accFilter] ? F.accFilter : 'all', shown = groups[flt];
+    const stats = `<div class="stats">
+      <div class="stat" style="--i:0"><span>${t('statBookings')}</span><b data-count="${list.length}">${list.length}</b></div>
+      <div class="stat" style="--i:1"><span>${t('statUpcoming')}</span><b data-count="${upcoming.length}">${upcoming.length}</b></div>
+      <div class="stat" style="--i:2"><span>${t('statPaid')}</span><b class="tnum" data-count="${paidSum}" data-kip="1">${kip(paidSum)}</b></div></div>`;
+    const tabs = `<div class="ftabs" role="tablist">${['all', 'up', 'pend', 'past'].map(k => `<button role="tab" aria-selected="${flt === k}" class="${flt === k ? 'on' : ''}" data-act="accFilter" data-f="${k}">${t('f_' + k)}<em>${groups[k].length}</em></button>`).join('')}</div>`;
+    const MON = [['ມ.ກ.', 'ກ.ພ.', 'ມ.ນ.', 'ມ.ສ.', 'ພ.ພ.', 'ມິ.ຖ.', 'ກ.ລ.', 'ສ.ຫ.', 'ກ.ຍ.', 'ຕ.ລ.', 'ພ.ຈ.', 'ທ.ວ.'], ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'], ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']][li()];
+    const when = b => {
+      if (!live(b) || b.status === 'inhouse') return b.status === 'inhouse' ? `<span class="when now">${t('st_inhouse')}</span>` : '';
+      const n = nights(today, b.ci); if (n < 0) return '';
+      return `<span class="when">${n === 0 ? t('w_today') : n === 1 ? t('w_tomorrow') : t('w_in', { n })}</span>`;
+    };
+    const card = (b, i) => {
+      const pctPaid = b.total ? Math.min(100, Math.round(Math.max(0, b.paid) / b.total * 100)) : 0, dead = ['cancelled', 'noshow'].includes(b.status);
+      const pay = dead ? (b.refund && b.refund.amount ? `<span class="flag">${t(b.refund.status === 'paid' ? 'refundDone' : 'refundOwed', { a: kip(b.refund.amount) })}</span>` : '') : payState(b);
+      const needs = b.status === 'pending' && !b.pending_claims;
+      return `<button class="bk2 ${dead ? 'dead' : ''} ${needs ? 'needs' : ''}" style="--i:${i}" data-act="accOpen" data-c="${esc(b.code)}">
+        <div class="bk2-date"><b>${b.ci.slice(8)}</b><span>${MON[+b.ci.slice(5, 7) - 1]}</span><small>${b.ci.slice(0, 4)}</small></div>
+        <div class="bk2-art">${roomArt(b.type_id, true)}</div>
+        <div class="bk2-main">
+          <div class="r1"><b>${esc(L(b.type))}</b><span class="status s-${b.status}">${t('st_' + b.status)}</span></div>
+          <div class="r2"><span class="tnum">${dfm(b.ci)} → ${dfm(b.co)}</span><span>· ${b.nights} ${t('nights')}</span><span class="code">${esc(b.code)}</span>${when(b)}</div>
+          ${dead ? '' : `<div class="bar" role="progressbar" aria-valuenow="${pctPaid}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(t('payStatusL'))}"><i style="--w:${pctPaid}%"></i></div>`}
+          <div class="r3">${pay}${needs ? `<span class="paynow">${t('payNowShort')} →</span>` : ''}<b class="tnum">${kip(b.total)}</b></div>
+        </div><span class="chev" aria-hidden="true">›</span></button>`;
+    };
+    const empty = !list.length
+      ? `<div class="aempty"><svg viewBox="0 0 120 90" aria-hidden="true"><rect x="14" y="22" width="92" height="56" rx="10" fill="var(--river-soft)"/><rect x="26" y="12" width="68" height="20" rx="6" fill="var(--champa-soft)"/><path d="M30 60c8-6 14-6 22 0s14 6 22 0 14-6 16-4" stroke="var(--river)" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="84" cy="44" r="6" fill="var(--champa)"/></svg><b>${t('emptyT')}</b><p>${t('emptyD')}</p><button class="btn cta" data-act="book">${t('bookNow')}</button></div>`
+      : !shown.length ? `<div class="aempty small"><p>${t('noneInFilter')}</p></div>` : `<div class="bk2-list">${shown.map(card).join('')}</div>`;
+    return sheetShell(t('myAccount'), `${head}${list.length ? stats + tabs : ''}${empty}${m}`, list.length ? `<button class="btn cta block" data-act="book">${ico('bed', 16)} ${t('bookNow')}</button>` : '', 0);
   }
 
   function payBlock(amount, code) {
@@ -1856,6 +2015,7 @@ Object.assign(SX, {
       F.busy = false; renderSheet();
     },
     accOpen: d => { clearSlip(); F.accSel = d.c; F.cxlAsk = null; F.accMsg = null; F.slipJustSent = false; renderSheet(); startPoll(); },
+    accFilter: d => { F.accFilter = d.f; renderSheet(); },
     accBack: () => { clearSlip(); F.accSel = null; F.cxlAsk = null; F.accMsg = null; renderSheet(); },
     accClaim: async () => {
       const d = findMine(F.accSel); if (!d || F.busy) return; F.busy = true; F.accMsg = null; renderSheet();
