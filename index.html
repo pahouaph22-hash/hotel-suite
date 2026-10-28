@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Saynam Riverside Hotel</title>
+<meta name="description" content="Riverside hotel in Vientiane. Book direct for the best price.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Lao:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Lao:wght@500;600;700&family=Noto+Serif+Thai:wght@500;600;700&display=swap">
+<style>
+/* Layout: one long page — dawn-on-the-Mekong hero with the date search floating over its lower edge, then rooms, amenities, location, FAQ. Booking runs in a focused sheet. */
+:root{
+  --bg:#edf2f1; --paper:#ffffff; --mist:#f5f8f7; --line:#d5dfdc; --ink:#13231f; --muted:#56676322; --sub:#56676b; --faint:#8a9895;
+  --river:#13524a; --river-2:#0c3a34; --river-soft:#d7ebe6; --champa:#df951f; --champa-2:#c98114; --champa-ink:#241503; --champa-soft:#fbecd2;
+  --good:#257a46; --good-soft:#dcf0e3; --warn:#9a6208; --warn-soft:#fbefd9; --bad:#ad3a2b; --bad-soft:#f7e0dc;
+  --sky1:#f8e3bd; --sky2:#f2b98a; --sky3:#a9c9c4; --sun:#fff2d2; --hill1:#7d9fa0; --hill2:#4f7a78; --water1:#5f8f8b; --water2:#2f5f5a; --bank:#173d38; --glint:#fff4dc;
+  --f-display:"Fraunces","Noto Serif Lao","Noto Serif Thai",Georgia,serif;
+  --f-body:"Figtree","Noto Sans Lao","Noto Sans Thai",system-ui,sans-serif;
+  --r:14px; --shadow:0 2px 6px rgba(19,35,31,.06),0 14px 40px rgba(19,35,31,.10);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1615; --paper:#13211f; --mist:#172725; --line:#26403b; --ink:#e5eeeb; --sub:#9fb2ad; --faint:#6f8580;
+  --river:#5bc1b0; --river-2:#7fd3c4; --river-soft:#173b35; --champa:#f0ab42; --champa-2:#f6bd63; --champa-ink:#241503; --champa-soft:#3a2b12;
+  --good:#5fc285; --good-soft:#163525; --warn:#e8ad4f; --warn-soft:#3a2b12; --bad:#ec7b66; --bad-soft:#3d1c17;
+  --sky1:#1c2346; --sky2:#5b3b5c; --sky3:#c9775a; --sun:#ffd6a0; --hill1:#2d3655; --hill2:#1d2540; --water1:#2a3456; --water2:#141c33; --bank:#0a1110; --glint:#ffcf94;
+  --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1615; --paper:#13211f; --mist:#172725; --line:#26403b; --ink:#e5eeeb; --sub:#9fb2ad; --faint:#6f8580;
+  --river:#5bc1b0; --river-2:#7fd3c4; --river-soft:#173b35; --champa:#f0ab42; --champa-2:#f6bd63; --champa-ink:#241503; --champa-soft:#3a2b12;
+  --good:#5fc285; --good-soft:#163525; --warn:#e8ad4f; --warn-soft:#3a2b12; --bad:#ec7b66; --bad-soft:#3d1c17;
+  --sky1:#1c2346; --sky2:#5b3b5c; --sky3:#c9775a; --sun:#ffd6a0; --hill1:#2d3655; --hill2:#1d2540; --water1:#2a3456; --water2:#141c33; --bank:#0a1110; --glint:#ffcf94;
+  --shadow:0 2px 6px rgba(0,0,0,.3),0 14px 40px rgba(0,0,0,.35); color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--champa);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--f-display);font-weight:600;line-height:1.15;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* header */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+.hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hdr .wrap{display:flex;align-items:center;gap:18px;padding-block:12px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);margin-right:auto;min-width:0}
+.logo b{font-family:var(--f-display);font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logo svg{flex:none}
+.links{display:flex;gap:4px}
+.links a{color:var(--sub);text-decoration:none;padding:6px 10px;border-radius:8px;font-size:14.5px;white-space:nowrap}
+.links a:hover{color:var(--ink);background:var(--mist)}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.lang button{border:0;background:transparent;padding:4px 10px;cursor:pointer;font-size:13px;color:var(--sub)}
+.lang button.on{background:var(--river);color:var(--paper)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:9px 18px;cursor:pointer;font-weight:500;white-space:nowrap;text-decoration:none;line-height:1.3}
+.btn:hover{border-color:var(--faint)}
+.btn.cta{background:var(--champa);border-color:var(--champa);color:var(--champa-ink);font-weight:600}
+.btn.cta:hover{background:var(--champa-2);border-color:var(--champa-2)}
+.btn.dark{background:var(--river);border-color:var(--river);color:var(--paper)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--sub)}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+.demo{background:var(--champa-soft);color:var(--ink);font-size:13px}
+.demo .wrap{display:flex;gap:10px;align-items:center;justify-content:space-between;padding-block:7px;flex-wrap:wrap}
+.demo a{color:var(--river);font-weight:600}
+
+/* hero */
+.hero{position:relative;overflow:hidden;background:var(--sky1)}
+.hero svg.scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,var(--sky1) 0%,color-mix(in srgb,var(--sky1) 70%,transparent) 38%,transparent 62%);pointer-events:none}
+.hero .wrap{position:relative;z-index:1;padding-block:64px 150px;display:flex;flex-direction:column;gap:14px}
+.hero .eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--river-2);font-weight:600}
+.hero h1{font-size:clamp(30px,4.3vw,52px);max-width:19ch;color:var(--ink)}
+.hero p{max-width:46ch;margin:0;font-size:17px;color:var(--ink);opacity:.86}
+:root[data-theme="dark"] .hero h1,:root[data-theme="dark"] .hero p{color:#fff6e8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hero h1,:root:not([data-theme="light"]) .hero p,:root:not([data-theme="light"]) .hero .eyebrow{color:#fff6e8}}
+:root[data-theme="dark"] .hero .eyebrow{color:#fff6e8}
+
+/* search bar */
+.search{position:relative;z-index:2;margin-top:-64px}
+.sbar{background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:6px;align-items:stretch}
+.sbar label{display:flex;flex-direction:column;gap:2px;padding:8px 14px;border-radius:12px;min-width:0}
+.sbar label:hover{background:var(--mist)}
+.sbar label span{font-size:12px;color:var(--sub);font-weight:500}
+.sbar input,.sbar select{border:0;background:transparent;padding:0;font-size:16px;font-weight:600;min-width:0;width:100%}
+.sbar input:focus,.sbar select:focus{outline:none}
+.sbar .btn{border-radius:12px;padding-inline:26px;font-size:16px}
+.sbar .nights{grid-column:1/-1;font-size:13px;color:var(--sub);padding:0 14px 4px}
+
+.why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding-block:34px 10px}
+.why>div{display:flex;gap:12px;align-items:flex-start}
+.why i{flex:none;width:38px;height:38px;border-radius:50%;background:var(--river-soft);color:var(--river);display:grid;place-items:center}
+.why b{display:block;font-weight:600}
+.why span{font-size:14px;color:var(--sub)}
+
+section.blk{padding-block:56px}
+.blk-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.blk-h h2{font-size:clamp(26px,3.4vw,38px)}
+.blk-h p{margin:0;color:var(--sub);max-width:52ch}
+
+/* rooms */
+.rooms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.room{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.room .art{aspect-ratio:16/9;max-width:100%;background:var(--mist)}
+.room .art svg{width:100%;height:100%;display:block}
+.room .body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1}
+.room h3{font-size:23px}
+.room .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13.5px;color:var(--sub)}
+.room .meta span{display:inline-flex;gap:6px;align-items:center}
+.room p{margin:0;color:var(--sub)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--mist);border:1px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--sub)}
+.chip svg{color:var(--river)}
+.room .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:auto;padding-top:8px;flex-wrap:wrap}
+.price small{display:block;font-size:12.5px;color:var(--sub)}
+.price b{font-family:var(--f-display);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+.price s{color:var(--faint);font-size:13px;margin-left:6px}
+
+/* amenities */
+.amen{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.amen div{display:flex;gap:12px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14.5px}
+.amen i{flex:none;width:34px;height:34px;border-radius:10px;background:var(--champa-soft);color:var(--champa-2);display:grid;place-items:center}
+
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:start}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:20px}
+.contact{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 12px;align-items:center;font-size:14.5px}
+.contact .k{color:var(--sub);font-size:13px}
+.contact span{overflow-wrap:anywhere}
+ul.pol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+ul.pol li{display:flex;gap:10px;font-size:14.5px}
+ul.pol li::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--champa);margin-top:9px}
+details{border-bottom:1px solid var(--line);padding-block:12px}
+details summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details summary::after{content:"+";color:var(--river);font-size:20px;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:8px 0 0;color:var(--sub);max-width:70ch}
+footer{border-top:1px solid var(--line);padding-block:26px 40px;color:var(--sub);font-size:13.5px}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+footer a{color:var(--sub)}
+
+/* sheet */
+#sheet{position:fixed;inset:0;z-index:20;display:flex;justify-content:flex-end}
+#sheet .scrim{position:absolute;inset:0;background:rgba(8,20,18,.5)}
+#sheet .pane{position:relative;width:min(560px,100%);height:100%;background:var(--paper);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.2)}
+.pane-h{display:flex;align-items:center;gap:10px;padding:16px max(20px,env(safe-area-inset-right,0px)) 12px 20px;padding-top:max(16px,env(safe-area-inset-top,0px));border-bottom:1px solid var(--line)}
+.pane-h h2{font-size:21px;margin-right:auto}
+.steps{display:flex;gap:6px;padding:12px 20px 0}
+.steps span{flex:1;height:4px;border-radius:2px;background:var(--line)}
+.steps span.on{background:var(--champa)}
+.steplabel{padding:6px 20px 0;font-size:12.5px;color:var(--sub)}
+.pane-b{flex:1;overflow-y:auto;padding:16px max(20px,env(safe-area-inset-right,0px)) 24px 20px;display:flex;flex-direction:column;gap:14px}
+.pane-f{border-top:1px solid var(--line);padding:14px max(20px,env(safe-area-inset-right,0px)) max(14px,env(safe-area-inset-bottom,0px)) 20px;display:flex;gap:10px;align-items:center}
+.pane-f .sum{margin-right:auto;font-size:13px;color:var(--sub)}
+.pane-f .sum b{display:block;color:var(--ink);font-size:18px;font-variant-numeric:tabular-nums}
+.mini{display:grid;grid-template-columns:1fr 1fr 90px;gap:8px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>span{font-size:13px;color:var(--sub);font-weight:500}
+.field small{font-size:12px;color:var(--faint)}
+.in{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:10px 12px;min-width:0}
+.in:focus{outline:none;border-color:var(--river);box-shadow:0 0 0 3px var(--river-soft)}
+.opt{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;border:1.5px solid var(--line);border-radius:14px;padding:10px;cursor:pointer;background:var(--paper);text-align:left;width:100%}
+.opt:hover{border-color:var(--river)}
+.opt.sold{opacity:.55;cursor:not-allowed}
+.opt .thumb{border-radius:10px;overflow:hidden;aspect-ratio:4/3;max-width:100%}
+.opt .thumb svg{width:100%;height:100%;display:block}
+.opt b{font-family:var(--f-display);font-size:17px;font-weight:600;display:block}
+.opt .row{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.flag{font-size:12px;font-weight:600;color:var(--warn)}
+.flag.bad{color:var(--bad)}
+.flag.ok{color:var(--good)}
+.summary{background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;font-size:14.5px}
+.summary .k{color:var(--sub)}
+.summary .v{text-align:right;font-variant-numeric:tabular-nums}
+.summary .tot{font-weight:700;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.msg{border-radius:10px;padding:10px 12px;font-size:14px}
+.msg.bad{background:var(--bad-soft);color:var(--bad)} .msg.ok{background:var(--good-soft);color:var(--good)} .msg.info{background:var(--river-soft);color:var(--ink)} .msg.warn{background:var(--warn-soft);color:var(--warn)}
+.codebox{text-align:center;background:var(--river-soft);border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.codebox .code{font-family:var(--f-display);font-size:40px;font-weight:700;letter-spacing:.12em;color:var(--river)}
+.qr{display:flex;gap:16px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;flex-wrap:wrap}
+.qr canvas,.qr img{width:150px;height:150px;image-rendering:pixelated;border-radius:6px;background:#fff;flex:none}
+.qr .txt{flex:1 1 200px;min-width:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.qr .amt{font-family:var(--f-display);font-size:26px;font-weight:700}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.check input{margin-top:4px}
+.status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 12px;font-size:13px;font-weight:600}
+.s-confirmed{background:var(--river-soft);color:var(--river)} .s-inhouse,.s-out{background:var(--good-soft);color:var(--good)} .s-cancelled,.s-noshow{background:var(--bad-soft);color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:max(20px,calc(env(safe-area-inset-bottom,0px) + 12px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:14px}
+
+@media (max-width:900px){
+  .links{display:none}
+  .rooms,.two{grid-template-columns:minmax(0,1fr)}
+  .why{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .hdr .wrap{gap:10px}
+  .hdr .btn.cta{padding:8px 12px}
+  .hero .wrap{padding-block:44px 104px}
+  .sbar{grid-template-columns:1fr 1fr}
+  .sbar .btn{grid-column:1/-1;padding-block:12px}
+  .mini{grid-template-columns:1fr 1fr}
+  .mini .field:last-child{grid-column:1/-1}
+  .opt{grid-template-columns:76px minmax(0,1fr)}
+  .contact{grid-template-columns:minmax(0,1fr) auto}
+  .contact .k{grid-column:1/-1;margin-bottom:-8px}
+}
+
+</style>
+<script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
+<script src="config.js" onerror="void 0"></script>
+<div id="app"><div style="padding:60px 16px;text-align:center;color:#56676b">…</div></div>
+<div id="sheet" hidden></div>
+<div id="toast" role="status" hidden></div>
+<script>
+// Single source for hotel content + reference data. build.js turns this into sql/03_seed.sql and inlines it into both apps.
+const CATALOG = {
+  hotel: {
+    name: 'Saynam Riverside Hotel',
+    tagline: { lo: 'ພັກຜ່ອນລຽບແມ່ນ້ຳຂອງ ໃຈກາງນະຄອນຫຼວງວຽງຈັນ', th: 'พักผ่อนริมแม่น้ำโขง ใจกลางนครหลวงเวียงจันทน์', en: 'A quiet stay on the Mekong, in the heart of Vientiane' },
+    about: {
+      lo: 'ໂຮງແຮມ 24 ຫ້ອງ ຫ່າງຈາກຖະໜົນລຽບແມ່ນ້ຳ ແລະ ຕະຫຼາດກາງຄືນພຽງ 5 ນາທີຍ່າງ. ທຸກຫ້ອງມີແອ, Wi-Fi ໄວ ແລະ ນ້ຳອຸ່ນ. ອາຫານເຊົ້າລາວ-ສາກົນ ທຸກເຊົ້າທີ່ຮ້ານອາຫານລຽບນ້ຳ.',
+      th: 'โรงแรม 24 ห้อง เดินเพียง 5 นาทีถึงถนนเลียบแม่น้ำและตลาดกลางคืน ทุกห้องมีแอร์ Wi-Fi ความเร็วสูง และน้ำอุ่น อาหารเช้าลาว-นานาชาติทุกเช้าที่ร้านอาหารริมน้ำ',
+      en: 'Twenty-four rooms, a five-minute walk from the riverside promenade and night market. Every room has air-conditioning, fast Wi-Fi and hot water. Lao and international breakfast is served each morning at our riverside restaurant.'
+    },
+    address: 'Ban Xieng Yeun, Chanthabouly District, Vientiane Capital, Lao PDR',
+    phone: '+856 21 000 000',
+    email: 'stay@saynam-hotel.example',
+    map_url: 'https://maps.google.com/?q=Chanthabouly+Vientiane',
+    check_in_time: '14:00', check_out_time: '12:00',
+    vat_rate: 10, prices_incl_vat: true, deposit_pct: 30, direct_discount: 5, free_cancel_days: 3,
+    payment_note: {
+      lo: 'ສະແກນ QR ດ້ວຍແອັບທະນາຄານ (BCEL OnePay ຫຼື LAO QR) ແລ້ວແຈ້ງເລກອ້າງອີງການໂອນ. ພະນັກງານຈະກວດ ແລະ ຢືນຢັນພາຍໃນ 2 ຊົ່ວໂມງ (08:00–22:00).',
+      th: 'สแกน QR ด้วยแอปธนาคาร (BCEL OnePay หรือ LAO QR) แล้วแจ้งเลขอ้างอิงการโอน พนักงานจะตรวจสอบและยืนยันภายใน 2 ชั่วโมง (08:00–22:00)',
+      en: 'Scan the QR with your banking app (BCEL OnePay or LAO QR), then send us the transfer reference. Our team checks it and confirms within 2 hours (08:00–22:00).'
+    },
+    close_amounts: { depr: 47083333, sal: 52000000, int: 13333333 }
+  },
+  amenities: [
+    ['wifi', 'wifi', 'Wi-Fi ໄວທົ່ວໂຮງແຮມ', 'Wi-Fi ความเร็วสูงทั่วโรงแรม', 'Fast Wi-Fi everywhere'],
+    ['breakfast', 'cup', 'ອາຫານເຊົ້າ', 'อาหารเช้า', 'Breakfast included'],
+    ['river', 'wave', 'ຮ້ານອາຫານລຽບນ້ຳ', 'ร้านอาหารริมน้ำ', 'Riverside restaurant'],
+    ['aircon', 'snow', 'ແອທຸກຫ້ອງ', 'แอร์ทุกห้อง', 'Air-conditioning'],
+    ['airport', 'plane', 'ລົດຮັບສົ່ງສະໜາມບິນ', 'รถรับส่งสนามบิน', 'Airport transfer'],
+    ['parking', 'car', 'ບ່ອນຈອດລົດຟຣີ', 'ที่จอดรถฟรี', 'Free parking'],
+    ['laundry', 'shirt', 'ບໍລິການຊັກລີດ', 'บริการซักรีด', 'Laundry service'],
+    ['desk', 'clock', 'ເຄົາເຕີ 24 ຊົ່ວໂມງ', 'แผนกต้อนรับ 24 ชั่วโมง', '24-hour front desk'],
+    ['tours', 'map', 'ຈອງທົວ ແລະ ເຊົ່າລົດຖີບ', 'จองทัวร์และเช่าจักรยาน', 'Tours and bike hire'],
+    ['tv', 'tv', 'ສະມາດທີວີ', 'สมาร์ททีวี', 'Smart TV'],
+    ['bath', 'bath', 'ອ່າງອາບນ້ຳ', 'อ่างอาบน้ำ', 'Bathtub'],
+    ['balcony', 'sun', 'ລະບຽງວິວແມ່ນ້ຳ', 'ระเบียงวิวแม่น้ำ', 'River-view balcony'],
+    ['kettle', 'kettle', 'ກາຕົ້ມນ້ຳ ຊາ ກາເຟ', 'กาต้มน้ำ ชา กาแฟ', 'Kettle, tea and coffee'],
+    ['safe', 'lock', 'ຕູ້ເຊບ', 'ตู้เซฟ', 'In-room safe']
+  ],
+  types: [
+    { id: 'STD', rate: 450000, cap: 2, size: 22, n: ['ຫ້ອງມາດຕະຖານ', 'ห้องสแตนดาร์ด', 'Standard'],
+      bed: ['ຕຽງຄູ່ ຫຼື ຕຽງແຝດ', 'เตียงคู่หรือเตียงแฝด', 'Double or twin beds'],
+      d: ['ຫ້ອງສະອາດ ງຽບ ເໝາະກັບການເດີນທາງທຸລະກິດ ແລະ ພັກສັ້ນ.', 'ห้องสะอาด เงียบ เหมาะกับการเดินทางธุรกิจและพักสั้น', 'A clean, quiet room for business trips and short stays.'],
+      am: ['wifi', 'aircon', 'tv', 'kettle', 'safe'] },
+    { id: 'DLX', rate: 650000, cap: 2, size: 30, n: ['ຫ້ອງດີລັກ ວິວແມ່ນ້ຳ', 'ห้องดีลักซ์ วิวแม่น้ำ', 'Deluxe river view'],
+      bed: ['ຕຽງຄິງໄຊ', 'เตียงคิงไซส์', 'King bed'],
+      d: ['ໜ້າຕ່າງກວ້າງເບິ່ງແມ່ນ້ຳຂອງ ແລະ ຕາເວັນຕົກດິນ.', 'หน้าต่างกว้างมองเห็นแม่น้ำโขงและพระอาทิตย์ตก', 'Wide windows over the Mekong and its sunsets.'],
+      am: ['wifi', 'aircon', 'tv', 'kettle', 'safe', 'balcony'] },
+    { id: 'FAM', rate: 850000, cap: 4, size: 40, n: ['ຫ້ອງຄອບຄົວ', 'ห้องแฟมิลี่', 'Family'],
+      bed: ['ຕຽງຄິງ 1 + ຕຽງດ່ຽວ 2', 'เตียงคิง 1 + เตียงเดี่ยว 2', '1 king + 2 single beds'],
+      d: ['ກວ້າງພໍສຳລັບ 4 ຄົນ ມີມຸມນັ່ງຫຼິ້ນ ແລະ ຕູ້ເຢັນ.', 'กว้างพอสำหรับ 4 คน มีมุมนั่งเล่นและตู้เย็น', 'Room for four, with a sitting corner and fridge.'],
+      am: ['wifi', 'aircon', 'tv', 'kettle', 'safe'] },
+    { id: 'STE', rate: 1250000, cap: 2, size: 55, n: ['ຫ້ອງສະວີດ', 'ห้องสวีท', 'Suite'],
+      bed: ['ຕຽງຄິງໄຊ', 'เตียงคิงไซส์', 'King bed'],
+      d: ['ຫ້ອງນອນ ແລະ ຫ້ອງຮັບແຂກແຍກກັນ, ອ່າງອາບນ້ຳ ແລະ ລະບຽງມຸມເບິ່ງແມ່ນ້ຳ.', 'ห้องนอนและห้องนั่งเล่นแยกกัน อ่างอาบน้ำ และระเบียงมุมมองแม่น้ำ', 'Separate bedroom and lounge, a bathtub and a corner river balcony.'],
+      am: ['wifi', 'aircon', 'tv', 'kettle', 'safe', 'balcony', 'bath'] }
+  ],
+  rooms: [
+    ['101', 'STD', 1], ['102', 'STD', 1], ['103', 'STD', 1], ['104', 'STD', 1], ['105', 'STD', 1], ['106', 'STD', 1], ['107', 'DLX', 1], ['108', 'DLX', 1],
+    ['201', 'DLX', 2], ['202', 'DLX', 2], ['203', 'DLX', 2], ['204', 'DLX', 2], ['205', 'DLX', 2], ['206', 'FAM', 2], ['207', 'FAM', 2], ['208', 'FAM', 2],
+    ['301', 'DLX', 3], ['302', 'DLX', 3], ['303', 'DLX', 3], ['304', 'DLX', 3], ['305', 'FAM', 3], ['306', 'FAM', 3], ['307', 'STE', 3], ['308', 'STE', 3]
+  ],
+  channels: [
+    ['DIR', 0, 'hotel', 'ເວັບໄຊໂຮງແຮມ', 'เว็บไซต์โรงแรม', 'Hotel website'],
+    ['FB', 0, 'hotel', 'Facebook / WhatsApp', 'Facebook / WhatsApp', 'Facebook / WhatsApp'],
+    ['WALK', 0, 'hotel', 'ຍ່າງເຂົ້າມາເອງ', 'วอล์คอิน', 'Walk-in'],
+    ['BKG', 0.15, 'hotel', 'Booking.com', 'Booking.com', 'Booking.com'],
+    ['AGD', 0.17, 'ota', 'Agoda', 'Agoda', 'Agoda'],
+    ['EXP', 0.18, 'ota', 'Expedia', 'Expedia', 'Expedia'],
+    ['TA', 0.10, 'hotel', 'ບໍລິສັດທ່ອງທ່ຽວ', 'บริษัททัวร์', 'Travel agent']
+  ],
+  promos: [['DIRECT10', 10, null], ['LAOS2026', 8, '2026-12-31']],
+  accounts: [
+    ['1110', 'ca', 'ເງິນສົດໃນມື', 'เงินสดในมือ', 'Cash on hand'],
+    ['1120', 'ca', 'ເງິນຝາກທະນາຄານ', 'เงินฝากธนาคาร', 'Cash at bank'],
+    ['1130', 'ca', 'ລູກໜີ້ແຂກພັກ (Guest ledger)', 'ลูกหนี้แขกพัก (Guest ledger)', 'Guest ledger receivable'],
+    ['1140', 'ca', 'ລູກໜີ້ OTA', 'ลูกหนี้ OTA', 'OTA receivables'],
+    ['1150', 'ca', 'ອາກອນມູນຄ່າເພີ່ມ ຂາເຂົ້າ', 'ภาษีซื้อ', 'Input VAT'],
+    ['1210', 'nca', 'ອາຄານ', 'อาคาร', 'Building'],
+    ['1220', 'nca', 'ເຟີນິເຈີ ແລະ ອຸປະກອນ', 'เฟอร์นิเจอร์และอุปกรณ์', 'Furniture & equipment'],
+    ['1290', 'nca', 'ຄ່າຫຼຸ້ຍຫ້ຽນສະສົມ', 'ค่าเสื่อมราคาสะสม', 'Accumulated depreciation'],
+    ['2110', 'cl', 'ເຈົ້າໜີ້ການຄ້າ', 'เจ้าหนี้การค้า', 'Trade payables'],
+    ['2120', 'cl', 'ຄ່ານາຍໜ້າ OTA ຄ້າງຈ່າຍ', 'ค่าคอมมิชชั่น OTA ค้างจ่าย', 'OTA commission payable'],
+    ['2140', 'cl', 'ອາກອນມູນຄ່າເພີ່ມ ຂາອອກ', 'ภาษีขาย', 'Output VAT payable'],
+    ['2150', 'cl', 'ເງິນມັດຈຳລູກຄ້າ (ໜີ້ສິນຕາມສັນຍາ)', 'เงินมัดจำลูกค้า (หนี้สินตามสัญญา)', 'Customer deposits (contract liability)'],
+    ['2160', 'cl', 'ຄ່າໃຊ້ຈ່າຍຄ້າງຈ່າຍ', 'ค่าใช้จ่ายค้างจ่าย', 'Accrued expenses'],
+    ['2310', 'ncl', 'ເງິນກູ້ທະນາຄານ', 'เงินกู้ธนาคาร', 'Bank loan'],
+    ['3100', 'eq', 'ທຶນຂອງເຈົ້າຂອງ', 'ทุนของเจ้าของ', "Owner's capital"],
+    ['3200', 'eq', 'ກຳໄລສະສົມ', 'กำไรสะสม', 'Retained earnings'],
+    ['4100', 'rev', 'ລາຍຮັບຄ່າຫ້ອງພັກ', 'รายได้ค่าห้องพัก', 'Room revenue'],
+    ['4200', 'rev', 'ລາຍຮັບອາຫານ ແລະ ເຄື່ອງດື່ມ', 'รายได้อาหารและเครื่องดื่ม', 'F&B revenue'],
+    ['4300', 'rev', 'ລາຍຮັບອື່ນ', 'รายได้อื่น', 'Other operating revenue'],
+    ['5100', 'cos', 'ຕົ້ນທຶນອາຫານ ແລະ ເຄື່ອງດື່ມ', 'ต้นทุนอาหารและเครื่องดื่ม', 'Cost of F&B'],
+    ['5200', 'opx', 'ເງິນເດືອນ ແລະ ສະຫວັດດີການ', 'เงินเดือนและสวัสดิการ', 'Salaries & benefits'],
+    ['5300', 'opx', 'ຄ່ານາຍໜ້າຊ່ອງທາງຂາຍ', 'ค่าคอมมิชชั่นช่องทางขาย', 'Distribution commissions'],
+    ['5400', 'opx', 'ຄ່ານ້ຳ ຄ່າໄຟ', 'ค่าน้ำค่าไฟ', 'Utilities'],
+    ['5500', 'opx', 'ເຄື່ອງໃຊ້ໃນຫ້ອງພັກ', 'ของใช้ในห้องพัก', 'Guest supplies'],
+    ['5600', 'opx', 'ການຕະຫຼາດ ແລະ ໂຄສະນາ', 'การตลาดและโฆษณา', 'Marketing'],
+    ['5700', 'opx', 'ສ້ອມແປງ ແລະ ບຳລຸງຮັກສາ', 'ซ่อมแซมและบำรุงรักษา', 'Repairs & maintenance'],
+    ['5800', 'opx', 'ຄ່າຫຼຸ້ຍຫ້ຽນ', 'ค่าเสื่อมราคา', 'Depreciation'],
+    ['5900', 'fin', 'ດອກເບ້ຍເງິນກູ້', 'ดอกเบี้ยเงินกู้', 'Interest expense']
+  ]
+};
+
+
+// ===== CORE: data model + rules. Demo mode runs these on a local copy; they mirror sql/02_functions.sql =====
+const Core = (function () {
+  const LIVE = b => b.status !== 'cancelled' && b.status !== 'noshow';
+  const HOLD = b => b.status === 'confirmed' || b.status === 'inhouse' || b.status === 'out';
+  function addD(d, n) { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+  function diffD(a, b) { return Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 864e5); }
+  function dow(d) { return new Date(d + 'T00:00:00Z').getUTCDay(); }
+  function monthEnd(m) { return addD(addD(m + '-01', 32).slice(0, 7) + '-01', -1); }
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const digits = s => String(s || '').replace(/\D/g, '');
+  const fail = (code, detail) => { const e = new Error(code); e.code = code; e.detail = detail; throw e; };
+  const nightsOf = b => diffD(b.ci, b.co);
+  let S = null;
+
+  // ---------- helpers ----------
+  const role = () => S.me && S.me.role;
+  function need(...roles) { const r = role(); if (!r || !(r === 'owner' || roles.includes(r))) fail('permission_denied'); }
+  function log(action, ref, detail) {
+    S.audit.unshift({ id: S.seq.au++, at: new Date().toISOString(), actor: S.me ? S.me.name : 'website', action, ref, detail: detail || null });
+    if (S.audit.length > 1500) S.audit.length = 1500;
+  }
+  const locked = d => S.locks.includes(d.slice(0, 7));
+  function post(date, desc, ref, src, lines, reverses) {
+    if (locked(date)) fail('period_locked', date.slice(0, 7));
+    lines = lines.map(l => ({ a: l.a, dr: Math.round(l.dr || 0), cr: Math.round(l.cr || 0) })).filter(l => l.dr + l.cr > 0);
+    let d = 0, c = 0;
+    for (const l of lines) { if (!S.accounts[l.a]) fail('invalid_account', l.a); if (l.dr < 0 || l.cr < 0) fail('unbalanced_entry'); d += l.dr; c += l.cr; }
+    if (d !== c || d === 0) fail('unbalanced_entry', 'Dr ' + d + ' Cr ' + c);
+    const e = { id: S.seq.je++, date, desc, ref: ref || '', src, rev: reverses || null, revBy: null, at: new Date().toISOString(), lines };
+    S.journal.push(e); return e;
+  }
+  function vatSplit(amount) {
+    const r = S.settings.vat / 100;
+    if (S.settings.incl) { const vat = Math.round(amount * r / (1 + r)); return { gross: amount, net: amount - vat, vat }; }
+    const vat = Math.round(amount * r); return { gross: amount + vat, net: amount, vat };
+  }
+  const directRate = base => Math.round(base * (1 - S.settings.direct_discount / 100) / 1000) * 1000;
+  const payAcc = m => m === 'cash' ? '1110' : '1120';
+  const bk = id => S.bookings.find(b => b.id === id) || fail('not_found');
+  const roomOf = no => S.rooms.find(r => r.no === no);
+  const typeOf = id => S.types.find(t => t.id === id);
+  const chOf = id => S.channels.find(c => c.id === id);
+  const balanceOf = b => b.folio.reduce((s, f) => s + f.gross, 0) - b.pays.reduce((s, p) => s + (p.refund ? -p.amt : p.amt), 0)
+    - S.arOTA.filter(o => o.bk === b.id).reduce((s, o) => s + o.gross, 0);
+  const chargesOf = b => b.folio.reduce((s, f) => s + f.gross, 0);
+  const paidOf = b => b.pays.reduce((s, p) => s + (p.refund ? -p.amt : p.amt), 0);
+  const roomGrossOf = b => b.folio.filter(f => f.kind === 'room').reduce((s, f) => s + f.gross, 0);
+  function roomFree(no, ci, co, except) { return !S.bookings.some(b => b.room === no && b.id !== except && HOLD(b) && b.ci < co && ci < b.co); }
+  function freeRooms(type, ci, co) { return S.rooms.filter(r => r.type === type && r.active && r.hk !== 'ooo' && roomFree(r.no, ci, co)).map(r => r.no); }
+  function checkStay(ci, co) {
+    if (!ci || !co || co <= ci) fail('invalid_dates');
+    if (ci < S.bizDate) fail('date_in_past');
+    if (diffD(ci, co) > 30 || diffD(S.bizDate, ci) > 400) fail('stay_too_long');
+  }
+  function newCode() { const a = 'ABCDEF0123456789'; let s; do { s = ''; for (let i = 0; i < 6; i++) s += a[Math.floor(Math.random() * 16)]; } while (S.bookings.some(b => b.code === s)); return s; }
+  function newGuest(name, phone, email, country) { return { id: 'G' + S.seq.g++, name: String(name).trim(), phone: phone || '', email: email || '', country: country || 'OT' }; }
+
+  // ---------- folio primitives ----------
+  function addCharge(b, date, kind, desc, amount) {
+    if (!(amount > 0)) fail('invalid_amount');
+    const v = vatSplit(Math.round(amount)), acc = kind === 'room' ? '4100' : kind === 'fnb' ? '4200' : '4300';
+    const e = post(date, desc, b.id, 'folio', [{ a: '1130', dr: v.gross }, { a: acc, cr: v.net }, { a: '2140', cr: v.vat }]);
+    b.folio.push({ id: S.seq.fl++, date, kind, desc, gross: v.gross, net: v.net, vat: v.vat, voids: null, je: e.id });
+  }
+  function addPayment(b, date, method, amt, ref) {
+    amt = Math.round(amt); if (!(amt > 0)) fail('invalid_amount');
+    const dep = b.status === 'confirmed';
+    post(date, { k: dep ? 'dep' : 'pay', m: method, g: b.guest.name }, b.id, dep ? 'deposit' : 'payment', [{ a: payAcc(method), dr: amt }, { a: dep ? '2150' : '1130', cr: amt }]);
+    const p = { id: S.seq.fl++, date, m: method, amt, dep, applied: !dep, refund: false, ref: ref || '' };
+    b.pays.push(p); return p;
+  }
+  function applyDeposits(b, date, mode) {
+    const un = b.pays.filter(p => p.dep && !p.applied), s = un.reduce((a, p) => a + p.amt, 0);
+    if (!s) return;
+    if (mode === 'checkin') post(date, { k: 'depApply', g: b.guest.name }, b.id, 'deposit', [{ a: '2150', dr: s }, { a: '1130', cr: s }]);
+    else if (mode === 'forfeit') post(date, { k: 'forfeit', g: b.guest.name }, b.id, 'deposit', [{ a: '2150', dr: s }, { a: '4300', cr: s }]);
+    else { post(date, { k: 'depRefund', g: b.guest.name }, b.id, 'deposit', [{ a: '2150', dr: s }, { a: '1120', cr: s }]); b.pays.push({ id: S.seq.fl++, date, m: 'transfer', amt: s, dep: false, applied: true, refund: true }); }
+    un.forEach(p => p.applied = true);
+  }
+  function doCheckIn(b) { b.status = 'inhouse'; applyDeposits(b, S.bizDate, 'checkin'); }
+  function doCheckOut(b, method) {
+    const d = S.bizDate, ch = chOf(b.ch), rg = roomGrossOf(b); let bal = balanceOf(b); const comm = Math.round(rg * ch.comm);
+    if (ch.mode === 'ota') {
+      const ota = Math.max(0, Math.min(rg, bal));
+      if (ota > 0) post(d, { k: 'otaBill', ch: ch.id }, b.id, 'ota', [{ a: '1140', dr: ota }, { a: '1130', cr: ota }]);
+      if (comm > 0) post(d, { k: 'comm', ch: ch.id, pct: ch.comm }, b.id, 'ota', [{ a: '5300', dr: comm }, { a: '1140', cr: comm }]);
+      if (ota > 0 || comm > 0) S.arOTA.push({ id: S.seq.ar++, bk: b.id, ch: ch.id, date: d, gross: ota, amt: ota - comm, settled: false });
+      bal -= ota;
+    } else if (comm > 0) post(d, { k: 'comm', ch: ch.id, pct: ch.comm }, b.id, 'ota', [{ a: '5300', dr: comm }, { a: '2120', cr: comm }]);
+    if (bal > 0) addPayment(b, d, method, bal);
+    else if (bal < 0) { post(d, { k: 'refund', g: b.guest.name }, b.id, 'payment', [{ a: '1130', dr: -bal }, { a: payAcc(method), cr: -bal }]); b.pays.push({ id: S.seq.fl++, date: d, m: method, amt: -bal, dep: false, applied: true, refund: true }); }
+    b.status = 'out';
+    b.co = b.co > d ? (d > b.ci ? d : addD(b.ci, 1)) : b.co;
+    const r = roomOf(b.room); if (r && r.hk !== 'ooo') r.hk = 'dirty';
+    return { comm };
+  }
+
+  // ---------- public ----------
+  function catalog() {
+    const s = S.settings;
+    return {
+      hotel: { name: s.hotel, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
+        check_out_time: s.check_out_time, deposit_pct: s.deposit_pct, direct_discount: s.direct_discount, free_cancel_days: s.free_cancel_days, payment_note: s.payment_note,
+        vat_rate: s.vat, prices_incl_vat: s.incl, business_date: S.bizDate },
+      types: S.types.filter(t => t.active).sort((a, b) => a.sort - b.sort).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, base_rate: t.rate, direct_rate: directRate(t.rate), size_m2: t.size, bed: t.bed, amenities: t.amenities })),
+      amenities: S.amenities.map(a => ({ id: a.id, icon: a.icon, name: a.name }))
+    };
+  }
+  function availability(ci, co) { checkStay(ci, co); return S.types.filter(t => t.active).sort((a, b) => a.sort - b.sort).map(t => ({ type_id: t.id, free: freeRooms(t.id, ci, co).length, nightly: directRate(t.rate) })); }
+  function promoPct(code) { const p = S.promos.find(x => x.code === String(code || '').trim().toUpperCase() && x.active && (!x.valid_to || x.valid_to >= S.bizDate)); return p ? p.pct : null; }
+  function publicBook(p) {
+    const t = typeOf(p.type); checkStay(p.ci, p.co);
+    if (!t || !t.active) fail('invalid_room_type');
+    if ((+p.adults || 1) > t.capacity) fail('too_many_guests');
+    if (String(p.name || '').trim().length < 2) fail('name_required');
+    if (digits(p.phone).length < 8) fail('phone_required');
+    let pct = 0; if (String(p.promo || '').trim()) { pct = promoPct(p.promo); if (pct == null) fail('promo_invalid'); }
+    const room = freeRooms(t.id, p.ci, p.co)[0]; if (!room) fail('sold_out');
+    const n = diffD(p.ci, p.co), rate = Math.round(directRate(t.rate) * (1 - pct / 100) / 1000) * 1000, dep = Math.round(rate * n * S.settings.deposit_pct / 100 / 10000) * 10000;
+    const b = { id: 'BK' + S.seq.bk++, code: newCode(), guest: newGuest(p.name, String(p.phone).trim(), (p.email || '').trim(), p.country), room, type: t.id, ci: p.ci, co: p.co, adults: +p.adults || 1, ch: 'DIR', rate,
+      status: 'confirmed', created: S.bizDate, source: 'website', deposit_due: dep, promo: pct ? String(p.promo).trim().toUpperCase() : null, request: String(p.request || '').slice(0, 500), folio: [], pays: [] };
+    S.bookings.push(b);
+    const me = S.me; S.me = null; log('booking.create', b.id, { source: 'website', ci: b.ci, co: b.co, type: t.id }); S.me = me;
+    return { id: b.id, code: b.code, nights: n, rate, total: rate * n, deposit_due: dep };
+  }
+  function findGuestBooking(code, phone) {
+    const c = String(code || '').trim().toUpperCase(), ph = digits(phone);
+    if (ph.length < 8) return null;
+    return S.bookings.find(b => b.code === c && digits(b.guest.phone).slice(-8) === ph.slice(-8)) || null;
+  }
+  function lookup(code, phone) {
+    const b = findGuestBooking(code, phone); if (!b) return null; const t = typeOf(b.type);
+    return { code: b.code, status: b.status, ci: b.ci, co: b.co, nights: nightsOf(b), type: t.name, adults: b.adults, rate: b.rate, total: b.rate * nightsOf(b), guest: b.guest.name,
+      deposit_due: b.deposit_due || 0, paid: paidOf(b), pending_claims: S.claims.filter(c => c.bk === b.id && c.status === 'pending').reduce((s, c) => s + c.amt, 0) };
+  }
+  function claim(code, phone, amount, ref) {
+    const b = findGuestBooking(code, phone); if (!b) fail('not_found');
+    if (b.status !== 'confirmed') fail('not_payable');
+    amount = Math.round(+amount); if (!(amount > 0) || amount > b.rate * nightsOf(b)) fail('invalid_amount');
+    if (S.claims.filter(c => c.bk === b.id && c.status === 'pending').length >= 3) fail('too_many_claims');
+    S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: amount, ref: String(ref || '').slice(0, 80), status: 'pending', at: new Date().toISOString() });
+    const me = S.me; S.me = null; log('claim.create', b.id, { amount, ref }); S.me = me;
+    return { ok: true };
+  }
+
+  // ---------- staff: front office ----------
+  function createBooking(p) {
+    need('manager', 'frontdesk'); checkStay(p.ci, p.co);
+    const r = roomOf(p.room); if (!r || !r.active || r.hk === 'ooo') fail('room_unavailable');
+    if (String(p.name || '').trim().length < 2) fail('name_required');
+    if (!roomFree(r.no, p.ci, p.co)) fail('no_double_booking');
+    const b = { id: 'BK' + S.seq.bk++, code: newCode(), guest: newGuest(p.name, p.phone, p.email, p.country), room: r.no, type: r.type, ci: p.ci, co: p.co, adults: +p.adults || 1, ch: p.ch,
+      rate: Math.round(+p.rate || 0), status: 'confirmed', created: S.bizDate, source: 'staff', deposit_due: 0, promo: null, request: p.request || '', folio: [], pays: [] };
+    S.bookings.push(b);
+    if (+p.deposit > 0) addPayment(b, S.bizDate, p.method || 'qr', +p.deposit, p.ref);
+    if (p.checkin && p.ci === S.bizDate) doCheckIn(b);
+    log('booking.create', b.id, { source: 'staff', ci: b.ci, co: b.co, room: b.room, ch: b.ch, rate: b.rate });
+    return b.id;
+  }
+  function checkIn(id) { need('manager', 'frontdesk'); const b = bk(id); if (b.status !== 'confirmed' || b.ci > S.bizDate) fail('cannot_check_in'); doCheckIn(b); log('booking.checkin', id, { room: b.room }); }
+  function checkOut(id, method) { need('manager', 'frontdesk'); const b = bk(id); if (b.status !== 'inhouse') fail('not_in_house'); const r = doCheckOut(b, method); log('booking.checkout', id, { room: b.room, method, commission: r.comm }); }
+  function cancel(id, status, refund) {
+    need('manager', 'frontdesk'); const b = bk(id);
+    if (b.status !== 'confirmed' || !['cancelled', 'noshow'].includes(status) || (status === 'noshow' && b.ci > S.bizDate)) fail('cannot_cancel');
+    applyDeposits(b, S.bizDate, refund && status === 'cancelled' ? 'refund' : 'forfeit');
+    b.status = status; S.claims.filter(c => c.bk === id && c.status === 'pending').forEach(c => c.status = 'rejected');
+    log('booking.' + status, id, { refund: !!refund });
+  }
+  function extend(id, n) {
+    need('manager', 'frontdesk'); const b = bk(id); n = n || 1;
+    if (!['confirmed', 'inhouse'].includes(b.status)) fail('cannot_extend');
+    if (!roomFree(b.room, b.co, addD(b.co, n), b.id)) fail('no_double_booking');
+    const from = b.co; b.co = addD(b.co, n); log('booking.extend', id, { from, to: b.co });
+  }
+  function charge(id, kind, text, amount) {
+    need('manager', 'frontdesk'); const b = bk(id);
+    if (!['fnb', 'minibar', 'laundry', 'tour', 'other'].includes(kind)) fail('invalid_kind');
+    if (b.status !== 'inhouse') fail('not_in_house');
+    addCharge(b, S.bizDate, kind, { k: 'extra', text: String(text).slice(0, 120) }, Math.round(+amount)); log('folio.charge', id, { kind, amount: +amount, text });
+  }
+  function voidCharge(fid, reason) {
+    need('manager');
+    const b = S.bookings.find(x => x.folio.some(f => f.id === fid)) || fail('cannot_void'); const f = b.folio.find(x => x.id === fid);
+    if (f.voids || b.folio.some(x => x.voids === fid)) fail('cannot_void');
+    if (b.status !== 'inhouse') fail('not_in_house');
+    if (String(reason || '').trim().length < 3) fail('reason_required');
+    const orig = S.journal.find(e => e.id === f.je);
+    const e = post(S.bizDate, { k: 'void', text: reason, of: f.desc }, b.id, 'folio', orig.lines.map(l => ({ a: l.a, dr: l.cr, cr: l.dr })), orig.id);
+    orig.revBy = e.id;
+    b.folio.push({ id: S.seq.fl++, date: S.bizDate, kind: f.kind, desc: { k: 'void', text: reason, of: f.desc }, gross: -f.gross, net: -f.net, vat: -f.vat, voids: f.id, je: e.id });
+    log('folio.void', b.id, { folio: fid, amount: f.gross, reason });
+  }
+  function payment(id, method, amount, ref) {
+    need('manager', 'frontdesk', 'accountant'); const b = bk(id);
+    if (!['confirmed', 'inhouse'].includes(b.status)) fail('not_payable');
+    addPayment(b, S.bizDate, method, Math.round(+amount), ref); log('payment.take', id, { method, amount: +amount, ref });
+  }
+  function verifyClaim(cid, approve, method) {
+    need('manager', 'frontdesk', 'accountant'); const c = S.claims.find(x => x.id === cid) || fail('not_found');
+    if (c.status !== 'pending') fail('already_decided');
+    if (approve) { const b = bk(c.bk); if (!['confirmed', 'inhouse'].includes(b.status)) fail('not_payable'); addPayment(b, S.bizDate, method || 'qr', c.amt, c.ref); }
+    c.status = approve ? 'verified' : 'rejected'; log(approve ? 'claim.verify' : 'claim.reject', c.bk, { claim: cid, amount: c.amt });
+  }
+  function setHk(no, status) { need('manager', 'frontdesk', 'housekeeping'); const r = roomOf(no); const from = r.hk; r.hk = status; log('room.hk', no, { from, to: status }); }
+  function nightAudit() {
+    need('manager', 'frontdesk'); const d = S.bizDate;
+    if (S.bookings.some(b => b.status === 'inhouse' && b.co <= d)) fail('departures_pending');
+    let ns = 0, n = 0, amt = 0;
+    S.bookings.filter(b => b.status === 'confirmed' && b.ci <= d).forEach(b => { applyDeposits(b, d, 'forfeit'); b.status = 'noshow'; ns++; });
+    S.bookings.filter(b => b.status === 'inhouse').sort((a, b) => a.room < b.room ? -1 : 1).forEach(b => { addCharge(b, d, 'room', { k: 'night', room: b.room, d }, b.rate); n++; amt += b.rate; const r = roomOf(b.room); if (r.hk !== 'ooo') r.hk = 'dirty'; });
+    S.bizDate = addD(d, 1);
+    log('night_audit', d, { room_nights: n, amount: amt, noshows: ns });
+    return { room_nights: n, amount: amt, noshows: ns, business_date: S.bizDate };
+  }
+
+  // ---------- staff: accounting ----------
+  const posted = (k, mo) => S.journal.some(e => e.desc.k === k && e.desc.mo === mo && !e.revBy);
+  function expense(date, acc, text, gross, hasVat, pay) {
+    need('manager', 'accountant');
+    if (date > S.bizDate) fail('future_date');
+    if (!(['cos', 'opx'].includes((S.accounts[acc] || [])[0]) || acc === '1220')) fail('invalid_account');
+    gross = Math.round(+gross); if (!['1110', '1120', '2110'].includes(pay) || !(gross > 0)) fail('invalid_amount');
+    const r = S.settings.vat / 100, vat = hasVat ? Math.round(gross * r / (1 + r)) : 0;
+    const e = post(date, { k: 'exp', text: String(text).slice(0, 160) }, 'EXP', 'expense', [{ a: acc, dr: gross - vat }, { a: '1150', dr: vat }, { a: pay, cr: gross }]);
+    log('journal.expense', 'JV-' + e.id, { account: acc, amount: gross }); return e.id;
+  }
+  function manual(date, text, lines) {
+    need('manager', 'accountant');
+    if (date > S.bizDate) fail('future_date');
+    if (lines.some(l => ['1130', '1140', '2150'].includes(l.a))) fail('control_account');
+    if (String(text || '').trim().length < 3) fail('reason_required');
+    const e = post(date, { k: 'manual', text: String(text).slice(0, 160) }, 'MJ', 'manual', lines);
+    log('journal.manual', 'JV-' + e.id, { lines }); return e.id;
+  }
+  function reverse(id, reason) {
+    need('manager', 'accountant'); const e = S.journal.find(x => x.id === id);
+    if (!e || e.revBy || e.rev || !['manual', 'expense', 'close', 'tax', 'finance', 'cash'].includes(e.src)) fail('cannot_reverse');
+    if (String(reason || '').trim().length < 3) fail('reason_required');
+    const r = post(S.bizDate, { k: 'rev', id, text: String(reason).slice(0, 160) }, 'REV-' + id, 'reversal', e.lines.map(l => ({ a: l.a, dr: l.cr, cr: l.dr })), id);
+    e.revBy = r.id; log('journal.reverse', 'JV-' + id, { reversal: r.id, reason }); return r.id;
+  }
+  function otaPayout(ch, cutoff, silent) {
+    if (!silent) need('manager', 'accountant');
+    const items = S.arOTA.filter(x => !x.settled && x.ch === ch && (!cutoff || x.date <= cutoff)), s = items.reduce((a, x) => a + x.amt, 0);
+    if (s <= 0) { if (silent) return 0; fail('nothing_due'); }
+    post(S.bizDate, { k: 'otaPayout', ch }, 'OTA-' + ch, 'ota', [{ a: '1120', dr: s }, { a: '1140', cr: s }]);
+    items.forEach(x => x.settled = true); log('ota.payout', ch, { amount: s }); return s;
+  }
+  const accBal = (a, to) => { let s = 0; for (const e of S.journal) if (!to || e.date <= to) for (const l of e.lines) if (l.a === a) s += l.dr - l.cr; return s; };
+  function payCommissions(silent) {
+    if (!silent) need('manager', 'accountant');
+    const s = -accBal('2120'); if (s <= 0) { if (silent) return 0; fail('nothing_due'); }
+    post(S.bizDate, { k: 'commPay' }, 'COMM', 'cash', [{ a: '2120', dr: s }, { a: '1120', cr: s }]); log('commission.pay', 'COMM', { amount: s }); return s;
+  }
+  function vatFor(month) {
+    let out = 0, inp = 0;
+    for (const e of S.journal) if (e.date.startsWith(month) && e.desc.k !== 'vatPay') for (const l of e.lines) { if (l.a === '2140') out += l.cr - l.dr; if (l.a === '1150') inp += l.dr - l.cr; }
+    return { out, inp };
+  }
+  const vatPaid = m => posted('vatPay', m);
+  function payVat(month) {
+    need('manager', 'accountant');
+    if (month >= S.bizDate.slice(0, 7)) fail('month_open');
+    if (vatPaid(month)) fail('already_posted');
+    const v = vatFor(month), net = v.out - v.inp;
+    post(S.bizDate, { k: 'vatPay', mo: month }, 'VAT-' + month, 'tax', [{ a: '2140', dr: v.out }, { a: '1150', cr: v.inp }, net >= 0 ? { a: '1120', cr: net } : { a: '1120', dr: -net }]);
+    log('vat.pay', month, { output: v.out, input: v.inp, net }); return net;
+  }
+  function close(kind, month) {
+    need('manager', 'accountant'); const a = S.settings.close;
+    const end = monthEnd(month), d = end < S.bizDate ? end : S.bizDate;
+    if (d.slice(0, 7) !== month) fail('month_not_started');
+    const k = { depr: 'depr', int: 'int', sal_pay: 'sal', sal_accrue: 'salAcc' }[kind]; if (!k) fail('invalid_kind');
+    if (posted(k, month) || ((k === 'sal' || k === 'salAcc') && (posted('sal', month) || posted('salAcc', month)))) fail('already_posted');
+    const L = { depr: [{ a: '5800', dr: a.depr }, { a: '1290', cr: a.depr }], int: [{ a: '5900', dr: a.int }, { a: '1120', cr: a.int }], sal_pay: [{ a: '5200', dr: a.sal }, { a: '1120', cr: a.sal }], sal_accrue: [{ a: '5200', dr: a.sal }, { a: '2160', cr: a.sal }] }[kind];
+    const e = post(d, { k, mo: month }, k.toUpperCase() + '-' + month, 'close', L); log('close.' + kind, month); return e.id;
+  }
+  function lockMonth(m) { need('manager', 'accountant'); if (m >= S.bizDate.slice(0, 7)) fail('month_open'); if (!S.locks.includes(m)) { S.locks.push(m); S.locks.sort(); } log('period_locks.insert', m); }
+  function unlockMonth(m) { need('owner'); S.locks = S.locks.filter(x => x !== m); log('period_locks.delete', m); }
+
+  // ---------- staff: master data ----------
+  function saveType(t) { need('manager'); const i = S.types.findIndex(x => x.id === t.id); const old = i >= 0 ? { ...S.types[i] } : null; if (i >= 0) S.types[i] = { ...S.types[i], ...t }; else S.types.push({ sort: S.types.length, active: true, amenities: [], description: {}, bed: {}, ...t }); log('room_types.' + (old ? 'update' : 'insert'), t.id, { old, new: t }); }
+  function saveRoom(r) { need('manager'); const i = S.rooms.findIndex(x => x.no === r.no); const old = i >= 0 ? { ...S.rooms[i] } : null; if (i >= 0) S.rooms[i] = { ...S.rooms[i], ...r }; else S.rooms.push({ hk: 'inspected', active: true, floor: 1, ...r }); log('rooms.' + (old ? 'update' : 'insert'), r.no, { old, new: r }); }
+  function savePromo(p) { need('manager'); p.code = String(p.code).trim().toUpperCase(); if (!/^[A-Z0-9]{3,20}$/.test(p.code) || !(p.pct > 0 && p.pct <= 50)) fail('invalid_promo'); const i = S.promos.findIndex(x => x.code === p.code); if (i >= 0) S.promos[i] = { ...S.promos[i], ...p }; else S.promos.push({ active: true, valid_to: null, ...p }); log('promo_codes.' + (i >= 0 ? 'update' : 'insert'), p.code, { new: p }); }
+  function saveSettings(p) { need('manager'); const old = { ...S.settings }; Object.assign(S.settings, p); log('settings.update', '1', { old, new: p }); }
+  function saveStaff(p) { need('owner'); const i = S.staff.findIndex(x => x.id === p.id); if (i >= 0) S.staff[i] = { ...S.staff[i], ...p }; else S.staff.push({ id: 'U' + S.seq.u++, active: true, ...p }); log('staff.' + (i >= 0 ? 'update' : 'insert'), p.email || p.id, { new: p }); }
+
+  // ---------- reporting ----------
+  function balances(from, to) { const m = {}; for (const k in S.accounts) m[k] = 0; for (const e of S.journal) { if (e.date < from || e.date > to) continue; for (const l of e.lines) m[l.a] += l.dr - l.cr; } return m; }
+  const DEBIT_NORMAL = t => ['ca', 'nca', 'cos', 'opx', 'fin'].includes(t);
+  function plFor(from, to) {
+    const b = balances(from, to), g = { rev: [], cos: [], opx: [], fin: [] };
+    for (const k in S.accounts) { const t = S.accounts[k][0]; if (g[t]) g[t].push([k, t === 'rev' ? -b[k] : b[k]]); }
+    const sum = a => a.reduce((s, x) => s + x[1], 0), rev = sum(g.rev), cos = sum(g.cos), opx = sum(g.opx), fin = sum(g.fin);
+    return { g, rev, cos, gp: rev - cos, opx, op: rev - cos - opx, fin, pbt: rev - cos - opx - fin };
+  }
+  function bsAt(to) {
+    const b = balances('0000-01-01', to), sum = a => a.reduce((s, x) => s + x[1], 0);
+    const sec = t => Object.keys(S.accounts).filter(k => S.accounts[k][0] === t).map(k => [k, DEBIT_NORMAL(t) ? b[k] : -b[k]]);
+    const ca = sec('ca'), nca = sec('nca'), cl = sec('cl'), ncl = sec('ncl'), eq = sec('eq'), profit = plFor('0000-01-01', to).pbt;
+    return { ca, nca, cl, ncl, eq, profit, A: sum(ca) + sum(nca), L: sum(cl) + sum(ncl), E: sum(eq) + profit, sca: sum(ca), snca: sum(nca), scl: sum(cl), sncl: sum(ncl) };
+  }
+  const roomNightsIn = (from, to) => { let n = 0; for (const b of S.bookings) for (const f of b.folio) if (f.kind === 'room' && !f.voids && f.gross > 0 && f.date >= from && f.date <= to) n++; return n; };
+  const onBooks = d => S.bookings.filter(b => HOLD(b) && b.ci <= d && d < b.co);
+  const availRooms = () => S.rooms.filter(r => r.active && r.hk !== 'ooo').length;
+  function integrity() {
+    let d = 0, c = 0; for (const e of S.journal) for (const l of e.lines) { d += l.dr; c += l.cr; }
+    const bs = bsAt('9999-12-31');
+    const gl1130 = accBal('1130'), sub1130 = S.bookings.filter(b => b.status === 'inhouse' || b.status === 'out').reduce((s, b) => s + balanceOf(b), 0);
+    const gl2150 = -accBal('2150'), sub2150 = S.bookings.reduce((s, b) => s + b.pays.filter(p => p.dep && !p.applied).reduce((a, p) => a + p.amt, 0), 0);
+    const gl1140 = accBal('1140'), sub1140 = S.arOTA.filter(x => !x.settled).reduce((s, x) => s + x.amt, 0);
+    return { drcr: d === c, bs: bs.A === bs.L + bs.E, guest: gl1130 === sub1130, deposits: gl2150 === sub2150, ota: gl1140 === sub1140, ok: d === c && bs.A === bs.L + bs.E && gl1130 === sub1130 && gl2150 === sub2150 && gl1140 === sub1140 };
+  }
+
+  // ---------- demo data: two months of simulated operations ----------
+  function seed(C, today) {
+    const R = mulberry32(77031), pick = a => a[Math.floor(R() * a.length)];
+    const wpick = it => { let r = R() * it.reduce((s, i) => s + i[1], 0); for (const i of it) if ((r -= i[1]) < 0) return i[0]; return it[0][0]; };
+    const L = a => ({ lo: a[0], th: a[1], en: a[2] });
+    const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
+    const h = C.hotel;
+    S = {
+      ver: 6, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
+        vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts } },
+      accounts: Object.fromEntries(C.accounts.map(a => [a[0], [a[1], L(a.slice(2))]])),
+      types: C.types.map((t, i) => ({ id: t.id, name: L(t.n), description: L(t.d), capacity: t.cap, rate: t.rate, size: t.size, bed: L(t.bed), amenities: t.am.slice(), sort: i, active: true })),
+      rooms: C.rooms.map(r => ({ no: r[0], type: r[1], floor: r[2], hk: 'inspected', note: '', active: true })),
+      channels: C.channels.map(c => ({ id: c[0], comm: c[1], mode: c[2], name: L(c.slice(3)) })),
+      promos: C.promos.map(p => ({ code: p[0], pct: p[1], valid_to: p[2], active: true })),
+      amenities: C.amenities.map((a, i) => ({ id: a[0], icon: a[1], name: L(a.slice(2)), sort: i })),
+      staff: [{ id: 'U1', name: 'Somsack', role: 'owner', email: 'owner@saynam.la', active: true }, { id: 'U2', name: 'Manivanh', role: 'frontdesk', email: 'desk@saynam.la', active: true },
+        { id: 'U3', name: 'Phonsavanh', role: 'accountant', email: 'account@saynam.la', active: true }, { id: 'U4', name: 'Keo', role: 'housekeeping', email: 'hk@saynam.la', active: true }],
+      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], seq: { bk: 2401, je: 1, fl: 1, ar: 1, g: 1, cl: 1, au: 1, u: 5 }
+    };
+    const GUESTS = [['Somphone Vongsa', 'LA'], ['Khamla Phommachanh', 'LA'], ['Noy Sayavong', 'LA'], ['Anong Keomany', 'LA'], ['Bounmy Sihavong', 'LA'], ['Vilay Inthavong', 'LA'], ['Siriporn Chaiyasit', 'TH'],
+      ['Kittisak Boonmee', 'TH'], ['Pranee Saetang', 'TH'], ['Wang Lei', 'CN'], ['Zhang Min', 'CN'], ['Liu Yang', 'CN'], ['Nguyen Thi Lan', 'VN'], ['Tran Van Hai', 'VN'], ['Park Minho', 'KR'], ['Tanaka Hiroshi', 'JP'],
+      ['Emma Dubois', 'FR'], ['Lukas Weber', 'DE'], ['Sarah Mitchell', 'US'], ['James Carter', 'AU'], ['Chanthaly Douangdy', 'LA'], ['Souksavanh Phanthavong', 'LA']];
+    post(SIM0, { k: 'open' }, 'OB', 'open', [{ a: '1110', dr: 80000000 }, { a: '1120', dr: 450000000 }, { a: '1210', dr: 6500000000 }, { a: '1220', dr: 1200000000 }, { a: '1290', cr: 900000000 }, { a: '2310', cr: 2000000000 }, { a: '3100', cr: 5330000000 }]);
+    const ooo = '207';
+    for (const rm of S.rooms) {
+      let d = SIM0;
+      while (d < HZ) {
+        if (rm.no === ooo && d >= addD(today, -1)) break;
+        const ahead = diffD(today, d), p = ahead < 0 ? 0.6 : ahead < 7 ? 0.26 : ahead < 21 ? 0.15 : 0.07;
+        if (R() < p) {
+          const len = wpick([[1, 30], [2, 32], [3, 20], [4, 10], [5, 5], [7, 3]]), ch = wpick([['DIR', 11], ['FB', 13], ['WALK', ahead < 0 ? 9 : 0], ['BKG', 24], ['AGD', 21], ['EXP', 8], ['TA', 14]]);
+          const g = pick(GUESTS); let created = ch === 'WALK' ? d : addD(d, -Math.floor(R() * 25));
+          if (created > today) created = addD(today, -Math.floor(R() * 14)); if (created > d) created = d;
+          const t = typeOf(rm.type), rate = ch === 'DIR' ? directRate(t.rate) : t.rate, co = addD(d, len);
+          S.bookings.push({ id: 'BK' + S.seq.bk++, code: newCode(), guest: newGuest(g[0], '+856 20 ' + (5000 + Math.floor(R() * 4999)) + ' ' + (1000 + Math.floor(R() * 8999)), '', g[1]),
+            room: rm.no, type: rm.type, ci: d, co, adults: Math.min(t.capacity, 1 + Math.floor(R() * 2)), ch, rate, status: ch !== 'WALK' && R() < 0.05 ? 'cancelled' : 'confirmed', created,
+            source: ch === 'DIR' ? 'website' : 'staff', deposit_due: ch === 'DIR' ? Math.round(rate * len * 0.3 / 10000) * 10000 : 0, promo: null, request: '', folio: [], pays: [] });
+          d = co;
+        } else d = addD(d, 1);
+      }
+    }
+    S.bookings.sort((a, b) => a.ci < b.ci ? -1 : a.ci > b.ci ? 1 : 0);
+    const depAmt = b => Math.round(b.rate * nightsOf(b) * 0.3 / 10000) * 10000, mix = [['cash', 30], ['qr', 45], ['card', 15], ['transfer', 10]];
+    const actor = n => S.me = S.staff.find(s => s.name === n);
+    const exp = (d, acc, t, g, v, pay) => { const r = S.settings.vat / 100, vat = v ? Math.round(g * r / (1 + r)) : 0; post(d, { k: 'exp', t }, 'EXP', 'expense', [{ a: acc, dr: g - vat }, { a: '1150', dr: vat }, { a: pay, cr: g }]); };
+    for (let d = SIM0; d <= today; d = addD(d, 1)) {
+      S.bizDate = d; actor('Manivanh');
+      for (const b of S.bookings) if (b.created === d && (b.ch === 'DIR' || b.ch === 'FB') && b.status === 'confirmed') {
+        // most website guests already paid; the ones booked in the last two days are waiting for staff to verify the QR transfer
+        if (b.ch === 'DIR' && diffD(d, today) <= 1) S.claims.unshift({ id: S.seq.cl++, bk: b.id, amt: b.deposit_due || depAmt(b), ref: 'BCEL ' + (400000 + Math.floor(R() * 99999)), status: 'pending', at: d + 'T09:' + (10 + Math.floor(R() * 40)) + ':00Z' });
+        else addPayment(b, d, 'qr', b.deposit_due || depAmt(b), 'BCEL ' + (400000 + Math.floor(R() * 99999)));
+      }
+      if (d === today) break;
+      for (const b of S.bookings) if (b.status === 'inhouse' && b.co === d) doCheckOut(b, wpick(mix));
+      for (const b of S.bookings) if (b.status === 'confirmed' && b.ci === d) { if (b.ch !== 'WALK' && R() < 0.02) { applyDeposits(b, d, 'forfeit'); b.status = 'noshow'; } else doCheckIn(b); }
+      for (const b of S.bookings) if (b.status === 'inhouse') {
+        if (R() < 0.32) addCharge(b, d, 'fnb', { k: 'extra', t: 'restaurant' }, pick([85000, 120000, 165000, 240000, 320000]));
+        if (R() < 0.08) addCharge(b, d, 'minibar', { k: 'extra', t: 'minibar' }, pick([45000, 60000, 90000]));
+        if (R() < 0.05) addCharge(b, d, 'laundry', { k: 'extra', t: 'laundry' }, 60000);
+        if (R() < 0.025) addCharge(b, d, 'tour', { k: 'extra', t: 'tour' }, 450000);
+      }
+      actor('Phonsavanh');
+      const dd = +d.slice(8), mo = d.slice(0, 7), last = addD(d, 1).slice(8) === '01', w = dow(d);
+      if (dd === 3) exp(d, '5600', 'ads', 3500000, false, '1120');
+      if (dd === 5) { exp(d, '5400', 'elec', 14500000, true, '1120'); exp(d, '5400', 'water', 2200000, true, '1120'); }
+      if (w === 1 || w === 4) exp(d, '5500', 'supplies', 1800000, true, '1110');
+      if (w === 2 || w === 5) exp(d, '5100', 'fnbbuy', 2600000, true, '1110');
+      if (dd === 10) payCommissions(true);
+      if (dd === 15) { exp(d, '5700', 'repairs', 2750000, true, '1110'); const pm = addD(mo + '-01', -1).slice(0, 7); if (pm >= SIM0.slice(0, 7)) payVat(pm); }
+      if (dd === 25) close('int', mo);
+      if (last) { close('sal_pay', mo); close('depr', mo); }
+      if (w === 1) for (const c of S.channels) if (c.mode === 'ota') otaPayout(c.id, addD(d, -7), true);
+      if (w === 5) { const cash = accBal('1110', d); if (cash > 30000000) { const amt = Math.floor((cash - 20000000) / 1e6) * 1e6; post(d, { k: 'sweep' }, 'BANK', 'cash', [{ a: '1120', dr: amt }, { a: '1110', cr: amt }]); } }
+      actor('Manivanh');
+      for (const b of S.bookings) if (b.status === 'inhouse') addCharge(b, d, 'room', { k: 'night', room: b.room, d }, b.rate);
+    }
+    // September-style closed month: lock everything before the current month
+    for (let m = SIM0.slice(0, 7); m < today.slice(0, 7); m = addD(m + '-01', 32).slice(0, 7)) S.locks.push(m);
+    const occ = new Set(S.bookings.filter(b => b.status === 'inhouse').map(b => b.room));
+    S.rooms.forEach((r, i) => r.hk = occ.has(r.no) ? 'dirty' : (i % 5 === 0 ? 'clean' : 'inspected'));
+    const r = roomOf(ooo); r.hk = 'ooo'; r.note = 'AC';
+    S.bizDate = today; S.audit = [];
+    S.me = S.staff[0];
+    log('demo.seed', SIM0, { note: 'two months of simulated operations' });
+    S.me = null;
+    return S;
+  }
+
+  return {
+    set: s => { S = s; }, get: () => S, addD, diffD, dow, monthEnd, mulberry32, nightsOf, LIVE, HOLD, DEBIT_NORMAL, seed,
+    catalog, availability, publicBook, lookup, claim, promoPct, directRate,
+    createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
+    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
+    saveType, saveRoom, savePromo, saveSettings, saveStaff,
+    balances, plFor, bsAt, vatFor, vatPaid, posted, roomNightsIn, onBooks, availRooms, roomFree, freeRooms, balanceOf, chargesOf, paidOf, roomGrossOf, accBal, integrity, typeOf, chOf, roomOf
+  };
+})();
+
+
+// ===== API: one interface for both apps. Demo mode = Core on this browser's storage; live mode = Supabase RPCs =====
+const API = (function () {
+  const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
+  const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  const KEY = 'saynam-suite-v6', USER_KEY = 'saynam-suite-demo-user';
+  const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+  let sb = null, demoMe = null;
+
+  const todayLocal = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10); // Asia/Vientiane
+  function toErr(e) {
+    if (e && e.code && e.message === e.code) return e;
+    const m = String((e && e.message) || e || 'error');
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|Invalid login credentials)/);
+    const err = new Error(known ? known[1] : m); err.code = known ? (known[1] === 'Invalid login credentials' ? 'bad_login' : known[1]) : 'unknown'; err.raw = m;
+    if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
+    return err;
+  }
+
+  // ---------- demo storage ----------
+  function demoLoad() {
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 6) { Core.set(s); return s; } } } catch (e) { }
+    const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
+  }
+  function demoSave() { try { localStorage.setItem(KEY, JSON.stringify(Core.get())); } catch (e) { } }
+  function demoReset() { try { localStorage.removeItem(KEY); } catch (e) { } return demoLoad(); }
+  function demoRun(fn, asStaff) {
+    demoLoad();
+    const S = Core.get(); S.me = asStaff ? demoMe : null;
+    try { const r = fn(); S.me = null; demoSave(); return Promise.resolve(r); }
+    catch (e) { S.me = null; demoLoad(); return Promise.reject(toErr(e)); }   // reload drops any half-applied change
+  }
+
+  // ---------- supabase ----------
+  function loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('network')); document.head.appendChild(s); }); }
+  async function client() {
+    if (sb) return sb;
+    if (!window.supabase) await loadScript(SB_CDN);
+    sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+    return sb;
+  }
+  async function rpc(name, args) { const c = await client(); const { data, error } = await c.rpc(name, args || {}); if (error) throw toErr(error); return data; }
+
+  function normalize(x) {
+    const s = x.settings;
+    return {
+      live: true, me: x.me, bizDate: s.business_date,
+      settings: { hotel: s.hotel_name, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
+        check_out_time: s.check_out_time, vat: +s.vat_rate, incl: s.prices_incl_vat, deposit_pct: +s.deposit_pct, direct_discount: +s.direct_discount, free_cancel_days: s.free_cancel_days,
+        payment_note: s.payment_note, close: s.close_amounts },
+      accounts: Object.fromEntries((x.accounts || []).map(a => [a.code, [a.type, a.name]])),
+      types: (x.types || []).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, rate: +t.base_rate, size: t.size_m2, bed: t.bed, amenities: t.amenities || [], sort: t.sort, active: t.active })),
+      rooms: (x.rooms || []).map(r => ({ no: r.no, type: r.type_id, floor: r.floor, hk: r.hk_status, note: r.note || '', active: r.active })),
+      channels: (x.channels || []).map(c => ({ id: c.id, name: c.name, comm: +c.commission, mode: c.mode })),
+      promos: (x.promos || []).map(p => ({ code: p.code, pct: +p.pct, active: p.active, valid_to: p.valid_to })),
+      amenities: x.amenities || [], bookings: x.bookings || [], journal: (x.journal || []).map(e => ({ ...e, lines: e.lines || [] })), arOTA: x.arOTA || [],
+      claims: (x.claims || []).map(c => ({ ...c, amt: +c.amt })), locks: x.locks || [], audit: x.audit || [], staff: x.staff || []
+    };
+  }
+
+  const STAFF_RPC = {
+    createBooking: p => ['staff_create_booking', { p }],
+    checkIn: id => ['staff_check_in', { p_id: id }],
+    checkOut: (id, m) => ['staff_check_out', { p_id: id, p_method: m }],
+    cancel: (id, st, refund) => ['staff_cancel', { p_id: id, p_status: st, p_refund: !!refund }],
+    extend: (id, n) => ['staff_extend', { p_id: id, p_nights: n || 1 }],
+    charge: (id, kind, text, amt) => ['staff_charge', { p_id: id, p_kind: kind, p_text: text, p_amount: amt }],
+    voidCharge: (fid, reason) => ['staff_void_charge', { p_folio: fid, p_reason: reason }],
+    payment: (id, m, amt, ref) => ['staff_payment', { p_id: id, p_method: m, p_amount: amt, p_ref: ref || null }],
+    verifyClaim: (cid, ok, m) => ['staff_verify_claim', { p_claim: cid, p_approve: ok, p_method: m || 'qr' }],
+    setHk: (no, st) => ['staff_set_hk', { p_room: no, p_status: st }],
+    nightAudit: () => ['staff_night_audit', {}],
+    expense: (d, acc, text, gross, vat, pay) => ['acct_expense', { p_date: d, p_account: acc, p_text: text, p_gross: gross, p_has_vat: vat, p_pay: pay }],
+    manual: (d, text, lines) => ['acct_manual', { p_date: d, p_text: text, p_lines: lines }],
+    reverse: (id, reason) => ['acct_reverse', { p_id: id, p_reason: reason }],
+    otaPayout: ch => ['acct_ota_payout', { p_channel: ch }],
+    payCommissions: () => ['acct_pay_commissions', {}],
+    payVat: m => ['acct_pay_vat', { p_month: m }],
+    close: (k, m) => ['acct_close', { p_kind: k, p_month: m }],
+    lockMonth: m => ['acct_lock_month', { p_month: m }],
+    unlockMonth: m => ['acct_unlock_month', { p_month: m }]
+  };
+  async function liveTable(fn) {
+    const c = await client();
+    if (fn.op === 'saveType') { const t = fn.arg; const { error } = await c.from('room_types').upsert({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, base_rate: t.rate, size_m2: t.size, bed: t.bed, amenities: t.amenities, sort: t.sort ?? 0, active: t.active !== false }); if (error) throw toErr(error); }
+    if (fn.op === 'saveRoom') { const r = fn.arg; const { error } = await c.from('rooms').upsert({ no: r.no, type_id: r.type, floor: r.floor, note: r.note || null, active: r.active !== false }); if (error) throw toErr(error); }
+    if (fn.op === 'savePromo') { const p = fn.arg; const { error } = await c.from('promo_codes').upsert({ code: String(p.code).toUpperCase(), pct: p.pct, active: p.active !== false, valid_to: p.valid_to || null }); if (error) throw toErr(error); }
+    if (fn.op === 'saveSettings') {
+      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url' };
+      const row = {}; for (const k in p) if (m[k]) row[m[k]] = p[k];
+      const { error } = await c.from('settings').update(row).eq('id', 1); if (error) throw toErr(error);
+    }
+    if (fn.op === 'saveStaff') { const p = fn.arg; if (!p.id) await rpc('admin_add_staff', { p_email: p.email, p_name: p.name, p_role: p.role }); else await rpc('admin_set_staff', { p_user: p.id, p_role: p.role, p_active: p.active !== false }); }
+  }
+
+  // ---------- public interface ----------
+  const pub = {
+    live: LIVE,
+    catalog: () => LIVE ? rpc('public_catalog') : demoRun(() => Core.catalog()),
+    availability: (ci, co) => LIVE ? rpc('public_availability', { p_ci: ci, p_co: co }) : demoRun(() => Core.availability(ci, co)),
+    book: p => LIVE ? rpc('public_book', { p }) : demoRun(() => Core.publicBook(p)),
+    promo: code => LIVE ? rpc('public_promo', { p_code: code }) : demoRun(() => Core.promoPct(code)),
+    lookup: (code, phone) => LIVE ? rpc('public_lookup', { p_code: code, p_phone: phone }) : demoRun(() => Core.lookup(code, phone)),
+    claim: (code, phone, amt, ref) => LIVE ? rpc('public_claim', { p_code: code, p_phone: phone, p_amount: amt, p_ref: ref }) : demoRun(() => Core.claim(code, phone, amt, ref)),
+    // ---- staff ----
+    async session() {
+      if (LIVE) { const c = await client(); const { data } = await c.auth.getSession(); if (!data.session) return null; return await rpc('me'); }
+      demoLoad(); let id = null; try { id = sessionStorage.getItem(USER_KEY); } catch (e) { }
+      demoMe = Core.get().staff.find(s => s.id === id && s.active) || null; return demoMe;
+    },
+    demoStaff: () => { demoLoad(); return Core.get().staff.filter(s => s.active); },
+    async login(email, password) {
+      if (!LIVE) { demoMe = Core.get().staff.find(s => s.id === email); try { sessionStorage.setItem(USER_KEY, demoMe.id); } catch (e) { } return demoMe; }
+      const c = await client(); const { error } = await c.auth.signInWithPassword({ email, password }); if (error) throw toErr(error);
+      const me = await rpc('me'); if (!me) { await c.auth.signOut(); const e = new Error('not_staff'); e.code = 'not_staff'; throw e; } return me;
+    },
+    async logout() { if (LIVE) { const c = await client(); await c.auth.signOut(); } demoMe = null; try { sessionStorage.removeItem(USER_KEY); } catch (e) { } },
+    async snapshot() {
+      if (!LIVE) { const s = demoLoad(); s.me = null; const copy = JSON.parse(JSON.stringify(s)); copy.me = demoMe; copy.live = false; return copy; }
+      const x = await rpc('admin_snapshot'); const s = normalize(x);
+      if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
+      return s;
+    },
+    act(name, ...args) {
+      if (!LIVE) {
+        if (!Core[name]) return Promise.reject(toErr('unknown'));
+        return demoRun(() => Core[name](...args), true);
+      }
+      if (STAFF_RPC[name]) { const [fn, a] = STAFF_RPC[name](...args); return rpc(fn, a); }
+      return liveTable({ op: name, arg: args[0] });
+    },
+    resetDemo: () => { if (!LIVE) demoReset(); },
+    onExternalChange(cb) { if (!LIVE && typeof window !== 'undefined') window.addEventListener('storage', e => { if (e.key === KEY) cb(); }); }
+  };
+  return pub;
+})();
+
+// Guest website strings [Lao, Thai, English]
+const SX = {
+  nav_rooms: ['ຫ້ອງພັກ', 'ห้องพัก', 'Rooms'], nav_amen: ['ສິ່ງອຳນວຍຄວາມສະດວກ', 'สิ่งอำนวยความสะดวก', 'Amenities'], nav_loc: ['ທີ່ຕັ້ງ', 'ที่ตั้ง', 'Location'],
+  nav_manage: ['ການຈອງຂອງຂ້ອຍ', 'การจองของฉัน', 'My booking'], bookNow: ['ຈອງເລີຍ', 'จองเลย', 'Book now'],
+  arrive: ['ມື້ເຂົ້າພັກ', 'วันเช็คอิน', 'Check-in'], depart: ['ມື້ອອກ', 'วันเช็คเอาท์', 'Check-out'], guests: ['ຜູ້ໃຫຍ່', 'ผู้ใหญ่', 'Adults'],
+  search: ['ເບິ່ງຫ້ອງວ່າງ', 'ดูห้องว่าง', 'See available rooms'],
+  nights: ['ຄືນ', 'คืน', 'nights'], night: ['ຄືນ', 'คืน', 'night'], perNight: ['ຕໍ່ຄືນ', 'ต่อคืน', 'per night'], from: ['ເລີ່ມ', 'เริ่ม', 'from'],
+  why1t: ['ລາຄາດີທີ່ສຸດເມື່ອຈອງກັບເຮົາ', 'ราคาดีที่สุดเมื่อจองตรง', 'Best price when you book with us'],
+  why1d: ['ຖືກກວ່າເວັບຈອງອື່ນ {p}', 'ถูกกว่าเว็บจองอื่น {p}', '{p} below the big booking sites'],
+  why2t: ['ຍົກເລີກຟຣີ', 'ยกเลิกฟรี', 'Free cancellation'], why2d: ['ກ່ອນມື້ເຂົ້າພັກ {n} ວັນ', 'ก่อนวันเข้าพัก {n} วัน', 'up to {n} days before arrival'],
+  why3t: ['ມັດຈຳພຽງ {p}', 'มัดจำเพียง {p}', 'Only {p} deposit'], why3d: ['ຈ່າຍດ້ວຍ QR ຂອງທະນາຄານລາວ, ສ່ວນທີ່ເຫຼືອຈ່າຍທີ່ໂຮງແຮມ', 'จ่ายด้วย QR ธนาคารลาว ส่วนที่เหลือจ่ายที่โรงแรม', 'Pay by Lao bank QR; settle the rest at the hotel'],
+  roomsTitle: ['ເລືອກຫ້ອງທີ່ໃຊ່ສຳລັບທ່ານ', 'เลือกห้องที่ใช่สำหรับคุณ', 'Choose your room'],
+  sleeps: ['ພັກໄດ້ {n} ຄົນ', 'พักได้ {n} คน', 'Sleeps {n}'], sqm: ['{n} ຕາແມັດ', '{n} ตร.ม.', '{n} m²'],
+  selectDates: ['ເລືອກວັນທີ', 'เลือกวันที่', 'Choose dates'], choose: ['ເລືອກຫ້ອງນີ້', 'เลือกห้องนี้', 'Choose this room'],
+  amenTitle: ['ທຸກຢ່າງທີ່ທ່ານຕ້ອງການ', 'ทุกอย่างที่คุณต้องการ', 'Everything you need'],
+  locTitle: ['ທີ່ຕັ້ງ ແລະ ຕິດຕໍ່', 'ที่ตั้งและติดต่อ', 'Location and contact'], openMap: ['ເປີດແຜນທີ່', 'เปิดแผนที่', 'Open in Maps'],
+  copy: ['ສຳເນົາ', 'คัดลอก', 'Copy'], copied: ['ສຳເນົາແລ້ວ', 'คัดลอกแล้ว', 'Copied'],
+  policies: ['ນະໂຍບາຍການພັກ', 'นโยบายการเข้าพัก', 'House policies'],
+  pol_in: ['ເຊັກອິນຈາກ {t}', 'เช็คอินตั้งแต่ {t}', 'Check-in from {t}'], pol_out: ['ເຊັກເອົ້າກ່ອນ {t}', 'เช็คเอาท์ก่อน {t}', 'Check-out by {t}'],
+  pol_dep: ['ມັດຈຳ {p} ຂອງຄ່າຫ້ອງເພື່ອຢືນຢັນການຈອງ', 'มัดจำ {p} ของค่าห้องเพื่อยืนยันการจอง', 'A {p} deposit secures the booking'],
+  pol_cancel: ['ຍົກເລີກກ່ອນ {n} ວັນ ຄືນມັດຈຳເຕັມ; ຫຼັງຈາກນັ້ນມັດຈຳບໍ່ຄືນ', 'ยกเลิกก่อน {n} วัน คืนมัดจำเต็มจำนวน หลังจากนั้นไม่คืนมัดจำ', 'Cancel {n}+ days ahead for a full deposit refund; later cancellations keep the deposit'],
+  pol_vat: ['ລາຄາລວມ VAT {r}% ແລ້ວ', 'ราคารวม VAT {r}% แล้ว', 'Prices include {r}% VAT'],
+  pol_vatx: ['ລາຄາຍັງບໍ່ລວມ VAT {r}%', 'ราคายังไม่รวม VAT {r}%', 'Prices exclude {r}% VAT'],
+  faqTitle: ['ຄຳຖາມທີ່ພົບເລື້ອຍ', 'คำถามที่พบบ่อย', 'Questions guests ask'],
+  faq1q: ['ຈ່າຍມັດຈຳແນວໃດ?', 'จ่ายมัดจำอย่างไร', 'How do I pay the deposit?'],
+  faq2q: ['ຖ້າຢາກປ່ຽນວັນເຮັດແນວໃດ?', 'ถ้าต้องการเปลี่ยนวันทำอย่างไร', 'How do I change my dates?'],
+  faq2a: ['ໂທ ຫຼື ສົ່ງ WhatsApp ຫາເຮົາພ້ອມລະຫັດການຈອງ. ເຮົາຈະປ່ຽນໃຫ້ຖ້າມີຫ້ອງວ່າງ ໂດຍບໍ່ເສຍຄ່າ.', 'โทรหรือส่ง WhatsApp พร้อมรหัสการจอง เราเปลี่ยนให้ฟรีหากมีห้องว่าง', 'Call or WhatsApp us with your booking code. We change it free of charge when a room is free.'],
+  faq3q: ['ມີລົດຮັບສົ່ງສະໜາມບິນບໍ?', 'มีรถรับส่งสนามบินไหม', 'Do you offer airport pickup?'],
+  faq3a: ['ມີ. ແຈ້ງເວລາຖ້ຽວບິນໃນຊ່ອງ "ຄຳຂໍພິເສດ" ຕອນຈອງ. ຄ່າບໍລິການ 150,000 ກີບຕໍ່ຖ້ຽວ.', 'มี แจ้งเวลาเที่ยวบินในช่อง "คำขอพิเศษ" ตอนจอง ค่าบริการ 150,000 กีบต่อเที่ยว', 'Yes. Add your flight time under "Special requests" when booking. It costs 150,000 LAK each way.'],
+  staffLogin: ['ສຳລັບພະນັກງານ', 'สำหรับพนักงาน', 'Staff login'],
+  // booking flow
+  step1: ['ເລືອກຫ້ອງ', 'เลือกห้อง', 'Room'], step2: ['ຂໍ້ມູນຜູ້ເຂົ້າພັກ', 'ข้อมูลผู้เข้าพัก', 'Your details'], step3: ['ກວດ ແລະ ຢືນຢັນ', 'ตรวจสอบและยืนยัน', 'Confirm'], step4: ['ມັດຈຳ', 'มัดจำ', 'Deposit'],
+  available: ['ວ່າງ', 'ว่าง', 'Available'], left: ['ເຫຼືອ {n} ຫ້ອງສຸດທ້າຍ', 'เหลือ {n} ห้องสุดท้าย', 'Only {n} left'], soldOut: ['ເຕັມແລ້ວສຳລັບວັນທີນີ້', 'เต็มแล้วสำหรับวันนี้', 'Full for these dates'],
+  tooMany: ['ສູງສຸດ {n} ທ່ານ', 'สูงสุด {n} ท่าน', 'Up to {n} guests'],
+  total: ['ລວມທັງໝົດ', 'รวมทั้งหมด', 'Total'], deposit: ['ມັດຈຳ', 'มัดจำ', 'Deposit'], payAtHotel: ['ຈ່າຍທີ່ໂຮງແຮມ', 'ชำระที่โรงแรม', 'Pay at the hotel'],
+  name: ['ຊື່ ແລະ ນາມສະກຸນ', 'ชื่อ-นามสกุล', 'Full name'], phone: ['ເບີໂທ / WhatsApp', 'เบอร์โทร / WhatsApp', 'Phone / WhatsApp'], email: ['ອີເມວ (ບໍ່ບັງຄັບ)', 'อีเมล (ไม่บังคับ)', 'Email (optional)'],
+  country: ['ປະເທດ', 'ประเทศ', 'Country'], request: ['ຄຳຂໍພິເສດ (ບໍ່ບັງຄັບ)', 'คำขอพิเศษ (ไม่บังคับ)', 'Special requests (optional)'],
+  requestPh: ['ເຊັ່ນ ເວລາມາຮອດ, ລົດຮັບສະໜາມບິນ, ຫ້ອງຊັ້ນສູງ', 'เช่น เวลาถึง รถรับสนามบิน ห้องชั้นสูง', 'Arrival time, airport pickup, a high floor…'],
+  promo: ['ລະຫັດສ່ວນຫຼຸດ', 'โค้ดส่วนลด', 'Promo code'], apply: ['ໃຊ້', 'ใช้', 'Apply'],
+  promoOk: ['ຫຼຸດ {p}', 'ลด {p}', '{p} off applied'], phoneHint: ['ເຮົາໃຊ້ເບີນີ້ຢືນຢັນການຈອງ ແລະ ໃຫ້ທ່ານກວດການຈອງໄດ້', 'เราใช้เบอร์นี้ยืนยันการจองและให้คุณตรวจสอบการจอง', 'We use this number to confirm your stay and let you look up your booking'],
+  next: ['ຕໍ່ໄປ', 'ถัดไป', 'Continue'], back: ['ກັບຄືນ', 'ย้อนกลับ', 'Back'], confirmBook: ['ຢືນຢັນການຈອງ', 'ยืนยันการจอง', 'Confirm booking'],
+  agree: ['ຂ້ອຍຍອມຮັບນະໂຍບາຍການພັກ ແລະ ການຍົກເລີກ', 'ฉันยอมรับนโยบายการเข้าพักและการยกเลิก', 'I accept the house and cancellation policies'],
+  room: ['ຫ້ອງ', 'ห้อง', 'Room'], stay: ['ການພັກ', 'การเข้าพัก', 'Stay'], guestL: ['ຜູ້ເຂົ້າພັກ', 'ผู้เข้าพัก', 'Guest'],
+  booked: ['ຈອງສຳເລັດ', 'จองสำเร็จ', 'You are booked'], yourCode: ['ລະຫັດການຈອງຂອງທ່ານ', 'รหัสการจองของคุณ', 'Your booking code'],
+  keepCode: ['ເກັບລະຫັດນີ້ໄວ້. ໃຊ້ຄູ່ກັບເບີໂທເພື່ອກວດ ຫຼື ຈ່າຍມັດຈຳພາຍຫຼັງ.', 'เก็บรหัสนี้ไว้ ใช้คู่กับเบอร์โทรเพื่อตรวจสอบหรือชำระมัดจำภายหลัง', 'Keep this code. With your phone number it lets you check the booking or pay the deposit later.'],
+  payNowT: ['ຈ່າຍມັດຈຳ {a} ເພື່ອລັອກຫ້ອງ', 'ชำระมัดจำ {a} เพื่อล็อกห้อง', 'Pay the {a} deposit to lock the room'],
+  qrSample: ['QR ຕົວຢ່າງ ໃນໂໝດສາທິດ — ບໍ່ມີການຕັດເງິນແທ້', 'QR ตัวอย่างในโหมดสาธิต — ไม่มีการตัดเงินจริง', 'Sample QR in demo mode: no money moves'],
+  transferRef: ['ເລກອ້າງອີງການໂອນ', 'เลขอ้างอิงการโอน', 'Transfer reference'], transferPh: ['ເຊັ່ນ ເລກທຸລະກຳ BCEL', 'เช่น เลขรายการ BCEL', 'e.g. BCEL transaction no.'],
+  sendRef: ['ແຈ້ງການໂອນ', 'แจ้งการโอน', 'Send transfer details'], payLater: ['ຈ່າຍພາຍຫຼັງ', 'ชำระภายหลัง', 'I will pay later'],
+  claimSent: ['ໄດ້ຮັບແລ້ວ. ພະນັກງານຈະກວດກັບທະນາຄານ ແລະ ຢືນຢັນໃຫ້ທ່ານ.', 'ได้รับแล้ว พนักงานจะตรวจสอบกับธนาคารและยืนยันให้คุณ', 'Received. Our team will check it with the bank and confirm.'],
+  done: ['ສຳເລັດ', 'เสร็จสิ้น', 'Done'], seeYou: ['ພົບກັນທີ່ {h}', 'แล้วพบกันที่ {h}', 'See you at {h}'],
+  // manage
+  manageTitle: ['ກວດການຈອງ', 'ตรวจสอบการจอง', 'Find your booking'], code: ['ລະຫັດການຈອງ', 'รหัสการจอง', 'Booking code'],
+  find: ['ຄົ້ນຫາ', 'ค้นหา', 'Find booking'], notFound: ['ບໍ່ພົບການຈອງ. ກວດລະຫັດ ແລະ ເບີໂທທີ່ໃຊ້ຕອນຈອງ.', 'ไม่พบการจอง ตรวจสอบรหัสและเบอร์โทรที่ใช้ตอนจอง', 'No booking matches. Check the code and the phone number you booked with.'],
+  st_confirmed: ['ຢືນຢັນແລ້ວ', 'ยืนยันแล้ว', 'Confirmed'], st_inhouse: ['ກຳລັງພັກ', 'กำลังเข้าพัก', 'In house'], st_out: ['ອອກແລ້ວ', 'เช็คเอาท์แล้ว', 'Checked out'],
+  st_cancelled: ['ຍົກເລີກແລ້ວ', 'ยกเลิกแล้ว', 'Cancelled'], st_noshow: ['ບໍ່ໄດ້ມາພັກ', 'ไม่ได้มาเข้าพัก', 'No-show'],
+  paid: ['ຈ່າຍແລ້ວ', 'ชำระแล้ว', 'Paid'], checking: ['ລໍຖ້າກວດ', 'รอตรวจสอบ', 'Being checked'], due: ['ຍັງຄ້າງ', 'ค้างชำระ', 'Still due'],
+  depPaid: ['ມັດຈຳຄົບແລ້ວ — ຫ້ອງຖືກລັອກໄວ້ໃຫ້ທ່ານ', 'มัดจำครบแล้ว — ห้องถูกล็อกไว้ให้คุณ', 'Deposit received: your room is locked in'],
+  payDeposit: ['ຈ່າຍມັດຈຳ', 'ชำระมัดจำ', 'Pay deposit'],
+  demoBanner: ['ໂໝດສາທິດ: ການຈອງຖືກເກັບໃນ browser ນີ້ ແລະ ເຫັນໄດ້ໃນລະບົບຫຼັງບ້ານ', 'โหมดสาธิต: การจองถูกเก็บใน browser นี้ และเห็นได้ในระบบหลังบ้าน', 'Demo mode: bookings are kept in this browser and appear in the back office'],
+  openAdmin: ['ເປີດລະບົບຫຼັງບ້ານ', 'เปิดระบบหลังบ้าน', 'Open back office'],
+  close: ['ປິດ', 'ปิด', 'Close'], loading: ['ກຳລັງໂຫຼດ…', 'กำลังโหลด…', 'Loading…'],
+  e_sold_out: ['ຫ້ອງປະເພດນີ້ເຕັມແລ້ວ. ກະລຸນາເລືອກຫ້ອງອື່ນ ຫຼື ວັນອື່ນ.', 'ห้องประเภทนี้เต็มแล้ว กรุณาเลือกห้องหรือวันอื่น', 'That room just sold out. Please pick another room or dates.'],
+  e_promo_invalid: ['ລະຫັດນີ້ໃຊ້ບໍ່ໄດ້ ຫຼື ໝົດອາຍຸ', 'โค้ดนี้ใช้ไม่ได้หรือหมดอายุ', 'That code is not valid or has expired'],
+  e_date_in_past: ['ມື້ເຂົ້າພັກຕ້ອງເປັນມື້ນີ້ ຫຼື ຫຼັງຈາກນີ້', 'วันเข้าพักต้องเป็นวันนี้หรือหลังจากนี้', 'Check-in must be today or later'],
+  e_invalid_dates: ['ມື້ອອກຕ້ອງຫຼັງມື້ເຂົ້າ', 'วันออกต้องหลังวันเข้า', 'Check-out must be after check-in'],
+  e_stay_too_long: ['ຈອງອອນລາຍໄດ້ສູງສຸດ 30 ຄືນ. ພັກດົນກວ່ານີ້ກະລຸນາຕິດຕໍ່ເຮົາ.', 'จองออนไลน์ได้สูงสุด 30 คืน พักนานกว่านี้กรุณาติดต่อเรา', 'Online bookings are up to 30 nights. Contact us for longer stays.'],
+  e_name_required: ['ກະລຸນາໃສ່ຊື່ ແລະ ນາມສະກຸນ', 'กรุณากรอกชื่อ-นามสกุล', 'Enter your full name'],
+  e_phone_required: ['ກະລຸນາໃສ່ເບີໂທຢ່າງໜ້ອຍ 8 ຕົວເລກ', 'กรุณากรอกเบอร์โทรอย่างน้อย 8 หลัก', 'Enter a phone number with at least 8 digits'],
+  e_too_many_guests: ['ຫ້ອງນີ້ຮັບຜູ້ເຂົ້າພັກບໍ່ພໍ', 'ห้องนี้รับผู้เข้าพักไม่พอ', 'This room cannot take that many guests'],
+  e_invalid_amount: ['ຈຳນວນເງິນບໍ່ຖືກຕ້ອງ', 'จำนวนเงินไม่ถูกต้อง', 'That amount is not valid'],
+  e_too_many_claims: ['ທ່ານແຈ້ງການໂອນໄປແລ້ວ. ກະລຸນາລໍຖ້າພະນັກງານກວດ.', 'คุณแจ้งการโอนแล้ว กรุณารอพนักงานตรวจสอบ', 'You have already sent this. Please wait while we check it.'],
+  e_not_payable: ['ການຈອງນີ້ຈ່າຍມັດຈຳບໍ່ໄດ້ແລ້ວ', 'การจองนี้ชำระมัดจำไม่ได้แล้ว', 'This booking can no longer take a deposit'],
+  e_agree: ['ກະລຸນາຍອມຮັບນະໂຍບາຍກ່ອນ', 'กรุณายอมรับนโยบายก่อน', 'Please accept the policies first'],
+  e_unknown: ['ມີບາງຢ່າງຜິດພາດ. ກະລຸນາລອງໃໝ່ ຫຼື ໂທຫາເຮົາ.', 'มีบางอย่างผิดพลาด กรุณาลองใหม่หรือโทรหาเรา', 'Something went wrong. Please try again or call us.']
+};
+const SCOUNTRIES = { LA: ['ລາວ', 'ลาว', 'Laos'], TH: ['ໄທ', 'ไทย', 'Thailand'], CN: ['ຈີນ', 'จีน', 'China'], VN: ['ຫວຽດນາມ', 'เวียดนาม', 'Vietnam'], KR: ['ເກົາຫຼີ', 'เกาหลี', 'Korea'], JP: ['ຍີ່ປຸ່ນ', 'ญี่ปุ่น', 'Japan'], FR: ['ຝຣັ່ງ', 'ฝรั่งเศส', 'France'], DE: ['ເຢຍລະມັນ', 'เยอรมนี', 'Germany'], US: ['ອາເມລິກາ', 'สหรัฐฯ', 'USA'], AU: ['ອົດສະຕຣາລີ', 'ออสเตรเลีย', 'Australia'], OT: ['ອື່ນໆ', 'อื่นๆ', 'Other'] };
+
+// ===== GUEST WEBSITE =====
+(function () {
+  const LANGS = ['lo', 'th', 'en'];
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let lang = 'lo';
+  try { const l = localStorage.getItem('saynam-lang'); if (LANGS.includes(l)) lang = l; } catch (e) { }
+  const li = () => LANGS.indexOf(lang);
+  const t = (k, p) => { let s = (SX[k] || [k, k, k])[li()]; if (p) s = s.replace(/\{(\w+)\}/g, (_, x) => p[x] ?? ''); return s; };
+  const L = o => !o ? '' : typeof o === 'string' ? o : (o[lang] || o.en || o.lo || '');
+  const kip = n => '₭ ' + Math.round(n).toLocaleString('en-US');
+  const pct = n => (+n) + '%';
+  const dfm = d => d ? d.slice(8) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '';
+  const nights = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+  const addD = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const errText = e => { const k = 'e_' + ((e && e.code) || 'unknown'); return SX[k] ? t(k) : t('e_unknown'); };
+
+  let CAT = null;
+  const Q = { ci: null, co: null, ad: 2 };
+  const F = { open: false, step: 1, avail: null, sel: null, name: '', phone: '', email: '', country: 'LA', request: '', promo: '', promoPct: 0, agree: false, result: null, claimed: false, busy: false, msg: '', claimRef: '', manage: false, mCode: '', mPhone: '', mData: null, mMsg: '' };
+
+  // ---------- art ----------
+  const ICONS = {
+    wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/>',
+    cup: '<path d="M4 8h13v5a6 6 0 0 1-12 0zM17 9h1.5a2.5 2.5 0 0 1 0 5H17M7 3v2M11 3v2"/>',
+    wave: '<path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+    snow: '<path d="M12 2v20M4.9 6l14.2 12M19.1 6 4.9 18M9 4l3 2 3-2M9 20l3-2 3 2"/>',
+    plane: '<path d="M10 14 3 11l1-2 7 1 4-6h2l-1 7 5 1v2l-5 1 1 7h-2l-4-6-7 1-1-2z"/>',
+    car: '<path d="M4 16V11l2-5h12l2 5v5M4 16h16M4 16v2M20 16v2M7 13h.01M17 13h.01"/>',
+    shirt: '<path d="m8 3-5 3 2 4 2-1v12h10V9l2 1 2-4-5-3a3 3 0 0 1-8 0z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    map: '<path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2zM9 4v14M15 6v14"/>',
+    tv: '<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/>',
+    bath: '<path d="M3 12h18v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM6 12V5a2 2 0 0 1 4 0M7 19l-1 2M17 19l1 2"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>',
+    kettle: '<path d="M6 10h11l1 9H5zM9 10V7a3 3 0 0 1 6 0v3M17 12l3-2"/>',
+    lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    bed: '<path d="M3 18V8M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5M7 12a2 2 0 1 0 0-.01"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    area: '<path d="M4 4h16v16H4zM4 9h5M15 20v-5"/>',
+    tag: '<path d="M3 12V3h9l9 9-9 9zM7.5 7.5h.01"/>', shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>', qr: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/>',
+    dot: '<circle cx="12" cy="12" r="3"/>'
+  };
+  const ico = (k, s) => `<svg width="${s || 18}" height="${s || 18}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.dot}</svg>`;
+
+  function scene() {
+    // dawn over the Mekong: layered hills on the far bank, river glints, a long-tail boat
+    const glints = Array.from({ length: 16 }, (_, i) => { const y = 318 + i * 9, w = 120 - i * 6 + (i % 3) * 14; return `<rect x="${980 - w / 2 + (i % 2 ? 18 : -14)}" y="${y}" width="${w}" height="2.2" rx="1.1" fill="var(--glint)" opacity="${0.75 - i * 0.04}"/>`; }).join('');
+    return `<svg class="scene" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky1)"/><stop offset=".62" stop-color="var(--sky2)"/><stop offset="1" stop-color="var(--sky3)"/></linearGradient>
+      <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--water1)"/><stop offset="1" stop-color="var(--water2)"/></linearGradient>
+      <radialGradient id="halo"><stop offset="0" stop-color="var(--sun)" stop-opacity=".9"/><stop offset="1" stop-color="var(--sun)" stop-opacity="0"/></radialGradient></defs>
+      <rect width="1440" height="520" fill="url(#sky)"/>
+      <circle cx="980" cy="268" r="170" fill="url(#halo)"/><circle cx="980" cy="270" r="54" fill="var(--sun)"/>
+      <path d="M0 292 C120 268 210 280 320 262 S520 246 640 266 S860 240 1000 262 S1260 248 1440 270 V320 H0Z" fill="var(--hill1)" opacity=".75"/>
+      <path d="M0 304 C160 290 300 300 420 288 S700 296 820 286 S1120 298 1240 290 S1380 296 1440 292 V322 H0Z" fill="var(--hill2)"/>
+      <rect y="312" width="1440" height="208" fill="url(#water)"/>${glints}
+      <g transform="translate(1130 400)" fill="var(--bank)"><path d="M0 0 H150 L136 14 H10Z"/><rect x="44" y="-16" width="46" height="16" rx="3"/><path d="M146 -6 L178 -22" stroke="var(--bank)" stroke-width="3"/></g>
+      <path d="M0 470 C200 452 380 462 560 450 S900 470 1080 458 S1320 466 1440 456 V520 H0Z" fill="var(--bank)" opacity=".9"/>
+    </svg>`;
+  }
+  const ROOMCOL = { STD: ['#d9cdb8', '#7a8f88'], DLX: ['#cfdad6', '#3f7a71'], FAM: ['#e3d3c0', '#b57b45'], STE: ['#d6cbd8', '#6d4f74'] };
+  function roomArt(id, small) {
+    const [wall, accent] = ROOMCOL[id] || ['#d9d4c8', '#557a72'];
+    const wide = id === 'STE' || id === 'FAM';
+    return `<svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="225" fill="${wall}"/>
+      <rect y="168" width="400" height="57" fill="#a8835e" opacity=".55"/>
+      <g transform="translate(${wide ? 196 : 222} 30)"><rect width="${wide ? 176 : 146}" height="104" rx="4" fill="#f6e2bf"/>
+        <rect y="62" width="${wide ? 176 : 146}" height="42" fill="#6f9a95"/><rect y="56" width="${wide ? 176 : 146}" height="8" fill="#5d7f7a" opacity=".7"/>
+        <circle cx="${wide ? 120 : 100}" cy="54" r="12" fill="#fff2d2"/><rect y="70" x="${wide ? 96 : 76}" width="44" height="2" fill="#fff3dc"/>
+        <rect width="${wide ? 176 : 146}" height="104" rx="4" fill="none" stroke="#f8f4ec" stroke-width="6"/><path d="M${wide ? 88 : 73} 0V104" stroke="#f8f4ec" stroke-width="4"/></g>
+      <g transform="translate(26 112)"><rect width="${wide ? 166 : 186}" height="58" rx="8" fill="#fbf8f2"/><rect y="-34" width="18" height="92" rx="4" fill="${accent}"/>
+        <rect x="24" y="-12" width="48" height="22" rx="8" fill="#ffffff"/><rect x="${wide ? 80 : 80}" y="-12" width="48" height="22" rx="8" fill="#ffffff"/>
+        <rect x="${wide ? 70 : 92}" y="10" width="${wide ? 96 : 94}" height="48" rx="6" fill="${accent}" opacity=".85"/></g>
+      ${id === 'FAM' ? '<g transform="translate(26 182)"><rect width="70" height="26" rx="6" fill="#fbf8f2"/><rect x="80" width="70" height="26" rx="6" fill="#fbf8f2"/></g>' : ''}
+      ${id === 'STE' ? '<g transform="translate(232 150)"><rect width="120" height="34" rx="10" fill="' + accent + '"/><rect x="8" y="-14" width="104" height="20" rx="8" fill="' + accent + '" opacity=".75"/></g>' : ''}
+      ${small ? '' : `<rect x="${wide ? 160 : 186}" y="96" width="4" height="56" fill="#3b3b35" opacity=".5"/><ellipse cx="${wide ? 162 : 188}" cy="96" rx="14" ry="8" fill="#f3e2b8"/>`}
+    </svg>`;
+  }
+
+  // ---------- page ----------
+  function render() {
+    document.documentElement.lang = lang;
+    const h = CAT.hotel;
+    const minRate = Math.min(...CAT.types.map(x => x.direct_rate));
+    document.title = h.name;
+    const amenName = id => { const a = CAT.amenities.find(x => x.id === id); return a ? L(a.name) : id; };
+    const amenIcon = id => { const a = CAT.amenities.find(x => x.id === id); return a ? a.icon : 'dot'; };
+    $('#app').innerHTML = `
+    ${API.live ? '' : `<div class="demo"><div class="wrap"><span>${t('demoBanner')}</span><a href="admin.html">${t('openAdmin')} →</a></div></div>`}
+    <header class="hdr"><div class="wrap">
+      <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="var(--river)"/><path d="M6 18c3-2.4 5.5-2.4 8.5 0s5.5 2.4 8.5 0 2.6-1.8 3-1.4M6 22c3-2.4 5.5-2.4 8.5 0s5.5 2.4 8.5 0" stroke="#fff6e8" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="21" cy="11" r="3.4" fill="var(--champa)"/></svg><b>${esc(h.name)}</b></a>
+      <nav class="links" aria-label="Sections"><a href="#rooms">${t('nav_rooms')}</a><a href="#amenities">${t('nav_amen')}</a><a href="#location">${t('nav_loc')}</a><a href="#" data-act="manage">${t('nav_manage')}</a></nav>
+      <div class="lang" role="group" aria-label="Language">${[['lo', 'ລາວ'], ['th', 'ไทย'], ['en', 'EN']].map(([k, l]) => `<button class="${lang === k ? 'on' : ''}" data-act="lang" data-l="${k}">${l}</button>`).join('')}</div>
+      <button class="btn cta" data-act="book">${t('bookNow')}</button>
+    </div></header>
+    <section class="hero" id="top">${scene()}<div class="wrap"><span class="eyebrow">Vientiane · Lao PDR</span><h1>${esc(L(h.tagline))}</h1><p>${esc(L(h.about))}</p></div></section>
+    <div class="wrap search"><form class="sbar" id="sform">
+      <label><span>${t('arrive')}</span><input type="date" id="q_ci" value="${Q.ci}" min="${h.business_date}" required></label>
+      <label><span>${t('depart')}</span><input type="date" id="q_co" value="${Q.co}" min="${addD(h.business_date, 1)}" required></label>
+      <label><span>${t('guests')}</span><select id="q_ad">${[1, 2, 3, 4].map(n => `<option ${n === Q.ad ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      <button class="btn cta" type="submit">${t('search')}</button>
+      <div class="nights tnum" id="q_n">${nights(Q.ci, Q.co)} ${t('nights')} · ${dfm(Q.ci)} → ${dfm(Q.co)}</div>
+    </form>
+    <div class="why">
+      <div><i>${ico('tag')}</i><div><b>${t('why1t')}</b><span>${t('why1d', { p: pct(h.direct_discount) })}</span></div></div>
+      <div><i>${ico('shield')}</i><div><b>${t('why2t')}</b><span>${t('why2d', { n: h.free_cancel_days })}</span></div></div>
+      <div><i>${ico('qr')}</i><div><b>${t('why3t', { p: pct(h.deposit_pct) })}</b><span>${t('why3d')}</span></div></div>
+    </div></div>
+    <section class="blk" id="rooms"><div class="wrap"><div class="blk-h"><h2>${t('roomsTitle')}</h2><p>${t('from')} ${kip(minRate)} ${t('perNight')}</p></div>
+      <div class="rooms">${CAT.types.map(x => `<article class="room"><div class="art">${roomArt(x.id)}</div><div class="body">
+        <h3>${esc(L(x.name))}</h3>
+        <div class="meta"><span>${ico('user', 16)}${t('sleeps', { n: x.capacity })}</span><span>${ico('bed', 16)}${esc(L(x.bed))}</span>${x.size_m2 ? `<span>${ico('area', 16)}${t('sqm', { n: x.size_m2 })}</span>` : ''}</div>
+        <p>${esc(L(x.description))}</p>
+        <div class="chips">${(x.amenities || []).map(a => `<span class="chip">${ico(amenIcon(a), 14)}${esc(amenName(a))}</span>`).join('')}</div>
+        <div class="foot"><div class="price"><small>${t('perNight')}</small><b>${kip(x.direct_rate)}</b>${x.base_rate > x.direct_rate ? `<s>${kip(x.base_rate)}</s>` : ''}</div><button class="btn dark" data-act="book" data-t="${x.id}">${t('choose')}</button></div>
+      </div></article>`).join('')}</div></div></section>
+    <section class="blk" id="amenities" style="background:var(--mist)"><div class="wrap"><div class="blk-h"><h2>${t('amenTitle')}</h2></div>
+      <div class="amen">${CAT.amenities.map(a => `<div><i>${ico(a.icon)}</i>${esc(L(a.name))}</div>`).join('')}</div></div></section>
+    <section class="blk" id="location"><div class="wrap two">
+      <div class="panel"><h3>${t('locTitle')}</h3>
+        <div class="contact"><span class="k">${t('nav_loc')}</span><span>${esc(h.address)}</span>${h.map_url ? `<a class="btn" href="${esc(h.map_url)}" target="_blank" rel="noopener">${t('openMap')}</a>` : '<span></span>'}
+          <span class="k">${t('phone')}</span><span class="tnum" id="hphone">${esc(h.phone)}</span><button class="btn" data-act="copy" data-v="${esc(h.phone)}">${t('copy')}</button>
+          <span class="k">Email</span><span>${esc(h.email)}</span><button class="btn" data-act="copy" data-v="${esc(h.email)}">${t('copy')}</button></div>
+      </div>
+      <div class="panel"><h3>${t('policies')}</h3><ul class="pol">
+        <li>${t('pol_in', { t: h.check_in_time })} · ${t('pol_out', { t: h.check_out_time })}</li>
+        <li>${t('pol_dep', { p: pct(h.deposit_pct) })}</li><li>${t('pol_cancel', { n: h.free_cancel_days })}</li>
+        <li>${t(h.prices_incl_vat ? 'pol_vat' : 'pol_vatx', { r: +h.vat_rate })}</li></ul></div>
+    </div>
+    <div class="wrap" style="margin-top:28px"><h2 style="font-size:28px;margin-bottom:8px">${t('faqTitle')}</h2>
+      <details><summary>${t('faq1q')}</summary><p>${esc(L(h.payment_note))}</p></details>
+      <details><summary>${t('faq2q')}</summary><p>${t('faq2a')}</p></details>
+      <details><summary>${t('faq3q')}</summary><p>${t('faq3a')}</p></details></div></section>
+    <footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(h.name)} · ${esc(h.address)}</span><span><a href="#" data-act="manage">${t('nav_manage')}</a> · <a href="admin.html">${t('staffLogin')}</a></span></div></footer>`;
+    renderSheet();
+  }
+
+  // ---------- booking sheet ----------
+  const stepNames = ['step1', 'step2', 'step3', 'step4'];
+  function sheetShell(title, body, foot, step) {
+    return `<div class="scrim" data-act="closeSheet"></div><div class="pane" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+      <div class="pane-h"><h2>${esc(title)}</h2><button class="btn ghost" data-act="closeSheet" aria-label="${esc(t('close'))}">✕</button></div>
+      ${step ? `<div class="steps">${stepNames.map((_, i) => `<span class="${i < step ? 'on' : ''}"></span>`).join('')}</div><div class="steplabel">${step}/4 · ${t(stepNames[step - 1])}</div>` : ''}
+      <div class="pane-b">${body}</div>${foot ? `<div class="pane-f">${foot}</div>` : ''}</div>`;
+  }
+  function quote() {
+    const x = CAT.types.find(y => y.id === F.sel); if (!x) return null;
+    const rate = Math.round(x.direct_rate * (1 - F.promoPct / 100) / 1000) * 1000, n = nights(Q.ci, Q.co), total = rate * n;
+    return { x, rate, n, total, dep: Math.round(total * CAT.hotel.deposit_pct / 100 / 10000) * 10000 };
+  }
+  function renderSheet() {
+    const el = $('#sheet');
+    if (F.manage) { el.hidden = false; el.innerHTML = manageView(); return; }
+    if (!F.open) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    const msg = F.msg ? `<div class="msg bad">${esc(F.msg)}</div>` : '';
+    if (F.step === 1) {
+      const n = nights(Q.ci, Q.co);
+      const list = !F.avail ? `<div class="msg info">${t('loading')}</div>` : CAT.types.map(x => {
+        const a = F.avail.find(v => v.type_id === x.id) || { free: 0 }, cap = Q.ad > x.capacity, sold = !a.free || cap;
+        return `<button class="opt ${sold ? 'sold' : ''}" ${sold ? 'disabled aria-disabled="true"' : `data-act="pick" data-t="${x.id}"`}><div class="thumb">${roomArt(x.id, true)}</div><div>
+          <b>${esc(L(x.name))}</b><div class="row"><span class="tnum">${kip(x.direct_rate)} <small style="color:var(--sub)">/ ${t('night')}</small></span><span class="tnum" style="font-weight:600">${kip(x.direct_rate * n)}</span></div>
+          <div class="row"><small style="color:var(--sub)">${t('sleeps', { n: x.capacity })} · ${esc(L(x.bed))}</small>${cap ? `<span class="flag bad">${t('tooMany', { n: x.capacity })}</span>` : !a.free ? `<span class="flag bad">${t('soldOut')}</span>` : a.free <= 2 ? `<span class="flag">${t('left', { n: a.free })}</span>` : `<span class="flag ok">${t('available')}</span>`}</div></div></button>`;
+      }).join('');
+      el.innerHTML = sheetShell(t('bookNow'), `<div class="mini"><label class="field"><span>${t('arrive')}</span><input class="in" type="date" id="f_ci" value="${Q.ci}" min="${CAT.hotel.business_date}"></label>
+        <label class="field"><span>${t('depart')}</span><input class="in" type="date" id="f_co" value="${Q.co}" min="${addD(CAT.hotel.business_date, 1)}"></label>
+        <label class="field"><span>${t('guests')}</span><select class="in" id="f_ad">${[1, 2, 3, 4].map(v => `<option ${v === Q.ad ? 'selected' : ''}>${v}</option>`).join('')}</select></label></div>${msg}${list}`, '', 1);
+      return;
+    }
+    const q = quote();
+    if (F.step === 2) {
+      el.innerHTML = sheetShell(t('bookNow'), `<div class="summary"><span class="k">${t('room')}</span><span class="v">${esc(L(q.x.name))}</span><span class="k">${t('stay')}</span><span class="v">${dfm(Q.ci)} → ${dfm(Q.co)} · ${q.n} ${t('nights')}</span></div>
+        <label class="field"><span>${t('name')}</span><input class="in" id="f_name" value="${esc(F.name)}" autocomplete="name" required></label>
+        <label class="field"><span>${t('phone')}</span><input class="in" id="f_phone" value="${esc(F.phone)}" inputmode="tel" autocomplete="tel" placeholder="+856 20 …" required><small>${t('phoneHint')}</small></label>
+        <label class="field"><span>${t('email')}</span><input class="in" id="f_email" type="email" value="${esc(F.email)}" autocomplete="email"></label>
+        <label class="field"><span>${t('country')}</span><select class="in" id="f_country">${Object.keys(SCOUNTRIES).map(k => `<option value="${k}" ${F.country === k ? 'selected' : ''}>${esc(SCOUNTRIES[k][li()])}</option>`).join('')}</select></label>
+        <label class="field"><span>${t('request')}</span><textarea class="in" id="f_req" rows="2" placeholder="${esc(t('requestPh'))}">${esc(F.request)}</textarea></label>
+        <div class="field"><span>${t('promo')}</span><div style="display:flex;gap:8px"><input class="in" id="f_promo" value="${esc(F.promo)}" autocomplete="off" style="text-transform:uppercase"><button class="btn" data-act="promo">${t('apply')}</button></div>
+          ${F.promoPct ? `<div class="msg ok">${t('promoOk', { p: pct(F.promoPct) })}</div>` : ''}</div>${msg}`,
+        `<div class="sum">${t('total')}<b>${kip(q.total)}</b></div><button class="btn" data-act="step" data-s="1">${t('back')}</button><button class="btn cta" data-act="toReview">${t('next')}</button>`, 2);
+      return;
+    }
+    if (F.step === 3) {
+      el.innerHTML = sheetShell(t('bookNow'), `<div class="summary">
+          <span class="k">${t('room')}</span><span class="v">${esc(L(q.x.name))}</span>
+          <span class="k">${t('stay')}</span><span class="v">${dfm(Q.ci)} → ${dfm(Q.co)}</span>
+          <span class="k">${t('guestL')}</span><span class="v">${esc(F.name)} · ${Q.ad} ${t('guests').toLowerCase()}</span>
+          <span class="k">${kip(q.rate)} × ${q.n} ${t('nights')}</span><span class="v">${kip(q.total)}</span>
+          ${F.promoPct ? `<span class="k">${t('promo')} ${esc(F.promo)}</span><span class="v">−${pct(F.promoPct)}</span>` : ''}
+          <span class="k tot">${t('total')}</span><span class="v tot">${kip(q.total)}</span>
+          <span class="k">${t('deposit')} ${pct(CAT.hotel.deposit_pct)}</span><span class="v">${kip(q.dep)}</span>
+          <span class="k">${t('payAtHotel')}</span><span class="v">${kip(q.total - q.dep)}</span></div>
+        <ul class="pol"><li>${t('pol_in', { t: CAT.hotel.check_in_time })} · ${t('pol_out', { t: CAT.hotel.check_out_time })}</li><li>${t('pol_cancel', { n: CAT.hotel.free_cancel_days })}</li></ul>
+        <label class="check"><input type="checkbox" id="f_agree" ${F.agree ? 'checked' : ''}> ${t('agree')}</label>${msg}`,
+        `<div class="sum">${t('total')}<b>${kip(q.total)}</b></div><button class="btn" data-act="step" data-s="2">${t('back')}</button><button class="btn cta" data-act="confirm" ${F.busy ? 'disabled' : ''}>${t('confirmBook')}</button>`, 3);
+      return;
+    }
+    // step 4
+    const r = F.result;
+    el.innerHTML = sheetShell(t('booked'), `<div class="codebox"><span>${t('yourCode')}</span><span class="code">${esc(r.code)}</span><button class="btn" data-act="copy" data-v="${esc(r.code)}">${t('copy')}</button><small style="color:var(--sub);max-width:40ch">${t('keepCode')}</small></div>
+      ${F.claimed ? `<div class="msg ok">${t('claimSent')}</div><p style="margin:0">${t('seeYou', { h: esc(CAT.hotel.name) })}</p>` : payBlock(r.deposit_due, r.code)}${msg}`,
+      F.claimed ? `<button class="btn cta block" data-act="closeSheet">${t('done')}</button>` : `<button class="btn" data-act="closeSheet">${t('payLater')}</button><button class="btn cta" data-act="claim" ${F.busy ? 'disabled' : ''}>${t('sendRef')}</button>`, 4);
+    drawQR(r.code);
+  }
+  function payBlock(amount, code) {
+    const img = window.HOTEL_CONFIG && window.HOTEL_CONFIG.paymentQrImage;
+    return `<h3 style="font-size:19px">${t('payNowT', { a: kip(amount) })}</h3>
+      <div class="qr">${img ? `<img src="${esc(img)}" alt="QR">` : `<canvas id="qrc" width="29" height="29" aria-label="QR"></canvas>`}<div class="txt"><span class="amt">${kip(amount)}</span><span>${esc(L(CAT.hotel.payment_note))}</span>${img ? '' : `<small style="color:var(--faint)">${t('qrSample')}</small>`}</div></div>
+      <label class="field"><span>${t('transferRef')}</span><input class="in" id="f_ref" value="${esc(F.claimRef)}" placeholder="${esc(t('transferPh'))}" autocomplete="off"></label>`;
+  }
+  function drawQR(seed) {
+    const c = document.getElementById('qrc'); if (!c) return; const g = c.getContext('2d');
+    let h = 0; for (const ch of String(seed)) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    const R = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(h);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, 29, 29); g.fillStyle = '#122220';
+    for (let y = 0; y < 29; y++) for (let x = 0; x < 29; x++) if (R() < .46) g.fillRect(x, y, 1, 1);
+    [[0, 0], [22, 0], [0, 22]].forEach(([x, y]) => { g.fillStyle = '#122220'; g.fillRect(x, y, 7, 7); g.fillStyle = '#fff'; g.fillRect(x + 1, y + 1, 5, 5); g.fillStyle = '#122220'; g.fillRect(x + 2, y + 2, 3, 3); });
+  }
+  function manageView() {
+    const d = F.mData, msg = F.mMsg ? `<div class="msg ${F.mMsg.k}">${esc(F.mMsg.t)}</div>` : '';
+    let body = `<label class="field"><span>${t('code')}</span><input class="in" id="m_code" value="${esc(F.mCode)}" autocomplete="off" style="text-transform:uppercase;letter-spacing:.1em"></label>
+      <label class="field"><span>${t('phone')}</span><input class="in" id="m_phone" value="${esc(F.mPhone)}" inputmode="tel"></label>${msg}`;
+    let foot = `<button class="btn cta block" data-act="find" ${F.busy ? 'disabled' : ''}>${t('find')}</button>`;
+    if (d) {
+      const due = Math.max(0, d.deposit_due - d.paid - d.pending_claims);
+      body = `<div class="summary"><span class="k">${t('guestL')}</span><span class="v">${esc(d.guest)}</span>
+        <span class="k">${t('code')}</span><span class="v" style="letter-spacing:.08em;font-weight:700">${esc(d.code)}</span>
+        <span class="k">${t('room')}</span><span class="v">${esc(L(d.type))}</span><span class="k">${t('stay')}</span><span class="v">${dfm(d.ci)} → ${dfm(d.co)} · ${d.nights} ${t('nights')}</span>
+        <span class="k">${t('total')}</span><span class="v">${kip(d.total)}</span><span class="k">${t('deposit')}</span><span class="v">${kip(d.deposit_due)}</span>
+        <span class="k">${t('paid')}</span><span class="v">${kip(d.paid)}</span>${d.pending_claims ? `<span class="k">${t('checking')}</span><span class="v">${kip(d.pending_claims)}</span>` : ''}
+        <span class="k tot">${t('due')}</span><span class="v tot">${kip(Math.max(0, d.total - d.paid))}</span></div>
+        <div><span class="status s-${d.status}">${t('st_' + d.status)}</span></div>
+        ${d.status === 'confirmed' && due > 0 && !F.claimed ? payBlock(due, d.code) : d.status === 'confirmed' && d.paid >= d.deposit_due ? `<div class="msg ok">${t('depPaid')}</div>` : ''}${msg}`;
+      foot = d.status === 'confirmed' && due > 0 && !F.claimed ? `<button class="btn" data-act="mReset">${t('back')}</button><button class="btn cta" data-act="mClaim" ${F.busy ? 'disabled' : ''}>${t('sendRef')}</button>` : `<button class="btn block" data-act="mReset">${t('back')}</button>`;
+      setTimeout(() => drawQR(d.code), 0);
+    }
+    return sheetShell(t('manageTitle'), body, foot, 0);
+  }
+
+  // ---------- actions ----------
+  async function loadAvail() {
+    F.avail = null; F.msg = ''; renderSheet();
+    try { F.avail = await API.availability(Q.ci, Q.co); } catch (e) { F.avail = []; F.msg = errText(e); }
+    renderSheet();
+  }
+  function openBooking(typeId) {
+    Object.assign(F, { open: true, manage: false, step: 1, sel: null, result: null, claimed: false, msg: '', agree: false, claimRef: '' });
+    document.body.style.overflow = 'hidden';
+    loadAvail().then(() => {
+      if (typeId) { const a = F.avail.find(v => v.type_id === typeId), x = CAT.types.find(y => y.id === typeId); if (a && a.free && Q.ad <= x.capacity) { F.sel = typeId; F.step = 2; renderSheet(); } }
+    });
+  }
+  function closeSheet() { F.open = false; F.manage = false; document.body.style.overflow = ''; renderSheet(); }
+  function readDetails() {
+    const g = id => (document.getElementById(id) || {}).value;
+    if (document.getElementById('f_name')) { F.name = g('f_name').trim(); F.phone = g('f_phone').trim(); F.email = g('f_email').trim(); F.country = g('f_country'); F.request = g('f_req'); F.promo = g('f_promo').trim().toUpperCase(); }
+  }
+  let toastT;
+  function toast(m) { const el = $('#toast'); el.textContent = m; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2200); }
+  const A = {
+    lang: d => { lang = d.l; try { localStorage.setItem('saynam-lang', lang); } catch (e) { } render(); },
+    book: d => openBooking(d.t),
+    closeSheet,
+    manage: () => { Object.assign(F, { manage: true, open: false, mData: null, mMsg: '', claimed: false, claimRef: '' }); document.body.style.overflow = 'hidden'; renderSheet(); },
+    pick: d => { F.sel = d.t; F.step = 2; F.msg = ''; renderSheet(); },
+    step: d => { readDetails(); F.step = +d.s; F.msg = ''; renderSheet(); },
+    promo: async () => {
+      readDetails(); F.msg = ''; F.promoPct = 0;
+      if (F.promo) { try { const p = await API.promo(F.promo); if (p == null) F.msg = t('e_promo_invalid'); else F.promoPct = +p; } catch (e) { F.msg = errText(e); } }
+      renderSheet();
+    },
+    toReview: async () => {
+      readDetails(); F.msg = '';
+      if (F.name.length < 2) F.msg = t('e_name_required'); else if (F.phone.replace(/\D/g, '').length < 8) F.msg = t('e_phone_required');
+      if (!F.msg && F.promo && !F.promoPct) { try { const p = await API.promo(F.promo); if (p == null) F.msg = t('e_promo_invalid'); else F.promoPct = +p; } catch (e) { F.msg = errText(e); } }
+      if (!F.msg && !F.promo) F.promoPct = 0;
+      if (!F.msg) F.step = 3; renderSheet();
+    },
+    confirm: async () => {
+      F.agree = $('#f_agree').checked; if (!F.agree) { F.msg = t('e_agree'); renderSheet(); return; }
+      F.busy = true; F.msg = ''; renderSheet();
+      try { F.result = await API.book({ ci: Q.ci, co: Q.co, type: F.sel, adults: Q.ad, name: F.name, phone: F.phone, email: F.email, country: F.country, request: F.request, promo: F.promo }); F.step = 4; }
+      catch (e) { F.msg = errText(e); if (e.code === 'sold_out') { F.step = 1; F.busy = false; loadAvail(); return; } }
+      F.busy = false; renderSheet();
+    },
+    claim: async () => {
+      F.claimRef = $('#f_ref').value.trim(); F.busy = true; F.msg = ''; renderSheet();
+      try { await API.claim(F.result.code, F.phone, F.result.deposit_due, F.claimRef); F.claimed = true; } catch (e) { F.msg = errText(e); }
+      F.busy = false; renderSheet();
+    },
+    find: async () => {
+      F.mCode = $('#m_code').value.trim().toUpperCase(); F.mPhone = $('#m_phone').value.trim(); F.busy = true; F.mMsg = ''; renderSheet();
+      try { F.mData = await API.lookup(F.mCode, F.mPhone); if (!F.mData) F.mMsg = { k: 'bad', t: t('notFound') }; } catch (e) { F.mMsg = { k: 'bad', t: errText(e) }; }
+      F.busy = false; renderSheet();
+    },
+    mClaim: async () => {
+      const d = F.mData, due = Math.max(0, d.deposit_due - d.paid - d.pending_claims); F.claimRef = $('#f_ref').value.trim(); F.busy = true; renderSheet();
+      try { await API.claim(d.code, F.mPhone, due, F.claimRef); F.claimed = true; F.mData = await API.lookup(F.mCode, F.mPhone); F.mMsg = { k: 'ok', t: t('claimSent') }; } catch (e) { F.mMsg = { k: 'bad', t: errText(e) }; }
+      F.busy = false; renderSheet();
+    },
+    mReset: () => { F.mData = null; F.mMsg = ''; F.claimed = false; renderSheet(); },
+    copy: (d) => { try { navigator.clipboard.writeText(d.v).then(() => toast(t('copied')), () => toast(d.v)); } catch (e) { toast(d.v); } }
+  };
+  document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (!el || el.disabled) return; const f = A[el.dataset.act]; if (f) { e.preventDefault(); f(el.dataset, el); } });
+  document.addEventListener('submit', e => { if (e.target.id === 'sform') { e.preventDefault(); readSearch(); openBooking(); } });
+  function readSearch() {
+    const ci = $('#q_ci').value, co = $('#q_co').value; Q.ad = +$('#q_ad').value;
+    if (ci) Q.ci = ci; if (co) Q.co = co; if (Q.co <= Q.ci) Q.co = addD(Q.ci, 1);
+  }
+  document.addEventListener('change', e => {
+    const id = e.target.id;
+    if (id === 'q_ci' || id === 'q_co' || id === 'q_ad') { readSearch(); const n = $('#q_n'); if (n) n.textContent = `${nights(Q.ci, Q.co)} ${t('nights')} · ${dfm(Q.ci)} → ${dfm(Q.co)}`; if (id === 'q_ci') $('#q_co').value = Q.co; }
+    if (id === 'f_ci' || id === 'f_co' || id === 'f_ad') {
+      Q.ci = $('#f_ci').value || Q.ci; Q.co = $('#f_co').value || Q.co; Q.ad = +$('#f_ad').value; if (Q.co <= Q.ci) Q.co = addD(Q.ci, 1);
+      loadAvail();
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && (F.open || F.manage)) closeSheet(); });
+
+  // ---------- boot ----------
+  (async function boot() {
+    try { CAT = await API.catalog(); } catch (e) { $('#app').innerHTML = `<div class="wrap" style="padding-block:60px"><div class="msg bad">${esc(errText(e))}</div></div>`; return; }
+    Q.ci = addD(CAT.hotel.business_date, 2); Q.co = addD(Q.ci, 2);
+    render();
+    if (location.hash === '#book') openBooking(); else if (location.hash === '#manage') A.manage();
+  })();
+})();
+
+</script>
+</body>
+</html>
