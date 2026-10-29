@@ -347,6 +347,13 @@ body.busy .btn{pointer-events:none}
 .stile.on{background:var(--surface-2);box-shadow:0 0 0 2px var(--accent) inset}
 @media (max-width:1100px){.staytiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:560px){.staytiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tiny{font-size:11px;margin-top:2px}
+.hitrow td{background:color-mix(in srgb,var(--warn) 12%,transparent)!important}
+.stayfind{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 14px;margin-bottom:12px}
+.stayfind #stq{flex:1;min-width:200px}
+.codeq{display:inline-flex;align-items:center;border:2px solid var(--accent);border-radius:10px;overflow:hidden;background:var(--surface)}
+.codeq .pre{padding:0 10px;font-weight:800;letter-spacing:.08em;color:var(--accent);background:var(--surface-2);align-self:stretch;display:flex;align-items:center}
+.codeq input{border:0;outline:none;padding:9px 10px;width:110px;font:600 16px/1 ui-monospace,monospace;letter-spacing:.15em;background:transparent;color:inherit}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -787,6 +794,7 @@ const Core = (function () {
         pending_claims: pend.reduce((s, c) => s + c.amt, 0), claims: claims.map(c => ({ amount: c.amt, status: c.status, at: c.at, decided_at: c.decided_at || null })),
         refund: r ? { amount: r.amount, fee: r.fee, pct: r.pct, status: r.status, paid_at: r.paid_at || null } : null, cancel_reason: b.cancel_reason || null,
         created: b.createdAt ? new Date(b.createdAt).toISOString() : b.created, confirmed_at: b.confirmed_at || null,
+        checked_in_at: b.ci_at || null, checked_out_at: b.co_at || null, room: ['inhouse', 'out'].includes(b.status) ? b.room : null, old_code: b.old_code || null,
         hold_until: b.status === 'pending' && b.createdAt ? new Date(b.createdAt + (S.settings.pending_hold_hours || 24) * 3600e3).toISOString() : null,
         cancel_until: dl.toISOString(), can_cancel: ['pending', 'confirmed'].includes(b.status) && Date.now() < dl.getTime() && !pend.length,
         refund_pct: b.status === 'confirmed' ? (S.settings.cancel_refund_pct ?? 80) : 100, held: b.pays.filter(p => p.dep && !p.applied).reduce((s, p) => s + p.amt, 0) };
@@ -1930,6 +1938,17 @@ Object.assign(ACTIONS, {
   'booking.confirmed': ['ຢືນຢັນການຈອງ (ໄດ້ຮັບເງິນແລ້ວ)', 'ยืนยันการจอง (ได้รับเงินแล้ว)', 'Booking confirmed (payment received)'], 'booking.guest_cancel': ['ລູກຄ້າຍົກເລີກການຈອງ', 'ลูกค้ายกเลิกการจอง', 'Guest cancelled booking'],
   'member.register': ['ສະໝັກສະມາຊິກ', 'สมัครสมาชิก', 'Member signed up'], 'refund.paid': ['ໂອນເງິນຄືນ', 'โอนเงินคืน', 'Refund paid']
 });
+Object.assign(TX, {
+  st_inhouse: ['ເຊັກອິນແລ້ວ', 'เช็คอินแล้ว', 'Checked in'], st_out: ['ເຊັກເອົາແລ້ວ', 'เช็คเอาท์แล้ว', 'Checked out'],
+  sg_notin: ['ຍັງບໍ່ເຊັກອິນ', 'ยังไม่เช็คอิน', 'Not checked in'], sgd_notin_all: ['ຈອງສຳເລັດ/ລໍຖ້າຊຳລະ ທຸກວັນທີ', 'จองสำเร็จ/รอชำระ ทุกวันที่', 'Booked or awaiting payment, any date'],
+  att_stay: ['ລໍຖ້າເຊັກອິນມື້ນີ້ {a} · ລໍຖ້າເຊັກເອົາ {b}', 'รอเช็คอินวันนี้ {a} · รอเช็คเอาท์ {b}', 'To check in today {a} · to check out {b}'],
+  sl_action: ['ດຳເນີນການ', 'ดำเนินการ', 'Action'], ciFrom: ['ເຊັກອິນໄດ້ຕັ້ງແຕ່ {d}', 'เช็คอินได้ตั้งแต่ {d}', 'Check-in from {d}'], inDays: ['ອີກ {n} ມື້', 'อีก {n} วัน', 'in {n} days'],
+  sw_all: ['ທັງໝົດ', 'ทั้งหมด', 'All'], sw_today: ['ມາມື້ນີ້', 'มาวันนี้', 'Arriving today'], sw_late: ['ເລີຍກຳນົດ', 'เลยกำหนด', 'Overdue'], sw_soon: ['7 ມື້ຂ້າງໜ້າ', '7 วันข้างหน้า', 'Next 7 days'], sw_unpaid: ['ລໍຖ້າຊຳລະ', 'รอชำระ', 'Awaiting payment'],
+  bizLag: ['ວັນທຸລະກິດຍັງເປັນ {b} ແຕ່ມື້ນີ້ແມ່ນ {r}. ກົດ "ປິດຍອດປະຈຳວັນ" ໃຫ້ຄົບທຸກມື້ ຈຶ່ງຈະເຊັກອິນແຂກທີ່ມາຮອດມື້ນີ້ໄດ້.', 'วันทำการยังเป็น {b} แต่วันนี้คือ {r} กด "ปิดยอดประจำวัน" ให้ครบทุกวัน จึงจะเช็คอินแขกที่มาถึงวันนี้ได้', 'The business date is still {b} but today is {r}. Run "close the day" for each missing day before checking in today\'s arrivals.'],
+  sl_codeSearch: ['ຄົ້ນຫາລະຫັດການຈອງ', 'ค้นหารหัสการจอง', 'Find booking code'], sl_find: ['ຄົ້ນຫາລະຫັດ', 'ค้นหารหัส', 'Find code'], sl_clear: ['ລ້າງການຄົ້ນຫາ', 'ล้างการค้นหา', 'Clear'],
+  sl_search: ['ຫຼື ຄົ້ນຫາຊື່, ຫ້ອງ, ເບີໂທ', 'หรือค้นหาชื่อ ห้อง เบอร์โทร', 'or search name, room, phone'], sl_results: ['ຜົນການຄົ້ນຫາ "{q}" · {n} ລາຍການ', 'ผลการค้นหา "{q}" · {n} รายการ', 'Results for "{q}" · {n}'],
+  sl_noMatch: ['ບໍ່ພົບການຈອງທີ່ກົງກັນ', 'ไม่พบการจองที่ตรงกัน', 'No matching booking'], sl_codeNone: ['ບໍ່ພົບລະຫັດການຈອງ {c}', 'ไม่พบรหัสการจอง {c}', 'No booking with code {c}']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2084,7 +2103,7 @@ Object.assign(ACTIONS, {
     const att = []; const pc = pendingClaims();
     if (pc.length && can('frontdesk', 'accountant', 'manager')) att.push(['warn', `${t('claims')}: ${pc.length} · ${kip(pc.reduce((s, c) => s + c.amt, 0))}`, 'bk', 'claims']);
     const pend = S.bookings.filter(b => b.status === 'pending'); if (pend.length) att.unshift(['warn', t('att_pending', { n: pend.length }), 'bk', 'pending']);
-    { const G = stayGroups(biz); if (G.notin.length || G.dueout.length) att.unshift(['warn', t('att_stay', { a: G.notin.length, b: G.dueout.length }), 'stay']); }
+    { const G = stayGroups(biz), due = G.notin.filter(b => b.ci <= biz).length; if (due || G.dueout.length) att.unshift(['warn', t('att_stay', { a: due, b: G.dueout.length }), 'stay']); }
     const openTh = SUP().threads.filter(x => x.status === 'open').length; if (openTh) att.unshift(['warn', t('att_msgs', { n: openTh }), 'inbox', 'msg']);
     const noRep = SUP().reviews.filter(r => !r.reply).length; if (noRep) att.push(['warn', t('att_reviews', { n: noRep }), 'inbox', 'rev']);
     const ro = owedRefunds(); if (ro.length && can('manager', 'accountant')) att.push(['warn', t('att_refunds', { n: ro.length, a: kip(ro.reduce((x, r) => x + r.amount, 0)) }), 'bk', 'refunds']);
@@ -2398,11 +2417,12 @@ Object.assign(ACTIONS, {
   // For the chosen day: who is expected and not yet in, who arrived, who is staying, who must leave and who has left.
   function stayGroups(D) {
     const biz = S.bizDate, B = S.bookings, isBiz = D === biz;
-    const arr = B.filter(b => b.ci === D && !['cancelled'].includes(b.status));
-    const late = isBiz ? B.filter(b => (b.status === 'confirmed' || b.status === 'pending') && b.ci < D) : [];
+    // every booking that is booked (paid / awaiting payment) and not checked in yet, whatever the arrival date
+    const notin = B.filter(b => b.status === 'confirmed' || b.status === 'pending').sort((a, b) => a.ci.localeCompare(b.ci) || a.room.localeCompare(b.room));
+    const arr = B.filter(b => b.ci === D && b.status !== 'cancelled');
     return {
-      notin: [...late, ...arr.filter(b => b.status === 'confirmed' || b.status === 'pending')],
-      arrived: arr.filter(b => b.status === 'inhouse' || b.status === 'out'),
+      notin,
+      arrived: B.filter(b => (b.status === 'inhouse' || b.status === 'out') && (b.ci_at ? tday(b.ci_at) === D : b.ci === D)),
       staying: isBiz ? B.filter(b => b.status === 'inhouse') : B.filter(b => (b.status === 'inhouse' || b.status === 'out') && b.ci <= D && D < b.co),
       dueout: B.filter(b => b.status === 'inhouse' && b.co <= D),
       left: B.filter(b => b.status === 'out' && (b.co_at ? tday(b.co_at) === D : b.co === D)),
@@ -2410,36 +2430,56 @@ Object.assign(ACTIONS, {
     };
   }
   const tday = iso => { try { return new Date(new Date(iso).getTime() + 7 * 3600e3).toISOString().slice(0, 10); } catch (e) { return ''; } };
+  const realToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
   const STF = ['notin', 'arrived', 'staying', 'dueout', 'left', 'noshow'];
+  // what the desk can do with a booking right now, and why not when it cannot
+  function stayAction(b) {
+    const biz = S.bizDate, fd = can('frontdesk', 'manager');
+    if (b.status === 'confirmed') {
+      if (b.ci <= biz) return fd ? `<button class="btn sm pri" data-act="doCi" data-id="${b.id}">${t('checkIn')}</button>` : '';
+      return `<button class="btn sm" disabled title="${esc(t('ciFrom', { d: dfm(b.ci) }))}">${t('checkIn')}</button><div class="tiny faint">${t('ciFrom', { d: dsh(b.ci) })}</div>`;
+    }
+    if (b.status === 'pending') return `<button class="btn sm" disabled>${t('checkIn')}</button><div class="tiny warnc">${t('needPay')}</div>`;
+    if (b.status === 'inhouse') return fd ? `<button class="btn sm ${b.co <= biz ? 'pri' : ''}" data-act="startCo" data-id="${b.id}">${t('checkOut')}</button>` : '';
+    if (b.status === 'out') return `<span class="goodc small">✓ ${t('st_out')}</span>`;
+    return '';
+  }
   function vStay() {
-    const biz = S.bizDate, D = V.stDate || biz, G = stayGroups(D), q = V.stQ.trim().toLowerCase(), fd = can('frontdesk', 'manager');
+    const biz = S.bizDate, D = V.stDate || biz, G = stayGroups(D), q = V.stQ.trim().toLowerCase(), lag = realToday() > biz;
     const f = STF.includes(V.stF) ? V.stF : 'notin';
     const tone = { notin: 'warn', arrived: 'good', staying: 'info', dueout: 'warn', left: 'good', noshow: 'bad' };
-    const tiles = `<div class="staytiles">${STF.map(k => `<button class="stile ${tone[k]} ${f === k ? 'on' : ''}" data-act="stF" data-f="${k}"><span>${t('sg_' + k)}</span><b>${G[k].length}</b><small>${t('sgd_' + k)}</small></button>`).join('')}</div>`;
-    const match = b => !q || b.guest.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q) || (b.old_code || '').toLowerCase().includes(q) || b.room.includes(q) || b.id.toLowerCase().includes(q) || (/\d{4,}/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '')));
-    const rows = G[f].filter(match).sort((a, b) => f === 'left' ? String(b.co_at || '').localeCompare(String(a.co_at || '')) : f === 'arrived' ? String(b.ci_at || '').localeCompare(String(a.ci_at || '')) : a.room.localeCompare(b.room));
+    const tiles = `<div class="staytiles">${STF.map(k => `<button class="stile ${tone[k]} ${f === k && !q ? 'on' : ''}" data-act="stF" data-f="${k}"><span>${t('sg_' + k)}</span><b>${G[k].length}</b><small>${t(k === 'notin' ? 'sgd_notin_all' : 'sgd_' + k)}</small></button>`).join('')}</div>`;
+    const norm = x => String(x || '').toLowerCase();
+    const match = b => norm(b.guest.name).includes(q) || norm(b.code).includes(q) || norm(b.old_code).includes(q) || b.room.includes(q) || norm(b.id).includes(q) || (/\d{4,}/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '')));
+    // a search looks through every booking, not only the selected group or day
+    const searching = q.length > 0;
+    let rows = searching ? S.bookings.filter(match) : G[f];
+    if (!searching && f === 'notin') {
+      const w = V.stWin || 'all', in7 = addD(biz, 7);
+      rows = rows.filter(b => w === 'all' || (w === 'today' && b.ci === biz) || (w === 'late' && b.ci < biz) || (w === 'soon' && b.ci > biz && b.ci <= in7) || (w === 'unpaid' && b.status === 'pending'));
+    }
+    rows = rows.slice().sort((a, b) => f === 'left' && !searching ? String(b.co_at || '').localeCompare(String(a.co_at || '')) : f === 'arrived' && !searching ? String(b.ci_at || '').localeCompare(String(a.ci_at || '')) : a.ci.localeCompare(b.ci) || a.room.localeCompare(b.room));
     const when = (at, by) => at ? `<b class="tnum">${tfm(at)}</b><div class="small faint">${esc(by || '—')}</div>` : '<span class="faint">—</span>';
     const pay = b => { const due = owed(b); return ['cancelled', 'noshow'].includes(b.status) ? '—' : due > 0 ? `<span class="warnc tnum">${fm(due)}</span>` : `<span class="goodc">${t('settled')}</span>`; };
-    const act = b => {
-      if (!fd) return '';
-      if (b.status === 'confirmed' && b.ci <= biz) return `<button class="btn sm pri" data-act="stCi" data-id="${b.id}">${t('checkIn')}</button>`;
-      if (b.status === 'pending') return `<button class="btn sm" data-act="openBk" data-id="${b.id}">${t('needPay')}</button>`;
-      if (b.status === 'inhouse') return `<button class="btn sm ${b.co <= biz ? 'pri' : ''}" data-act="startCo" data-id="${b.id}">${t('checkOut')}</button>`;
-      return '';
-    };
-    const flag = b => b.status === 'confirmed' && b.ci < biz ? `<span class="pill p-noshow">${t('sl_late')}</span>` : b.status === 'inhouse' && b.co < biz ? `<span class="pill p-noshow">${t('sl_overstay')}</span>` : b.status === 'inhouse' && b.co === biz ? `<span class="pill p-pending">${t('dueOut')}</span>` : '';
-    const table = rows.length ? `<table class="t"><thead><tr><th>${t('room')}</th><th>${t('guest')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('status')}</th><th>${t('sl_ciAt')}</th><th>${t('sl_coAt')}</th><th class="n">${t('balance')}</th><th></th></tr></thead><tbody>
-      ${rows.map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td><span class="roomno">${b.room}</span><div class="small faint">${typeName(b.type)}</div></td>
-        <td><b>${esc(b.guest.name)}</b><div class="small faint">${esc(b.guest.phone || '')} · <span class="mono">${esc(b.code || b.id)}</span>${b.member ? ' · ' + t('website') : ''}</div></td>
+    const arrive = b => { const n = diffD(biz, b.ci); return b.status !== 'confirmed' && b.status !== 'pending' ? '' : n < 0 ? `<span class="pill p-noshow">${t('sl_late')}</span>` : n === 0 ? `<span class="pill p-pending">${t('today')}</span>` : `<span class="pill p-confirmed">${t('inDays', { n })}</span>`; };
+    const flag = b => b.status === 'inhouse' && b.co < biz ? `<span class="pill p-noshow">${t('sl_overstay')}</span>` : b.status === 'inhouse' && b.co === biz ? `<span class="pill p-pending">${t('dueOut')}</span>` : arrive(b);
+    const table = rows.length ? `<table class="t"><thead><tr><th>${t('code')}</th><th>${t('room')}</th><th>${t('guest')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('status')}</th><th>${t('sl_ciAt')}</th><th>${t('sl_coAt')}</th><th class="n">${t('balance')}</th><th class="n">${t('sl_action')}</th></tr></thead><tbody>
+      ${rows.map(b => `<tr class="click ${V.stHit === b.id ? 'hitrow' : ''}" data-act="openBk" data-id="${b.id}"><td><b class="mono">${esc(b.code || '')}</b>${b.old_code ? `<div class="tiny faint mono">${esc(b.old_code)}</div>` : ''}</td><td><span class="roomno">${b.room}</span><div class="small faint">${typeName(b.type)}</div></td>
+        <td><b>${esc(b.guest.name)}</b><div class="small faint">${esc(b.guest.phone || '')}${b.member ? ' · ' + t('website') : ''}</div></td>
         <td class="tnum">${dsh(b.ci)} → ${dsh(b.co)} <span class="faint">(${nightsOf(b)})</span></td><td>${stPill(b.status)} ${flag(b)}</td>
-        <td>${when(b.ci_at, b.ci_by)}</td><td>${when(b.co_at, b.co_by)}</td><td class="n">${pay(b)}</td><td class="n" data-stop="1">${act(b)}</td></tr>`).join('')}
-      </tbody></table>` : `<div class="empty">${t('sl_none')}</div>`;
-    return `<div class="spread"><div class="toolbar"><button class="btn sm" data-act="stDay" data-n="-1" aria-label="${esc(t('prevDay'))}">‹</button>
-        <input class="input" type="date" id="st_date" value="${D}" style="width:auto"><button class="btn sm" data-act="stDay" data-n="1" aria-label="${esc(t('nextDay'))}">›</button>
-        ${D !== biz ? `<button class="btn sm" data-act="stDay" data-n="0">${t('today')}</button>` : `<span class="pill p-inhouse">${t('bizDay')}</span>`}</div>
-      <div class="toolbar"><input class="input" id="stq" data-in="stq" placeholder="${esc(t('sl_search'))}" value="${esc(V.stQ)}" style="max-width:260px"><button class="btn sm" data-act="stCsv">${t('sl_export')}</button></div></div>
+        <td>${when(b.ci_at, b.ci_by)}</td><td>${when(b.co_at, b.co_by)}</td><td class="n">${pay(b)}</td><td class="n">${stayAction(b)}</td></tr>`).join('')}
+      </tbody></table>` : `<div class="empty">${searching ? t('sl_noMatch') : t('sl_none')}</div>`;
+    const wins = f === 'notin' && !searching ? `<div class="toolbar" style="margin:0 0 10px">${['all', 'today', 'late', 'soon', 'unpaid'].map(w => `<button class="btn sm ${(V.stWin || 'all') === w ? 'pri' : ''}" data-act="stWin" data-w="${w}">${t('sw_' + w)}</button>`).join('')}</div>` : '';
+    const dayNav = !searching && f !== 'notin' ? `<div class="toolbar"><button class="btn sm" data-act="stDay" data-n="-1" aria-label="${esc(t('prevDay'))}">‹</button><input class="input" type="date" id="st_date" value="${D}" style="width:auto"><button class="btn sm" data-act="stDay" data-n="1" aria-label="${esc(t('nextDay'))}">›</button>${D !== biz ? `<button class="btn sm" data-act="stDay" data-n="0">${t('bizDay')}</button>` : ''}</div>` : '';
+    return `${lag ? `<div class="note warn spread"><span>${t('bizLag', { b: dfm(biz), r: dfm(realToday()) })}</span>${can('manager', 'frontdesk') ? `<button class="btn sm pri" data-act="nightAudit">${t('naRun')}</button>` : ''}</div>` : ''}
+      <div class="card stayfind"><label class="codeq"><span class="pre">SN</span><input id="st_code" inputmode="numeric" maxlength="12" placeholder="0000" autocomplete="off" value="${esc(V.stCode || '')}" aria-label="${esc(t('sl_codeSearch'))}"></label>
+        <button class="btn pri" data-act="stFind">${t('sl_find')}</button>
+        <input class="input" id="stq" data-in="stq" placeholder="${esc(t('sl_search'))}" value="${esc(V.stQ)}">
+        ${searching ? `<button class="btn sm ghost" data-act="stClear">✕ ${t('sl_clear')}</button>` : ''}</div>
+      ${V.stMsg ? `<div class="note ${V.stMsg.k}">${esc(V.stMsg.t)}</div>` : ''}
       ${tiles}
-      <div class="card tablewrap" id="sttable"><h3 style="margin:0 0 8px">${t('sg_' + f)} · ${dfm(D)}</h3>${table}</div>`;
+      <div class="card tablewrap" id="sttable"><div class="spread" style="margin-bottom:8px"><h3 style="margin:0">${searching ? t('sl_results', { n: rows.length, q: esc(V.stQ) }) : t('sg_' + f) + (f !== 'notin' ? ' · ' + dfm(D) : '')}</h3>
+        ${dayNav}<button class="btn sm" data-act="stCsv">${t('sl_export')}</button></div>${wins}${table}</div>`;
   }
 
   // ---------- inbox: member messages & reviews ----------
@@ -2791,7 +2831,17 @@ Object.assign(ACTIONS, {
     memHist: d => showMemberHistory(d.id),
     linkMem: async d => { const mid = ($('#lk_m') || {}).value; if (!mid) return; try { await act('linkMember', d.id, mid); render(); reopen(); toast(t('linkedOk')); } catch (e) { } },
     unlinkMem: async d => { try { await act('unlinkMember', d.id); render(); reopen(); } catch (e) { } },
-    stF: d => { V.stF = d.f; render(); },
+    stF: d => { V.stF = d.f; V.stQ = ''; V.stHit = null; V.stMsg = null; render(); },
+    stWin: d => { V.stWin = d.w; render(); },
+    stClear: () => { V.stQ = ''; V.stCode = ''; V.stHit = null; V.stMsg = null; render(); },
+    stFind: () => {
+      const raw = String(($('#st_code') || {}).value || '').trim().toUpperCase().replace(/\s/g, ''); V.stCode = raw;
+      if (!raw) return;
+      const code = /^\d{1,4}$/.test(raw) ? 'SN' + raw.padStart(4, '0') : raw;
+      const b = S.bookings.find(x => x.code === code || (x.old_code || '').toUpperCase() === raw);
+      if (!b) { V.stMsg = { k: 'bad', t: t('sl_codeNone', { c: code }) }; V.stHit = null; render(); return; }
+      V.stMsg = null; V.stHit = b.id; V.stQ = b.code; render(); showBk(b.id);
+    },
     stDay: d => { const n = +d.n; V.stDate = n === 0 ? S.bizDate : addD(V.stDate || S.bizDate, n); render(); },
     stCi: async d => { try { await act('checkIn', d.id); render(); toast(t('checkedInOk')); } catch (e) { } },
     stCsv: () => {
@@ -2883,6 +2933,7 @@ Object.assign(ACTIONS, {
     try { await API.login($('#lg_e').value.trim(), $('#lg_p').value); await refresh(); V.view = firstView(); $('#root').innerHTML = ''; render(); }
     catch (er) { $('#lg_msg').innerHTML = `<div class="note bad">${esc(errText(er))}</div>`; }
   });
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'st_code') { e.preventDefault(); A.stFind(); } });
   document.addEventListener('input', e => {
     if (e.target.id === 'sv_ref') syncVerifyBtn();
     const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;

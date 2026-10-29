@@ -533,6 +533,16 @@ footer a{color:var(--sub)}
 .bkhist summary::-webkit-details-marker{display:none}
 .seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 
+.staytrack{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--paper);display:flex;flex-direction:column;gap:8px}
+.staytrack h4{font-family:var(--f-body);font-size:14px;margin:0}
+.staytrack ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;counter-reset:s}
+.staytrack li{position:relative;padding:28px 6px 0;text-align:center;display:flex;flex-direction:column;gap:2px;color:var(--faint)}
+.staytrack li::before{counter-increment:s;content:counter(s);position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--mist);border:1px solid var(--line)}
+.staytrack li:not(:first-child)::after{content:'';position:absolute;top:12px;right:calc(50% + 14px);width:calc(100% - 28px);height:2px;background:var(--line)}
+.staytrack li.done{color:var(--ink)} .staytrack li.done::before{content:'✓';background:var(--good);color:#fff;border-color:var(--good)} .staytrack li.done::after{background:var(--good)}
+.staytrack li.now{color:var(--ink)} .staytrack li.now::before{background:var(--champa);color:var(--champa-ink);border-color:var(--champa)}
+.staytrack b{font-size:13.5px} .staytrack small{font-size:12px;color:var(--sub)}
+
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
@@ -972,6 +982,7 @@ const Core = (function () {
         pending_claims: pend.reduce((s, c) => s + c.amt, 0), claims: claims.map(c => ({ amount: c.amt, status: c.status, at: c.at, decided_at: c.decided_at || null })),
         refund: r ? { amount: r.amount, fee: r.fee, pct: r.pct, status: r.status, paid_at: r.paid_at || null } : null, cancel_reason: b.cancel_reason || null,
         created: b.createdAt ? new Date(b.createdAt).toISOString() : b.created, confirmed_at: b.confirmed_at || null,
+        checked_in_at: b.ci_at || null, checked_out_at: b.co_at || null, room: ['inhouse', 'out'].includes(b.status) ? b.room : null, old_code: b.old_code || null,
         hold_until: b.status === 'pending' && b.createdAt ? new Date(b.createdAt + (S.settings.pending_hold_hours || 24) * 3600e3).toISOString() : null,
         cancel_until: dl.toISOString(), can_cancel: ['pending', 'confirmed'].includes(b.status) && Date.now() < dl.getTime() && !pend.length,
         refund_pct: b.status === 'confirmed' ? (S.settings.cancel_refund_pct ?? 80) : 100, held: b.pays.filter(p => p.dep && !p.applied).reduce((s, p) => s + p.amt, 0) };
@@ -1989,6 +2000,13 @@ Object.assign(SX, {
   'a_support.new': ['ສົ່ງຂໍ້ຄວາມ "{s}"', 'ส่งข้อความ "{s}"', 'Message sent "{s}"'], 'a_support.reply': ['ຕອບຂໍ້ຄວາມ', 'ตอบข้อความ', 'Replied to a message'], 'a_support.close': ['ປິດເລື່ອງ', 'ปิดเรื่อง', 'Closed a conversation']
 });
 
+Object.assign(SX, {
+  st_inhouse: ['ເຊັກອິນແລ້ວ · ກຳລັງພັກ', 'เช็คอินแล้ว · กำลังเข้าพัก', 'Checked in · staying'], st_out: ['ເຊັກເອົາແລ້ວ', 'เช็คเอาท์แล้ว', 'Checked out'],
+  stayT: ['ສະຖານະການເຂົ້າພັກ', 'สถานะการเข้าพัก', 'Your stay'], sy_booked: ['ຈອງສຳເລັດ', 'จองสำเร็จ', 'Booked'], sy_in: ['ເຊັກອິນ', 'เช็คอิน', 'Check-in'], sy_out: ['ເຊັກເອົາ', 'เช็คเอาท์', 'Check-out'],
+  sy_wait_in: ['ລໍຖ້າເຊັກອິນ · {d}', 'รอเช็คอิน · {d}', 'Expected {d}'], sy_wait_out: ['ກຳນົດອອກ {d}', 'กำหนดออก {d}', 'Due {d}'], sy_room: ['ຫ້ອງ {r}', 'ห้อง {r}', 'Room {r}'],
+  sy_confirmedBy: ['ບັນທຶກໂດຍພະນັກງານໂຮງແຮມ', 'บันทึกโดยพนักงานโรงแรม', 'Recorded by hotel staff']
+});
+
 // ===== GUEST WEBSITE =====
 (function () {
   const LANGS = ['lo', 'th', 'en'];
@@ -2329,6 +2347,7 @@ Object.assign(SX, {
           <span class="status s-${d.status}">${t('st_' + d.status)}</span><h3>${esc(L(d.type))}</h3>
           <p class="tnum">${dfm(d.ci)} → ${dfm(d.co)} · ${d.nights} ${t('nights')} · ${d.adults} ${t('guests').toLowerCase()}</p>
           <button class="codechip" data-act="copy" data-v="${esc(d.code)}" title="${esc(t('copy'))}"><span>${t('code')}</span><b>${esc(d.code)}</b>${ico('qr', 14)}</button></div></section>
+        ${['confirmed', 'inhouse', 'out'].includes(d.status) ? stayTrack(d) : ''}
         ${['confirmed', 'inhouse'].includes(d.status) && d.paid < d.total ? `<div class="msg info">${t('payRestHotel', { a: kip(d.total - d.paid) })}</div>` : ''}
         ${['cancelled', 'noshow'].includes(d.status) ? '' : `<div class="paybox"><div class="r1"><span>${t('payStatusL')}</span>${payState(d)}</div><div class="bar big"><i style="--w:${pp}%"></i></div><div class="r1 tnum"><span>${t('paid')} ${kip(d.paid)}</span><span>${t('total')} ${kip(d.total)}</span></div></div>`}
         <div class="summary"><span class="k">${t('bookedOn')}</span><span class="v">${fmtTs(d.created)}</span>
@@ -2370,6 +2389,15 @@ Object.assign(SX, {
   const methodName = m => m ? t('m_' + m) : '—';
 
   // ---- 1. overview: stats, filters, booking cards ----
+  // booked → checked in → checked out, with the real times recorded by the front desk
+  function stayTrack(d) {
+    const st = (on, now, label, sub) => `<li class="${on ? 'done' : now ? 'now' : ''}"><b>${label}</b><small>${sub}</small></li>`;
+    return `<section class="staytrack"><h4>${t('stayT')}</h4><ol>
+      ${st(true, false, t('sy_booked'), d.confirmed_at ? fmtTs(d.confirmed_at) : dfm(String(d.created || '').slice(0, 10)))}
+      ${st(!!d.checked_in_at, !d.checked_in_at, t('sy_in'), d.checked_in_at ? fmtTs(d.checked_in_at) + (d.room ? ' · ' + t('sy_room', { r: esc(d.room) }) : '') : t('sy_wait_in', { d: dfm(d.ci) + ' ' + esc(CAT.hotel.check_in_time || '') }))}
+      ${st(!!d.checked_out_at, !!d.checked_in_at && !d.checked_out_at, t('sy_out'), d.checked_out_at ? fmtTs(d.checked_out_at) : t('sy_wait_out', { d: dfm(d.co) + ' ' + esc(CAT.hotel.check_out_time || '') }))}
+    </ol>${d.checked_in_at ? `<small class="faint">${t('sy_confirmedBy')}</small>` : ''}</section>`;
+  }
   function hubHome(list) {
     const today = CAT.hotel.business_date, live = b => ['pending', 'confirmed', 'inhouse'].includes(b.status);
     const upcoming = list.filter(b => live(b) && b.co >= today);
