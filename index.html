@@ -572,6 +572,7 @@ footer a{color:var(--sub)}
 .lb-x:hover,.lb-nav:hover{background:rgba(255,255,255,.28)}
 @keyframes fade{from{opacity:0}}
 .qrimg img{width:240px;height:auto;aspect-ratio:auto}@media (max-width:520px){.qrimg{flex:1 1 100%}.qrimg img{width:min(300px,100%)}}
+img.rpic{width:100%;height:100%;object-fit:cover;display:block}.dhero-art img.rpic{position:absolute;inset:0}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -681,6 +682,7 @@ const CATALOG = {
     ['5600', 'opx', 'ການຕະຫຼາດ ແລະ ໂຄສະນາ', 'การตลาดและโฆษณา', 'Marketing'],
     ['5700', 'opx', 'ສ້ອມແປງ ແລະ ບຳລຸງຮັກສາ', 'ซ่อมแซมและบำรุงรักษา', 'Repairs & maintenance'],
     ['5800', 'opx', 'ຄ່າຫຼຸ້ຍຫ້ຽນ', 'ค่าเสื่อมราคา', 'Depreciation'],
+    ['5950', 'opx', 'ເງິນສົດຂາດ / ເກີນ', 'เงินสดขาด / เกิน', 'Cash over / short'],
     ['5900', 'fin', 'ດອກເບ້ຍເງິນກູ້', 'ดอกเบี้ยเงินกู้', 'Interest expense']
   ]
 };
@@ -1090,7 +1092,7 @@ const Core = (function () {
   }
   function reverse(id, reason) {
     need('manager', 'accountant'); const e = S.journal.find(x => x.id === id);
-    if (!e || e.revBy || e.rev || !['manual', 'expense', 'close', 'tax', 'finance', 'cash'].includes(e.src)) fail('cannot_reverse');
+    if (!e || e.revBy || e.rev || !['manual', 'expense', 'close', 'tax', 'finance', 'cash', 'open'].includes(e.src)) fail('cannot_reverse');
     if (String(reason || '').trim().length < 3) fail('reason_required');
     const r = post(S.bizDate, { k: 'rev', id, text: String(reason).slice(0, 160) }, 'REV-' + id, 'reversal', e.lines.map(l => ({ a: l.a, dr: l.cr, cr: l.dr })), id);
     e.revBy = r.id; log('journal.reverse', 'JV-' + id, { reversal: r.id, reason }); return r.id;
@@ -1127,10 +1129,92 @@ const Core = (function () {
     const end = monthEnd(month), d = end < S.bizDate ? end : S.bizDate;
     if (d.slice(0, 7) !== month) fail('month_not_started');
     const k = { depr: 'depr', int: 'int', sal_pay: 'sal', sal_accrue: 'salAcc' }[kind]; if (!k) fail('invalid_kind');
+    const useReg = kind === 'depr' && (S.assets || []).length > 0;
+    const v = useReg ? deprFor(month) : Math.round(+(a[kind === 'depr' ? 'depr' : kind === 'int' ? 'int' : 'sal']) || 0);
+    if (!(v > 0)) fail('close_amount_missing');
     if (posted(k, month) || ((k === 'sal' || k === 'salAcc') && (posted('sal', month) || posted('salAcc', month)))) fail('already_posted');
-    const L = { depr: [{ a: '5800', dr: a.depr }, { a: '1290', cr: a.depr }], int: [{ a: '5900', dr: a.int }, { a: '1120', cr: a.int }], sal_pay: [{ a: '5200', dr: a.sal }, { a: '1120', cr: a.sal }], sal_accrue: [{ a: '5200', dr: a.sal }, { a: '2160', cr: a.sal }] }[kind];
-    const e = post(d, { k, mo: month }, k.toUpperCase() + '-' + month, 'close', L); log('close.' + kind, month); return e.id;
+    const L = { depr: [{ a: '5800', dr: v }, { a: '1290', cr: v }], int: [{ a: '5900', dr: v }, { a: '1120', cr: v }], sal_pay: [{ a: '5200', dr: v }, { a: '1120', cr: v }], sal_accrue: [{ a: '5200', dr: v }, { a: '2160', cr: v }] }[kind];
+    const desc = { k, mo: month }; if (useReg) desc.assets = S.assets.map(x => ({ id: x.id, amt: assetDepr(x, month) })).filter(x => x.amt > 0);
+    const e = post(d, desc, k.toUpperCase() + '-' + month, 'close', L); log('close.' + kind, month, { amount: v }); return e.id;
   }
+  // ---------- finance controls (IFRS for SMEs) ----------
+  const monthIdx = m => +m.slice(0, 4) * 12 + +m.slice(5, 7);
+  // straight line, full month from the month after the asset is ready for use; the last month takes the rounding remainder
+  function assetDepr(x, month) {
+    const n = monthIdx(month) - monthIdx(x.in_use), base = x.cost - (x.salvage || 0), m = Math.floor(base / x.life);
+    return n < 1 || n > x.life ? 0 : n === x.life ? base - m * (x.life - 1) : m;
+  }
+  const deprFor = month => (S.assets || []).reduce((s, x) => s + assetDepr(x, month), 0);
+  // depreciation so far by the schedule (up to and including a month) and the carrying amount
+  function assetStatus(x, month) {
+    let acc = 0; for (let k = 1; k <= x.life; k++) { const mo = monthIdx(x.in_use) + k; if (mo > monthIdx(month)) break; const y = Math.floor((mo - 1) / 12), mm = mo - y * 12; acc += assetDepr(x, y + '-' + String(mm).padStart(2, '0')); }
+    return { acc, nbv: x.cost - acc, done: acc >= x.cost - (x.salvage || 0) };
+  }
+  const BS_TYPES = ['ca', 'nca', 'cl', 'ncl', 'eq'];
+  function opening(date, lines) {
+    need('manager', 'accountant');
+    if (S.journal.some(e => e.src === 'open' && !e.revBy && !e.rev)) fail('already_posted');
+    if (!date || date > S.bizDate) fail('future_date');
+    if (lines.some(l => !S.accounts[l.a] || !BS_TYPES.includes(S.accounts[l.a][0]) || ['1130', '1140', '2150', '2170'].includes(l.a) || (l.dr || 0) < 0 || (l.cr || 0) < 0)) fail('invalid_account');
+    const L = lines.filter(l => l.a !== '3100').map(l => ({ a: l.a, dr: Math.round(+l.dr || 0), cr: Math.round(+l.cr || 0) }));
+    const d = L.reduce((s, l) => s + l.dr, 0), c = L.reduce((s, l) => s + l.cr, 0);
+    if (!d && !c) fail('invalid_amount');
+    L.push({ a: '3100', dr: Math.max(c - d, 0), cr: Math.max(d - c, 0) });
+    const e = post(date, { k: 'open' }, 'OB', 'open', L); log('journal.opening', 'JV-' + e.id, { lines: L }); return e.id;
+  }
+  function assetAdd(p) {
+    need('manager', 'accountant'); S.assets = S.assets || [];
+    const cost = Math.round(+p.cost), salvage = Math.round(+p.salvage || 0), life = Math.round(+p.life_months), pay = p.pay || 'none';
+    if (!p.in_use || p.in_use > S.bizDate) fail('future_date');
+    if (!['1210', '1220'].includes(p.account) || !['none', '1110', '1120', '2110'].includes(pay)) fail('invalid_account');
+    if (!(cost > 0) || salvage < 0 || salvage >= cost || !(life >= 1 && life <= 600) || String(p.name || '').trim().length < 2) fail('invalid_amount');
+    let entry = null;
+    if (pay !== 'none') entry = post(p.in_use, { k: 'asset', text: String(p.name).slice(0, 120) }, 'FA', 'finance', [{ a: p.account, dr: cost }, { a: pay, cr: cost }]).id;
+    const x = { id: (S.assets.reduce((m, a) => Math.max(m, a.id), 0) + 1), name: String(p.name).trim(), account: p.account, cost, salvage, life, in_use: p.in_use, entry, at: new Date().toISOString() };
+    S.assets.push(x); log('asset.add', 'FA-' + x.id, { ...p, entry }); return x.id;
+  }
+  function cashCount(acc, counted, note) {
+    if (acc === '1110') need('manager', 'accountant', 'frontdesk'); else need('manager', 'accountant');
+    counted = Math.round(+counted);
+    if (!['1110', '1120'].includes(acc) || !(counted >= 0)) fail('invalid_amount');
+    const book = accBal(acc, S.bizDate), diff = counted - book;
+    if (diff !== 0 && String(note || '').trim().length < 3) fail('reason_required');
+    let entry = null;
+    if (acc === '1110' && diff !== 0) entry = post(S.bizDate, { k: 'cashCount', text: String(note).slice(0, 160) }, 'CNT', 'cash', diff > 0 ? [{ a: '1110', dr: diff }, { a: '5950', cr: diff }] : [{ a: '5950', dr: -diff }, { a: '1110', cr: -diff }]).id;
+    S.counts = S.counts || [];
+    const c = { id: (S.counts.reduce((m, x) => Math.max(m, x.id), 0) + 1), date: S.bizDate, account: acc, counted, book, diff, note: String(note || '').trim() || null, entry, at: new Date().toISOString(), by: S.me && S.me.name };
+    S.counts.unshift(c); log(acc === '1110' ? 'cash.count' : 'bank.reconcile', 'CC-' + c.id, { counted, book, diff, note }); return { id: c.id, book, diff, entry };
+  }
+  // statement of cash flows, direct method (IAS 7 / Section 7); interest paid is shown under operating activities
+  const CASH = ['1110', '1120'];
+  function cashFlow(from, to) {
+    const rows = { recGuests: 0, refunds: 0, suppliers: 0, staff: 0, commissions: 0, vat: 0, interest: 0, otherOp: 0, capex: 0, loans: 0, owners: 0 };
+    let opening = 0, openingEntries = 0;
+    for (const e of S.journal) {
+      const delta = e.lines.reduce((s, l) => s + (CASH.includes(l.a) ? l.dr - l.cr : 0), 0);
+      if (e.date < from) { opening += delta; continue; }
+      if (e.date > to || delta === 0) continue;
+      if (e.src === 'open' || (e.rev && (S.journal.find(x => x.id === e.rev) || {}).src === 'open')) { openingEntries += delta; continue; }
+      const other = e.lines.filter(l => !CASH.includes(l.a)).map(l => l.a), ty = a => (S.accounts[a] || [])[0], has = (...a) => other.some(x => a.includes(x));
+      let k;
+      if (other.some(a => ty(a) === 'nca')) k = 'capex';
+      else if (other.some(a => ty(a) === 'ncl')) k = 'loans';
+      else if (other.some(a => ty(a) === 'eq')) k = 'owners';
+      else if (has('2140') && has('1150') || (e.desc && e.desc.k === 'vatPay')) k = 'vat';
+      else if (has('2170')) k = 'refunds';
+      else if (has('2120', '5300')) k = 'commissions';
+      else if (has('5200', '2160')) k = 'staff';
+      else if (has('5900')) k = 'interest';
+      else if (has('1130', '1140', '2150') || other.some(a => ty(a) === 'rev')) k = delta > 0 ? 'recGuests' : 'refunds';
+      else if (other.some(a => ['cos', 'opx'].includes(ty(a))) || has('1150', '2110')) k = a5950(other) ? 'otherOp' : 'suppliers';
+      else k = 'otherOp';
+      rows[k] += delta;
+    }
+    const op = rows.recGuests + rows.refunds + rows.suppliers + rows.staff + rows.commissions + rows.vat + rows.interest + rows.otherOp, inv = rows.capex, fin = rows.loans + rows.owners;
+    const start = opening + openingEntries, end = start + op + inv + fin, check = CASH.reduce((s, a) => s + accBal(a, to), 0);
+    return { rows, op, inv, fin, opening: start, end, ok: end === check, book: check };
+  }
+  const a5950 = other => other.length === 1 && other[0] === '5950';
   function lockMonth(m) { need('manager', 'accountant'); if (m >= S.bizDate.slice(0, 7)) fail('month_open'); if (!S.locks.includes(m)) { S.locks.push(m); S.locks.sort(); } log('period_locks.insert', m); }
   function unlockMonth(m) { need('owner'); S.locks = S.locks.filter(x => x !== m); log('period_locks.delete', m); }
 
@@ -1358,10 +1442,10 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 11, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 12, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
-        cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
+        cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours, tax: 20 },
       accounts: Object.fromEntries(C.accounts.map(a => [a[0], [a[1], L(a.slice(2))]])),
       types: C.types.map((t, i) => ({ id: t.id, name: L(t.n), description: L(t.d), capacity: t.cap, rate: t.rate, size: t.size, bed: L(t.bed), amenities: t.am.slice(), sort: i, active: true })),
       rooms: C.rooms.map(r => ({ no: r[0], type: r[1], floor: r[2], hk: 'inspected', note: '', active: true })),
@@ -1370,7 +1454,7 @@ const Core = (function () {
       amenities: C.amenities.map((a, i) => ({ id: a[0], icon: a[1], name: L(a.slice(2)), sort: i })),
       staff: [{ id: 'U1', name: 'Somsack', role: 'owner', email: 'owner@saynam.la', active: true }, { id: 'U2', name: 'Manivanh', role: 'frontdesk', email: 'desk@saynam.la', active: true },
         { id: 'U3', name: 'Phonsavanh', role: 'accountant', email: 'account@saynam.la', active: true }, { id: 'U4', name: 'Keo', role: 'housekeeping', email: 'hk@saynam.la', active: true }],
-      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], refunds: [],
+      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], refunds: [], assets: [], counts: [],
       members: [{ id: 'M1', email: 'demo@saynam.la', pw: 'demo1234', name: 'Noy Sayavong', phone: '+856 20 5555 1234', country: 'LA', since: new Date().toISOString() }],
       seq: { bk: 2401, je: 1, fl: 1, ar: 1, g: 1, cl: 1, au: 1, u: 5, m: 2, rf: 1 }
     };
@@ -1378,6 +1462,8 @@ const Core = (function () {
       ['Kittisak Boonmee', 'TH'], ['Pranee Saetang', 'TH'], ['Wang Lei', 'CN'], ['Zhang Min', 'CN'], ['Liu Yang', 'CN'], ['Nguyen Thi Lan', 'VN'], ['Tran Van Hai', 'VN'], ['Park Minho', 'KR'], ['Tanaka Hiroshi', 'JP'],
       ['Emma Dubois', 'FR'], ['Lukas Weber', 'DE'], ['Sarah Mitchell', 'US'], ['James Carter', 'AU'], ['Chanthaly Douangdy', 'LA'], ['Souksavanh Phanthavong', 'LA']];
     post(SIM0, { k: 'open' }, 'OB', 'open', [{ a: '1110', dr: 80000000 }, { a: '1120', dr: 450000000 }, { a: '1210', dr: 6500000000 }, { a: '1220', dr: 1200000000 }, { a: '1290', cr: 900000000 }, { a: '2310', cr: 2000000000 }, { a: '3100', cr: 5330000000 }]);
+    S.assets = [{ id: 1, name: 'Hotel building', account: '1210', cost: 6500000000, salvage: 0, life: 300, in_use: '2024-02-10', entry: null, at: SIM0 + 'T00:00:00Z' },
+      { id: 2, name: 'Furniture, beds and air conditioners', account: '1220', cost: 1200000000, salvage: 0, life: 60, in_use: '2025-08-05', entry: null, at: SIM0 + 'T00:00:00Z' }];
     const ooo = '207';
     for (const rm of S.rooms) {
       let d = SIM0;
@@ -1466,7 +1552,7 @@ const Core = (function () {
     memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
     adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, memberActivity, adminMemberHistory, linkMember, unlinkMember, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
-    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
+    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth, opening, assetAdd, cashCount, cashFlow, assetDepr, assetStatus, deprFor,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
     balances, plFor, bsAt, vatFor, vatPaid, posted, roomNightsIn, onBooks, availRooms, roomFree, freeRooms, balanceOf, chargesOf, paidOf, roomGrossOf, accBal, integrity, typeOf, chOf, roomOf
   };
@@ -1477,7 +1563,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v11', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v12', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1494,7 +1580,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 11) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 12) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1542,7 +1628,7 @@ const API = (function () {
       settings: { hotel: s.hotel_name, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
         check_out_time: s.check_out_time, vat: +s.vat_rate, incl: s.prices_incl_vat, deposit_pct: +s.deposit_pct, direct_discount: +s.direct_discount, free_cancel_days: s.free_cancel_days,
         payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null, close: s.close_amounts,
-        cancel_cutoff_hours: +s.cancel_cutoff_hours, cancel_refund_pct: +s.cancel_refund_pct, pending_hold_hours: +s.pending_hold_hours },
+        cancel_cutoff_hours: +s.cancel_cutoff_hours, cancel_refund_pct: +s.cancel_refund_pct, pending_hold_hours: +s.pending_hold_hours, tax: s.profit_tax_rate == null ? 20 : +s.profit_tax_rate },
       accounts: Object.fromEntries((x.accounts || []).map(a => [a.code, [a.type, a.name]])),
       types: (x.types || []).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, rate: +t.base_rate, size: t.size_m2, bed: t.bed, amenities: t.amenities || [], sort: t.sort, active: t.active })),
       rooms: (x.rooms || []).map(r => ({ no: r.no, type: r.type_id, floor: r.floor, hk: r.hk_status, note: r.note || '', active: r.active })),
@@ -1580,6 +1666,9 @@ const API = (function () {
     payCommissions: () => ['acct_pay_commissions', {}],
     payVat: m => ['acct_pay_vat', { p_month: m }],
     close: (k, m) => ['acct_close', { p_kind: k, p_month: m }],
+    opening: (d, lines) => ['acct_opening', { p_date: d, p_lines: lines }],
+    assetAdd: p => ['acct_asset_add', { p }],
+    cashCount: (acc, counted, note) => ['acct_cash_count', { p_account: acc, p_counted: counted, p_note: note || '' }],
     lockMonth: m => ['acct_lock_month', { p_month: m }],
     unlockMonth: m => ['acct_unlock_month', { p_month: m }]
   };
@@ -1589,7 +1678,7 @@ const API = (function () {
     if (fn.op === 'saveRoom') { const r = fn.arg; const { error } = await c.from('rooms').upsert({ no: r.no, type_id: r.type, floor: r.floor, note: r.note || null, active: r.active !== false }); if (error) throw toErr(error); }
     if (fn.op === 'savePromo') { const p = fn.arg; const { error } = await c.from('promo_codes').upsert({ code: String(p.code).toUpperCase(), pct: p.pct, active: p.active !== false, valid_to: p.valid_to || null }); if (error) throw toErr(error); }
     if (fn.op === 'saveSettings') {
-      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url', cancel_cutoff_hours: 'cancel_cutoff_hours', cancel_refund_pct: 'cancel_refund_pct', pending_hold_hours: 'pending_hold_hours' };
+      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url', cancel_cutoff_hours: 'cancel_cutoff_hours', cancel_refund_pct: 'cancel_refund_pct', pending_hold_hours: 'pending_hold_hours', tax: 'profit_tax_rate' };
       const row = {}; for (const k in p) if (m[k]) row[m[k]] = p[k];
       const { error } = await c.from('settings').update(row).eq('id', 1); if (error) throw toErr(error);
     }
@@ -1698,6 +1787,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
+      try { const fin = await rpc('admin_finance'); s.assets = (fin.assets || []).map(x => ({ ...x, cost: +x.cost, salvage: +x.salvage, life: +x.life })); s.counts = (fin.counts || []).map(c => ({ ...c, counted: +c.counted, book: +c.book, diff: +c.diff })); } catch (e) { s.assets = []; s.counts = []; }
       try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by, old_code: x.old_code }); }); } catch (e) { }
       return s;
     },
@@ -2137,6 +2227,8 @@ Object.assign(SX, {
     const ps = PH[x.id]; if (!ps) return roomArt(x.id);
     return `<div class="ph-strip">${ps.map((n, i) => `<button class="ph" data-act="lightbox" data-set="${x.id}" data-i="${i}" aria-label="${esc(L(x.name))} ${i + 1}/${ps.length}">${img(n, L(x.name))}</button>`).join('')}</div>${ps.length > 1 ? `<span class="ph-count">${ico('camera', 13)} ${ps.length}</span>` : ''}`;
   }
+  // real photo of the room type when there is one, otherwise the drawn picture
+  function roomPic(id, small) { const ps = PH[id]; return ps ? `<img class="rpic" src="img/${ps[0]}.webp" alt="" loading="lazy" decoding="async">` : roomArt(id, small); }
   function roomArt(id, small) {
     const [wall, accent] = ROOMCOL[id] || ['#d9d4c8', '#557a72'];
     const wide = id === 'STE' || id === 'FAM';
@@ -2284,7 +2376,7 @@ Object.assign(SX, {
       const n = nights(Q.ci, Q.co);
       const list = !F.avail ? `<div class="msg info">${t('loading')}</div>` : CAT.types.map(x => {
         const a = F.avail.find(v => v.type_id === x.id) || { free: 0 }, cap = Q.ad > x.capacity, sold = !a.free || cap;
-        return `<button class="opt ${sold ? 'sold' : ''}" ${sold ? 'disabled aria-disabled="true"' : `data-act="pick" data-t="${x.id}"`}><div class="thumb">${roomArt(x.id, true)}</div><div>
+        return `<button class="opt ${sold ? 'sold' : ''}" ${sold ? 'disabled aria-disabled="true"' : `data-act="pick" data-t="${x.id}"`}><div class="thumb">${roomPic(x.id, true)}</div><div>
           <b>${esc(L(x.name))}</b><div class="row"><span class="tnum">${kip(x.direct_rate)} <small style="color:var(--sub)">/ ${t('night')}</small></span><span class="tnum" style="font-weight:600">${kip(x.direct_rate * n)}</span></div>
           <div class="row"><small style="color:var(--sub)">${t('sleeps', { n: x.capacity })} · ${esc(L(x.bed))}</small>${cap ? `<span class="flag bad">${t('tooMany', { n: x.capacity })}</span>` : !a.free ? `<span class="flag bad">${t('soldOut')}</span>` : a.free <= 2 ? `<span class="flag">${t('left', { n: a.free })}</span>` : `<span class="flag ok">${t('available')}</span>`}</div></div></button>`;
       }).join('');
@@ -2407,7 +2499,7 @@ Object.assign(SX, {
       const slips = (d.claims || []).length ? `<div class="slipsl"><b>${t('slipHistory')}</b>${d.claims.map(c => `<div><span class="tnum">${fmtTs(c.at)}</span><span class="tnum">${kip(c.amount)}</span><span class="flag ${c.status === 'verified' ? 'ok' : c.status === 'rejected' ? 'bad' : ''}">${t('cl_' + c.status)}</span></div>`).join('')}</div>` : '';
       const pp = d.total ? Math.min(100, Math.round(Math.max(0, d.paid) / d.total * 100)) : 0;
       return sheetShell(t('myBookings'), `<button class="pillbtn back" data-act="accBack">${t('allBookings')}</button>
-        <section class="dhero"><div class="dhero-art">${roomArt(d.type_id)}</div><div class="dhero-o">
+        <section class="dhero"><div class="dhero-art">${roomPic(d.type_id)}</div><div class="dhero-o">
           <span class="status s-${d.status}">${t('st_' + d.status)}</span><h3>${esc(L(d.type))}</h3>
           <p class="tnum">${dfm(d.ci)} → ${dfm(d.co)} · ${d.nights} ${t('nights')} · ${d.adults} ${t('guests').toLowerCase()}</p>
           <button class="codechip" data-act="copy" data-v="${esc(d.code)}" title="${esc(t('copy'))}"><span>${t('code')}</span><b>${esc(d.code)}</b>${ico('qr', 14)}</button></div></section>
@@ -2484,7 +2576,7 @@ Object.assign(SX, {
       const needs = b.status === 'pending' && !b.pending_claims;
       return `<button class="bk2 ${dead ? 'dead' : ''} ${needs ? 'needs' : ''}" style="--i:${i}" data-act="accOpen" data-c="${esc(b.code)}">
         <div class="bk2-date"><b>${b.ci.slice(8)}</b><span>${MON[+b.ci.slice(5, 7) - 1]}</span><small>${b.ci.slice(0, 4)}</small></div>
-        <div class="bk2-art">${roomArt(b.type_id, true)}</div>
+        <div class="bk2-art">${roomPic(b.type_id, true)}</div>
         <div class="bk2-main">
           <div class="r1"><b>${esc(L(b.type))}</b><span class="status s-${b.status}">${t('st_' + b.status)}</span></div>
           <div class="r2"><span class="tnum">${dfm(b.ci)} → ${dfm(b.co)}</span><span>· ${b.nights} ${t('nights')}</span><span class="code">${esc(b.code)}</span>${when(b)}</div>
@@ -2595,7 +2687,7 @@ Object.assign(SX, {
       const b = list.find(x => x.code === F.revCode) || {}, d = F.revDraft || {};
       const starIn = (k, big) => `<div class="stars-in ${big ? 'big' : ''}" role="radiogroup" aria-label="${esc(t('r_' + k))}">${[5, 4, 3, 2, 1].map(v => `<button role="radio" aria-checked="${d[k] === v}" aria-label="${v}/5" class="${(d[k] || 0) >= v ? 'on' : ''}" data-act="revStar" data-k="${k}" data-v="${v}">★</button>`).join('')}</div>`;
       return { body: `<button class="pillbtn back" data-act="revBack">${t('back')}</button>
-        <div class="revhead"><div class="bk2-art">${roomArt(b.type_id, true)}</div><div><b>${esc(L(b.type))}</b><small class="tnum">${dfm(b.ci)} → ${dfm(b.co)} · ${esc(b.code)}</small></div></div>
+        <div class="revhead"><div class="bk2-art">${roomPic(b.type_id, true)}</div><div><b>${esc(L(b.type))}</b><small class="tnum">${dfm(b.ci)} → ${dfm(b.co)} · ${esc(b.code)}</small></div></div>
         <div class="field center"><span>${t('r_rating')}</span>${starIn('rating', true)}<small class="rlabel">${d.rating ? t('rl_' + d.rating) : t('tapStars')}</small></div>
         <div class="subr">${['r_clean', 'r_service', 'r_location', 'r_value'].map(k => `<div><span>${t(k)}</span>${starIn(k)}</div>`).join('')}</div>
         <label class="field"><span>${t('revTitle')}</span><input class="in" id="rv_title" maxlength="120" value="${esc(d.title || '')}" placeholder="${esc(t('revTitlePh'))}"></label>
@@ -2603,7 +2695,7 @@ Object.assign(SX, {
         <p class="hint">${t('revPublicNote')}</p>${msg}`,
         foot: `<button class="btn" data-act="revBack">${t('back')}</button><button class="btn cta" data-act="revSave" ${F.busy ? 'disabled' : ''}>${t('revSubmit')}</button>` };
     }
-    const todo = reviewable.length ? `<h3 class="sech">${t('toReview')}</h3><div class="revtodo">${reviewable.map((b, i) => `<div class="rcard" style="--i:${i}"><div class="bk2-art">${roomArt(b.type_id, true)}</div><div><b>${esc(L(b.type))}</b><small class="tnum">${dfm(b.ci)} → ${dfm(b.co)}</small></div>
+    const todo = reviewable.length ? `<h3 class="sech">${t('toReview')}</h3><div class="revtodo">${reviewable.map((b, i) => `<div class="rcard" style="--i:${i}"><div class="bk2-art">${roomPic(b.type_id, true)}</div><div><b>${esc(L(b.type))}</b><small class="tnum">${dfm(b.ci)} → ${dfm(b.co)}</small></div>
         <button class="btn cta sm" data-act="revWrite" data-c="${esc(b.code)}">★ ${t('writeReview')}</button></div>`).join('')}</div>` : '';
     const mine = R.length ? `<h3 class="sech">${t('myReviews')}</h3><div class="revlist">${R.map((r, i) => { const b = list.find(x => x.code === r.code) || {}; return `<article class="rev" style="--i:${i}">
         <header><div>${stars(r.rating, 16)}<b>${esc(r.title || '')}</b></div><small>${esc(L(b.type) || '')} · ${fmtTs(r.created)}</small></header>
