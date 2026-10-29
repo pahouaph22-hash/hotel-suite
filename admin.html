@@ -338,6 +338,15 @@ body.busy .btn{pointer-events:none}
 .sbub small{font-size:11.5px;color:var(--faint)}
 .sbub.member{align-self:flex-start} .sbub.member>div{background:var(--surface);border:1px solid var(--line)}
 .sbub.staff{align-self:flex-end;align-items:flex-end} .sbub.staff>div{background:var(--accent);color:#fff}
+.goodc{color:var(--good);font-weight:600}
+.staytiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:12px 0}
+.stile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;cursor:pointer;font:inherit;color:inherit;border-top:4px solid var(--line);transition:transform .15s,box-shadow .15s}
+.stile:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.stile span{font-size:12.5px;font-weight:600;color:var(--muted)} .stile b{font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums} .stile small{font-size:11.5px;color:var(--faint)}
+.stile.warn{border-top-color:var(--warn)} .stile.good{border-top-color:var(--good)} .stile.info{border-top-color:var(--info)} .stile.bad{border-top-color:var(--bad)}
+.stile.on{background:var(--surface-2);box-shadow:0 0 0 2px var(--accent) inset}
+@media (max-width:1100px){.staytiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.staytiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -531,8 +540,16 @@ const Core = (function () {
     else { post(date, { k: 'depRefund', g: b.guest.name }, b.id, 'deposit', [{ a: '2150', dr: s }, { a: '1120', cr: s }]); b.pays.push({ id: S.seq.fl++, date, m: 'transfer', amt: s, dep: false, applied: true, refund: true }); }
     un.forEach(p => p.applied = true);
   }
-  function doCheckIn(b) { b.status = 'inhouse'; applyDeposits(b, S.bizDate, 'checkin'); }
+  // when the business day is today use the real clock; for simulated history use a plausible hotel-time stamp (UTC+7)
+  function stamp(hh) {
+    const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+    if (S.bizDate >= today) return new Date().toISOString();
+    const m = (S.seq.au * 7 + S.seq.je) % 50;
+    return S.bizDate + 'T' + String(hh - 7).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':00Z';
+  }
+  function doCheckIn(b) { b.status = 'inhouse'; b.ci_at = stamp(14); b.ci_by = S.me ? S.me.name : null; applyDeposits(b, S.bizDate, 'checkin'); }
   function doCheckOut(b, method) {
+    b.co_at = stamp(11); b.co_by = S.me ? S.me.name : null;
     const d = S.bizDate, ch = chOf(b.ch), rg = roomGrossOf(b); let bal = balanceOf(b); const comm = Math.round(rg * ch.comm);
     if (ch.mode === 'ota') {
       const ota = Math.max(0, Math.min(rg, bal));
@@ -1075,7 +1092,7 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 9, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 10, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
         cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
@@ -1194,7 +1211,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v9', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v10', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1211,7 +1228,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 9) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 10) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1412,6 +1429,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
+      try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by }); }); } catch (e) { }
       return s;
     },
     act(name, ...args) {
@@ -1853,11 +1871,26 @@ Object.assign(ACTIONS, {
   'review.create': ['ລູກຄ້າຂຽນຣີວິວ', 'ลูกค้าเขียนรีวิว', 'Review written'], 'review.update': ['ລູກຄ້າແກ້ໄຂຣີວິວ', 'ลูกค้าแก้ไขรีวิว', 'Review edited'], 'review.reply': ['ຕອບຣີວິວ', 'ตอบรีวิว', 'Review answered'],
   'review.hidden': ['ເຊື່ອງຣີວິວ', 'ซ่อนรีวิว', 'Review hidden'], 'review.published': ['ສະແດງຣີວິວ', 'แสดงรีวิว', 'Review shown'], 'member.password_changed': ['ສະມາຊິກປ່ຽນລະຫັດຜ່ານ', 'สมาชิกเปลี่ยนรหัสผ่าน', 'Member changed password']
 });
+Object.assign(TX, {
+  nav_stay: ['ເຊັກອິນ / ເຊັກເອົາ', 'เช็คอิน / เช็คเอาท์', 'Check-in / out'],
+  sg_notin: ['ຍັງບໍ່ເຊັກອິນ', 'ยังไม่เช็คอิน', 'Not checked in'], sgd_notin: ['ມີກຳນົດມາ ແຕ່ຍັງບໍ່ເຂົ້າພັກ', 'มีกำหนดมา แต่ยังไม่เข้าพัก', 'Due to arrive, not in yet'],
+  sg_arrived: ['ເຊັກອິນແລ້ວ', 'เช็คอินแล้ว', 'Checked in'], sgd_arrived: ['ມາຮອດໃນມື້ນີ້', 'มาถึงในวันนี้', 'Arrived on this day'],
+  sg_staying: ['ກຳລັງພັກ', 'กำลังเข้าพัก', 'Staying'], sgd_staying: ['ແຂກທີ່ຢູ່ໃນໂຮງແຮມ', 'แขกที่อยู่ในโรงแรม', 'Guests in the hotel'],
+  sg_dueout: ['ລໍຖ້າເຊັກເອົາ', 'รอเช็คเอาท์', 'Still to check out'], sgd_dueout: ['ຮອດກຳນົດອອກ ແຕ່ຍັງບໍ່ອອກ', 'ถึงกำหนดออก แต่ยังไม่ออก', 'Due to leave, not out yet'],
+  sg_left: ['ເຊັກເອົາແລ້ວ', 'เช็คเอาท์แล้ว', 'Checked out'], sgd_left: ['ອອກຈາກໂຮງແຮມແລ້ວ', 'ออกจากโรงแรมแล้ว', 'Left the hotel'],
+  sg_noshow: ['ບໍ່ມາພັກ', 'ไม่มาเข้าพัก', 'No-show'], sgd_noshow: ['ບໍ່ໄດ້ມາຕາມກຳນົດ', 'ไม่ได้มาตามกำหนด', 'Did not arrive'],
+  sl_ciAt: ['ເຊັກອິນເມື່ອ / ໂດຍ', 'เช็คอินเมื่อ / โดย', 'Checked in / by'], sl_coAt: ['ເຊັກເອົາເມື່ອ / ໂດຍ', 'เช็คเอาท์เมื่อ / โดย', 'Checked out / by'],
+  sl_none: ['ບໍ່ມີລາຍການ', 'ไม่มีรายการ', 'Nobody in this group'], sl_search: ['ຄົ້ນຫາຊື່, ຫ້ອງ, ລະຫັດ, ເບີໂທ', 'ค้นหาชื่อ ห้อง รหัส เบอร์โทร', 'Search name, room, code, phone'], sl_export: ['ສົ່ງອອກ CSV', 'ส่งออก CSV', 'Export CSV'],
+  sl_late: ['ຊ້າກວ່າກຳນົດ', 'เลยกำหนด', 'Overdue'], sl_overstay: ['ເກີນກຳນົດອອກ', 'เกินกำหนดออก', 'Past departure'],
+  prevDay: ['ມື້ກ່ອນ', 'วันก่อน', 'Previous day'], nextDay: ['ມື້ຖັດໄປ', 'วันถัดไป', 'Next day'], bizDay: ['ມື້ທຸລະກິດປັດຈຸບັນ', 'วันทำการปัจจุบัน', 'Current business day'],
+  settled: ['ຄົບແລ້ວ', 'ครบแล้ว', 'Settled'], needPay: ['ລໍຖ້າຊຳລະ', 'รอชำระ', 'Awaiting payment'], checkedInOk: ['ເຊັກອິນແລ້ວ', 'เช็คอินแล้ว', 'Checked in'],
+  att_stay: ['ຍັງບໍ່ເຊັກອິນ {a} · ລໍຖ້າເຊັກເອົາ {b}', 'ยังไม่เช็คอิน {a} · รอเช็คเอาท์ {b}', 'Not checked in {a} · still to check out {b}']
+});
 
 // ===== BACK OFFICE =====
 (function () {
   const LANGS = ['lo', 'th', 'en'];
-  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, gTab: 'members', gSel: null, ibTab: 'msg', ibFilter: 'todo' };
+  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, stDate: null, stF: 'notin', stQ: '', gTab: 'members', gSel: null, ibTab: 'msg', ibFilter: 'todo' };
   let S = null, lang = 'lo';
   try { const l = localStorage.getItem('saynam-lang'); if (LANGS.includes(l)) lang = l; } catch (e) { }
   const $ = s => document.querySelector(s);
@@ -1922,6 +1955,7 @@ Object.assign(ACTIONS, {
 
   // ---------- icons & nav ----------
   const IC = {
+    stay: '<path d="M4 21V4h11v17M15 8h5v13M8 12h.01M2 21h20"/><path d="m10 8 2 2-2 2"/>',
     inbox: '<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>',
     dash: '<path d="M3 13h7V3H3zm11 8h7V11h-7zM3 21h7v-5H3zm11-13h7V3h-7z"/>', cal: '<path d="M4 5h16v15H4zM4 10h16M9 3v4m6-4v4"/>',
     bk: '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/>', guests: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
@@ -1931,7 +1965,7 @@ Object.assign(ACTIONS, {
   };
   const ico = k => `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
   const NAV = [
-    ['grp_ops', [['dash', 'nav_dash', ROLES], ['cal', 'nav_cal', ['manager', 'frontdesk']], ['bk', 'nav_bk', ['manager', 'frontdesk', 'accountant']], ['guests', 'nav_guests', ['manager', 'frontdesk', 'accountant']], ['inbox', 'nav_inbox', ['manager', 'frontdesk', 'accountant']], ['rooms', 'nav_rooms', ['manager', 'frontdesk', 'housekeeping']]]],
+    ['grp_ops', [['dash', 'nav_dash', ROLES], ['stay', 'nav_stay', ['manager', 'frontdesk', 'accountant']], ['cal', 'nav_cal', ['manager', 'frontdesk']], ['bk', 'nav_bk', ['manager', 'frontdesk', 'accountant']], ['guests', 'nav_guests', ['manager', 'frontdesk', 'accountant']], ['inbox', 'nav_inbox', ['manager', 'frontdesk', 'accountant']], ['rooms', 'nav_rooms', ['manager', 'frontdesk', 'housekeeping']]]],
     ['grp_grow', [['mkt', 'nav_mkt', ['manager', 'accountant']]]],
     ['grp_fin', [['acc', 'nav_acc', ['manager', 'accountant']]]],
     ['grp_admin', [['setup', 'nav_setup', ['manager']], ['audit', 'nav_audit', ['manager', 'accountant']], ['set', 'nav_set', ['manager']]]]
@@ -1957,7 +1991,7 @@ Object.assign(ACTIONS, {
       <div class="side-foot"><div class="me"><b>${esc(S.me.name)}</b><span>${t('r_' + S.me.role)}</span></div>
         <button class="navbtn" data-act="logout">${ico('out')}<span>${t('signOut')}</span></button>
         <span class="demo-tag">${S.live ? t('liveMode') : t('demoMode')}</span></div>`;
-    const title = { dash: 'nav_dash', cal: 'nav_cal', bk: 'nav_bk', guests: 'nav_guests', inbox: 'nav_inbox', rooms: 'nav_rooms', setup: 'nav_setup', mkt: 'nav_mkt', acc: 'nav_acc', audit: 'nav_audit', set: 'nav_set' }[V.view];
+    const title = { dash: 'nav_dash', stay: 'nav_stay', cal: 'nav_cal', bk: 'nav_bk', guests: 'nav_guests', inbox: 'nav_inbox', rooms: 'nav_rooms', setup: 'nav_setup', mkt: 'nav_mkt', acc: 'nav_acc', audit: 'nav_audit', set: 'nav_set' }[V.view];
     $('#top').innerHTML = `<h1>${t(title)}</h1>
       <div class="chip-date"><span class="muted">${t('bizDate')}</span><b>${dfm(S.bizDate)}</b>${can('manager', 'frontdesk') ? `<button class="btn sm pri" data-act="nightAudit">${t('nightAudit')}</button>` : ''}</div>
       <button class="btn sm ghost" data-act="reload" title="${esc(t('refresh'))}" aria-label="${esc(t('refresh'))}">↻</button>
@@ -1968,7 +2002,7 @@ Object.assign(ACTIONS, {
     if (!allowed(V.view)) V.view = firstView();
     if (!$('#side')) $('#root').innerHTML = `<div class="app"><aside class="side" id="side"></aside><div class="main"><header class="top" id="top"></header><main id="view"></main></div></div>`;
     renderShell();
-    const f = { dash: vDash, cal: vCal, bk: vBk, guests: vGuests, inbox: vInbox, rooms: vRooms, setup: vSetup, mkt: vMkt, acc: vAcc, audit: vAudit, set: vSet }[V.view];
+    const f = { dash: vDash, stay: vStay, cal: vCal, bk: vBk, guests: vGuests, inbox: vInbox, rooms: vRooms, setup: vSetup, mkt: vMkt, acc: vAcc, audit: vAudit, set: vSet }[V.view];
     $('#view').innerHTML = f();
   }
 
@@ -2006,6 +2040,7 @@ Object.assign(ACTIONS, {
     const att = []; const pc = pendingClaims();
     if (pc.length && can('frontdesk', 'accountant', 'manager')) att.push(['warn', `${t('claims')}: ${pc.length} · ${kip(pc.reduce((s, c) => s + c.amt, 0))}`, 'bk', 'claims']);
     const pend = S.bookings.filter(b => b.status === 'pending'); if (pend.length) att.unshift(['warn', t('att_pending', { n: pend.length }), 'bk', 'pending']);
+    { const G = stayGroups(biz); if (G.notin.length || G.dueout.length) att.unshift(['warn', t('att_stay', { a: G.notin.length, b: G.dueout.length }), 'stay']); }
     const openTh = SUP().threads.filter(x => x.status === 'open').length; if (openTh) att.unshift(['warn', t('att_msgs', { n: openTh }), 'inbox', 'msg']);
     const noRep = SUP().reviews.filter(r => !r.reply).length; if (noRep) att.push(['warn', t('att_reviews', { n: noRep }), 'inbox', 'rev']);
     const ro = owedRefunds(); if (ro.length && can('manager', 'accountant')) att.push(['warn', t('att_refunds', { n: ro.length, a: kip(ro.reduce((x, r) => x + r.amount, 0)) }), 'bk', 'refunds']);
@@ -2288,6 +2323,54 @@ Object.assign(ACTIONS, {
     <div class="card tablewrap" id="gtable"><table class="t"><thead><tr><th>${t('guest')}</th><th>${t('phone')}</th><th>${t('country')}</th><th class="n">${t('stays')}</th><th class="n">${t('nights')}</th><th class="n">${t('spent')}</th><th>${t('lastStay')}</th></tr></thead><tbody>
       ${list.map(g => `<tr class="click" data-act="openBk" data-id="${g.ids[g.ids.length - 1]}"><td>${esc(g.name)}</td><td class="tnum">${esc(g.phone || '—')}</td><td>${nm(COUNTRIES[g.country] || COUNTRIES.OT)}</td><td class="n">${g.stays}</td><td class="n">${g.nights}</td><td class="n">${fm(g.spent)}</td><td class="tnum">${dfm(g.last)}</td></tr>`).join('')}
     </tbody></table></div>`;
+  }
+
+  // ---------- check-in / check-out status ----------
+  // For the chosen day: who is expected and not yet in, who arrived, who is staying, who must leave and who has left.
+  function stayGroups(D) {
+    const biz = S.bizDate, B = S.bookings, isBiz = D === biz;
+    const arr = B.filter(b => b.ci === D && !['cancelled'].includes(b.status));
+    const late = isBiz ? B.filter(b => (b.status === 'confirmed' || b.status === 'pending') && b.ci < D) : [];
+    return {
+      notin: [...late, ...arr.filter(b => b.status === 'confirmed' || b.status === 'pending')],
+      arrived: arr.filter(b => b.status === 'inhouse' || b.status === 'out'),
+      staying: isBiz ? B.filter(b => b.status === 'inhouse') : B.filter(b => (b.status === 'inhouse' || b.status === 'out') && b.ci <= D && D < b.co),
+      dueout: B.filter(b => b.status === 'inhouse' && b.co <= D),
+      left: B.filter(b => b.status === 'out' && (b.co_at ? tday(b.co_at) === D : b.co === D)),
+      noshow: arr.filter(b => b.status === 'noshow')
+    };
+  }
+  const tday = iso => { try { return new Date(new Date(iso).getTime() + 7 * 3600e3).toISOString().slice(0, 10); } catch (e) { return ''; } };
+  const STF = ['notin', 'arrived', 'staying', 'dueout', 'left', 'noshow'];
+  function vStay() {
+    const biz = S.bizDate, D = V.stDate || biz, G = stayGroups(D), q = V.stQ.trim().toLowerCase(), fd = can('frontdesk', 'manager');
+    const f = STF.includes(V.stF) ? V.stF : 'notin';
+    const tone = { notin: 'warn', arrived: 'good', staying: 'info', dueout: 'warn', left: 'good', noshow: 'bad' };
+    const tiles = `<div class="staytiles">${STF.map(k => `<button class="stile ${tone[k]} ${f === k ? 'on' : ''}" data-act="stF" data-f="${k}"><span>${t('sg_' + k)}</span><b>${G[k].length}</b><small>${t('sgd_' + k)}</small></button>`).join('')}</div>`;
+    const match = b => !q || b.guest.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q) || b.room.includes(q) || b.id.toLowerCase().includes(q) || (/\d{4,}/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '')));
+    const rows = G[f].filter(match).sort((a, b) => f === 'left' ? String(b.co_at || '').localeCompare(String(a.co_at || '')) : f === 'arrived' ? String(b.ci_at || '').localeCompare(String(a.ci_at || '')) : a.room.localeCompare(b.room));
+    const when = (at, by) => at ? `<b class="tnum">${tfm(at)}</b><div class="small faint">${esc(by || '—')}</div>` : '<span class="faint">—</span>';
+    const pay = b => { const due = owed(b); return ['cancelled', 'noshow'].includes(b.status) ? '—' : due > 0 ? `<span class="warnc tnum">${fm(due)}</span>` : `<span class="goodc">${t('settled')}</span>`; };
+    const act = b => {
+      if (!fd) return '';
+      if (b.status === 'confirmed' && b.ci <= biz) return `<button class="btn sm pri" data-act="stCi" data-id="${b.id}">${t('checkIn')}</button>`;
+      if (b.status === 'pending') return `<button class="btn sm" data-act="openBk" data-id="${b.id}">${t('needPay')}</button>`;
+      if (b.status === 'inhouse') return `<button class="btn sm ${b.co <= biz ? 'pri' : ''}" data-act="startCo" data-id="${b.id}">${t('checkOut')}</button>`;
+      return '';
+    };
+    const flag = b => b.status === 'confirmed' && b.ci < biz ? `<span class="pill p-noshow">${t('sl_late')}</span>` : b.status === 'inhouse' && b.co < biz ? `<span class="pill p-noshow">${t('sl_overstay')}</span>` : b.status === 'inhouse' && b.co === biz ? `<span class="pill p-pending">${t('dueOut')}</span>` : '';
+    const table = rows.length ? `<table class="t"><thead><tr><th>${t('room')}</th><th>${t('guest')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('status')}</th><th>${t('sl_ciAt')}</th><th>${t('sl_coAt')}</th><th class="n">${t('balance')}</th><th></th></tr></thead><tbody>
+      ${rows.map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td><span class="roomno">${b.room}</span><div class="small faint">${typeName(b.type)}</div></td>
+        <td><b>${esc(b.guest.name)}</b><div class="small faint">${esc(b.guest.phone || '')} · <span class="mono">${esc(b.code || b.id)}</span>${b.member ? ' · ' + t('website') : ''}</div></td>
+        <td class="tnum">${dsh(b.ci)} → ${dsh(b.co)} <span class="faint">(${nightsOf(b)})</span></td><td>${stPill(b.status)} ${flag(b)}</td>
+        <td>${when(b.ci_at, b.ci_by)}</td><td>${when(b.co_at, b.co_by)}</td><td class="n">${pay(b)}</td><td class="n" data-stop="1">${act(b)}</td></tr>`).join('')}
+      </tbody></table>` : `<div class="empty">${t('sl_none')}</div>`;
+    return `<div class="spread"><div class="toolbar"><button class="btn sm" data-act="stDay" data-n="-1" aria-label="${esc(t('prevDay'))}">‹</button>
+        <input class="input" type="date" id="st_date" value="${D}" style="width:auto"><button class="btn sm" data-act="stDay" data-n="1" aria-label="${esc(t('nextDay'))}">›</button>
+        ${D !== biz ? `<button class="btn sm" data-act="stDay" data-n="0">${t('today')}</button>` : `<span class="pill p-inhouse">${t('bizDay')}</span>`}</div>
+      <div class="toolbar"><input class="input" id="stq" data-in="stq" placeholder="${esc(t('sl_search'))}" value="${esc(V.stQ)}" style="max-width:260px"><button class="btn sm" data-act="stCsv">${t('sl_export')}</button></div></div>
+      ${tiles}
+      <div class="card tablewrap" id="sttable"><h3 style="margin:0 0 8px">${t('sg_' + f)} · ${dfm(D)}</h3>${table}</div>`;
   }
 
   // ---------- inbox: member messages & reviews ----------
@@ -2636,6 +2719,16 @@ Object.assign(ACTIONS, {
     addPay: async d => { const a = Math.round(+$('#pf_a').value || 0); if (a <= 0) return toast(t('errAmt')); try { await act('payment', d.id, $('#pf_m').value, a, $('#pf_r').value.trim()); render(); showBk(d.id); } catch (e) { } },
     viewSlip: d => showSlip(+d.id),
     ibTab: d => { V.ibTab = d.t; render(); },
+    stF: d => { V.stF = d.f; render(); },
+    stDay: d => { const n = +d.n; V.stDate = n === 0 ? S.bizDate : addD(V.stDate || S.bizDate, n); render(); },
+    stCi: async d => { try { await act('checkIn', d.id); render(); toast(t('checkedInOk')); } catch (e) { } },
+    stCsv: () => {
+      const D = V.stDate || S.bizDate, G = stayGroups(D), rows = [['group', 'booking', 'code', 'room', 'guest', 'phone', 'arrive', 'depart', 'status', 'checked_in_at', 'checked_in_by', 'checked_out_at', 'checked_out_by', 'balance_lak']];
+      STF.forEach(k => G[k].forEach(b => rows.push([k, b.id, b.code || '', b.room, b.guest.name, b.guest.phone || '', b.ci, b.co, b.status, b.ci_at || '', b.ci_by || '', b.co_at || '', b.co_by || '', ['cancelled', 'noshow'].includes(b.status) ? 0 : owed(b)])));
+      const csv = '\ufeff' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `checkin-checkout-${D}.csv`;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    },
     ibFilter: d => { V.ibFilter = d.f; render(); },
     ibOpen: d => showThread(+d.id),
     thReply: async d => {
@@ -2722,12 +2815,14 @@ Object.assign(ACTIONS, {
     if (e.target.id === 'sv_ref') syncVerifyBtn();
     const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;
     if (k === 'bkq') { V.bkQ = el.value; $('#bktable').innerHTML = bkRows(); }
+    else if (k === 'stq') { V.stQ = el.value; const pos = el.selectionStart; render(); const i = $('#stq'); i.focus(); i.setSelectionRange(pos, pos); }
     else if (k === 'gq') { V.gQ = el.value; const pos = el.selectionStart; render(); const i = $('#gq'); i.focus(); i.setSelectionRange(pos, pos); }
     else if (k === 'auq') { V.auQ = el.value; const pos = el.selectionStart; render(); const i = $('#auq'); i.focus(); i.setSelectionRange(pos, pos); }
     else if (k === 'jer') { V.jeRows[+el.dataset.i][el.dataset.f] = el.value; jeTotals(); }
   });
   document.addEventListener('change', async e => {
     if (e.target.id === 'sv_ok' || e.target.id === 'sv_ref') syncVerifyBtn();
+    if (e.target.id === 'st_date' && e.target.value) { V.stDate = e.target.value; render(); return; }
     const el = e.target, k = el.dataset && el.dataset.in;
     if (el.id === 's_qr') {
       const f = el.files && el.files[0]; if (!f) return;

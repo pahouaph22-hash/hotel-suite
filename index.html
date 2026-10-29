@@ -715,8 +715,16 @@ const Core = (function () {
     else { post(date, { k: 'depRefund', g: b.guest.name }, b.id, 'deposit', [{ a: '2150', dr: s }, { a: '1120', cr: s }]); b.pays.push({ id: S.seq.fl++, date, m: 'transfer', amt: s, dep: false, applied: true, refund: true }); }
     un.forEach(p => p.applied = true);
   }
-  function doCheckIn(b) { b.status = 'inhouse'; applyDeposits(b, S.bizDate, 'checkin'); }
+  // when the business day is today use the real clock; for simulated history use a plausible hotel-time stamp (UTC+7)
+  function stamp(hh) {
+    const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+    if (S.bizDate >= today) return new Date().toISOString();
+    const m = (S.seq.au * 7 + S.seq.je) % 50;
+    return S.bizDate + 'T' + String(hh - 7).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':00Z';
+  }
+  function doCheckIn(b) { b.status = 'inhouse'; b.ci_at = stamp(14); b.ci_by = S.me ? S.me.name : null; applyDeposits(b, S.bizDate, 'checkin'); }
   function doCheckOut(b, method) {
+    b.co_at = stamp(11); b.co_by = S.me ? S.me.name : null;
     const d = S.bizDate, ch = chOf(b.ch), rg = roomGrossOf(b); let bal = balanceOf(b); const comm = Math.round(rg * ch.comm);
     if (ch.mode === 'ota') {
       const ota = Math.max(0, Math.min(rg, bal));
@@ -1259,7 +1267,7 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 9, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 10, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
         cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
@@ -1378,7 +1386,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v9', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v10', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1395,7 +1403,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 9) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 10) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1596,6 +1604,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
+      try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by }); }); } catch (e) { }
       return s;
     },
     act(name, ...args) {
