@@ -1689,6 +1689,8 @@ const API = (function () {
       if (STAFF_RPC[name]) { const [fn, a] = STAFF_RPC[name](...args); return rpc(fn, a); }
       return liveTable({ op: name, arg: args[0] });
     },
+    // live: a few bytes that change whenever anything in the hotel changes; demo: nothing to save
+    signature: () => LIVE ? rpc('admin_sig') : Promise.resolve(null),
     resetDemo: () => { if (!LIVE) demoReset(); },
     asGuest() { guestMode = true; },
     // demo: another tab wrote to this browser's storage. live: poll the database while the page is visible
@@ -2304,6 +2306,7 @@ Object.assign(TX, {
   ms_autoShort: ['ລະບົບສະຫຼຸບເອງທຸກວັນ 11:30', 'ระบบสรุปเองทุกวัน 11:30', 'the system summarises each day at 11:30'],
   ms_closePending: ['ສະຫຼຸບວັນທີ່ຄ້າງ ({n})', 'สรุปวันที่ค้าง ({n})', 'Summarise pending days ({n})'], ms_closedN: ['ສະຫຼຸບແລ້ວ {n} ວັນ', 'สรุปแล้ว {n} วัน', '{n} day(s) summarised']
 });
+Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກເອງໄດ້ຮອດ {d} (ຄືນ {p}%)', 'ลูกค้ายกเลิกเองได้ถึง {d} (คืน {p}%)', 'guest can cancel online until {d} ({p}% back)'] });
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2564,7 +2567,6 @@ Object.assign(TX, {
     const biz = S.bizDate, rm = S.rooms.find(r => r.no === b.room), fd = can('frontdesk', 'manager');
     const held = b.pays.filter(p => p.dep && !p.applied).reduce((s, p) => s + p.amt, 0);
     const total = pre(b) ? b.rate * nightsOf(b) : Core.chargesOf(b);
-    const freeUntil = addD(b.ci, -S.settings.free_cancel_days), freeCancel = biz <= freeUntil;
     const voidedIds = new Set(b.folio.filter(f => f.voids).map(f => f.voids));
     let acts = '', pendNote = '';
     if (b.status === 'pending') {
@@ -2576,7 +2578,7 @@ Object.assign(TX, {
     if (fd && b.status === 'confirmed') {
       acts += `<button class="btn pri" data-act="doCi" data-id="${b.id}">✓ ${t('tickIn')}</button>`;
       if (b.ci <= biz) acts += `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="noshow">${t('markNoShow')}</button>`;
-      acts += held && freeCancel ? `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled" data-r="1">${t('cancelBk')} · ${t('refundDep')}</button>` : `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled">${t('cancelBk')}${held ? ' · ' + t('keepDep') : ''}</button>`;
+      acts += held ? `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled" data-r="1">${t('cancelBk')} · ${t('refundDep')}</button><button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled">${t('cancelBk')} · ${t('keepDep')}</button>` : `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled">${t('cancelBk')}</button>`;
     }
     if (fd && b.status === 'inhouse') {
       if (Core.roomFree(b.room, b.co, addD(b.co, 1), b.id)) acts += `<button class="btn" data-act="extend" data-id="${b.id}">${t('extend')}</button>`;
@@ -2604,7 +2606,7 @@ Object.assign(TX, {
     ${b.old_code ? `<div class="small muted">${t('oldCode')}: <span class="mono">${esc(b.old_code)}</span></div>` : ''}
     ${refundBlock(b)}
     ${b.request ? `<div class="note"><b>${t('request')}:</b> ${esc(b.request)}</div>` : ''}
-    ${held ? `<div class="note">${t('deposit')}: ${kip(held)} — ${t('depositHeld')} (2150)${b.status === 'confirmed' ? ' · ' + t('freeCancelUntil', { d: dfm(freeUntil) }) : ''}</div>` : ''}
+    ${held ? `<div class="note">${t('deposit')}: ${kip(held)} — ${t('depositHeld')} (2150)${b.status === 'confirmed' && b.cancel_until ? ' · ' + t('guestCancelUntil', { d: tfm(b.cancel_until), p: S.settings.cancel_refund_pct ?? 80 }) : ''}</div>` : ''}
     ${pre(b) && b.deposit_due && !held ? `<div class="note warn">${t('depositDue')}: ${kip(b.deposit_due)}</div>` : ''}
     ${claims.length ? `<section><h4>${t('claims')}</h4><div class="list">${claims.map(c => `<div class="li"><div class="who"><b class="tnum">${kip(c.amt)}${c.ref ? ` · <span class="mono">${esc(c.ref)}</span>` : ''}</b><span>${tfm(c.at)}</span></div>${c.status === 'pending' && can('frontdesk', 'accountant', 'manager') ? `<button class="btn sm pri" data-act="viewSlip" data-id="${c.id}">${t('checkSlip')}</button>` : `${c.slip ? `<button class="btn sm" data-act="viewSlip" data-id="${c.id}">${t('viewSlip')}</button>` : ''}${c.bank_ref ? `<span class="mono small">${esc(c.bank_ref)}</span>` : ''}<span class="pill ${c.status === 'verified' ? 'p-inhouse' : c.status === 'pending' ? 'p-confirmed' : 'p-cancelled'}">${c.status === 'verified' ? t('verify') : c.status === 'pending' ? t('claims') : t('reject')}</span>`}</div>`).join('')}</div></section>` : ''}
     <section><h4>${t('folio')}</h4><div class="tablewrap"><table class="t"><thead><tr><th>${t('date')}</th><th>${t('desc')}</th><th class="n">VAT</th><th class="n">${t('amount')}</th><th></th></tr></thead><tbody>
@@ -3408,9 +3410,7 @@ Object.assign(TX, {
       <label class="field"><span>${t('email')}</span><input class="input" id="s_email" value="${esc(s.email || '')}"></label>
       <label class="field"><span>${t('vatRate')}</span><input class="input" type="number" id="s_vat" min="0" max="30" step="1" value="${s.vat}"></label>
       <label class="field"><span>${t('taxRate')}</span><input class="input" type="number" id="s_tax" min="0" max="50" step="1" value="${s.tax ?? 20}"></label>
-      <label class="field"><span>${t('depositPct')}</span><input class="input" type="number" id="s_dep" min="0" max="100" value="${s.deposit_pct}"></label>
       <label class="field"><span>${t('directDisc')}</span><input class="input" type="number" id="s_dd" min="0" max="50" value="${s.direct_discount}"></label>
-      <label class="field"><span>${t('freeCancel')}</span><input class="input" type="number" id="s_fc" min="0" max="60" value="${s.free_cancel_days}"></label>
       <label class="field"><span>${t('cxlCutoff')}</span><input class="input" type="number" id="s_cxh" min="0" max="72" value="${s.cancel_cutoff_hours ?? 3}"></label>
       <label class="field"><span>${t('cxlRefund')}</span><input class="input" type="number" id="s_cxp" min="0" max="100" value="${s.cancel_refund_pct ?? 80}"></label>
       <label class="field"><span>${t('holdHours')}</span><input class="input" type="number" id="s_hold" min="1" max="168" value="${s.pending_hold_hours ?? 24}"></label>
@@ -3618,7 +3618,7 @@ Object.assign(TX, {
       try { navigator.clipboard.writeText(tsv).then(() => toast(t('copied')), fail); } catch (e) { fail(); }
     },
     saveSet: async () => {
-      const p = { hotel: $('#s_name').value.trim() || S.settings.hotel, address: $('#s_addr').value.trim(), phone: $('#s_phone').value.trim(), email: $('#s_email').value.trim(), vat: Math.max(0, Math.min(30, +$('#s_vat').value || 0)), incl: $('#s_incl').checked, deposit_pct: +$('#s_dep').value || 0, direct_discount: +$('#s_dd').value || 0, free_cancel_days: +$('#s_fc').value || 0, cancel_cutoff_hours: Math.max(0, Math.min(72, +$('#s_cxh').value || 0)), cancel_refund_pct: Math.max(0, Math.min(100, +$('#s_cxp').value || 0)), pending_hold_hours: Math.max(1, Math.min(168, +$('#s_hold').value || 24)), tax: Math.max(0, Math.min(50, +$('#s_tax').value || 0)), close: { depr: +$('#s_c_depr').value || 0, sal: +$('#s_c_sal').value || 0, int: +$('#s_c_int').value || 0 } };
+      const p = { hotel: $('#s_name').value.trim() || S.settings.hotel, address: $('#s_addr').value.trim(), phone: $('#s_phone').value.trim(), email: $('#s_email').value.trim(), vat: Math.max(0, Math.min(30, +$('#s_vat').value || 0)), incl: $('#s_incl').checked, direct_discount: +$('#s_dd').value || 0, cancel_cutoff_hours: Math.max(0, Math.min(72, +$('#s_cxh').value || 0)), cancel_refund_pct: Math.max(0, Math.min(100, +$('#s_cxp').value || 0)), pending_hold_hours: Math.max(1, Math.min(168, +$('#s_hold').value || 24)), tax: Math.max(0, Math.min(50, +$('#s_tax').value || 0)), close: { depr: +$('#s_c_depr').value || 0, sal: +$('#s_c_sal').value || 0, int: +$('#s_c_int').value || 0 } };
       try { await act('saveSettings', p); render(); toast(t('saved')); } catch (e) { }
     },
     staffAdd: async () => { const e = $('#st_e').value.trim(), n = $('#st_n').value.trim(); if (!e || !n) return toast(t('errName')); try { await act('saveStaff', { email: e, name: n, role: $('#st_r').value }); render(); toast(t('saved')); } catch (er) { } },
@@ -3685,11 +3685,14 @@ Object.assign(TX, {
   // a booking made on the guest website in another tab shows up here (demo mode shares this browser's storage)
   // keep the back office current: new website bookings and slips appear without pressing refresh
   const sig = () => S ? [S.bookings.length, S.claims.filter(c => c.status === 'pending').length, S.audit[0] ? S.audit[0].id : 0, S.journal.length, S.bizDate, SUP().threads.reduce((n, x) => n + x.messages.length, 0), SUP().reviews.length].join('|') : '';
-  let polling = false;
+  let polling = false, lastSig = null;
   API.onExternalChange(async () => {
     if (!S || !S.me || V.busy || polling) return;
     polling = true;
     try {
+      const sg = await API.signature().catch(() => null);
+      if (sg && sg === lastSig) return;                       // nothing changed: skip the full download
+      lastSig = sg;
       const before = sig(), knownBk = new Set(S.bookings.map(b => b.id)), knownCl = new Set(S.claims.map(c => c.id));
       const fresh = await API.snapshot(); if (!fresh || !fresh.me) return;
       const newBk = fresh.bookings.filter(b => !knownBk.has(b.id)), newCl = fresh.claims.filter(c => !knownCl.has(c.id) && c.status === 'pending');
