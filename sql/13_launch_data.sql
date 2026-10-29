@@ -35,6 +35,10 @@ alter table support_messages disable trigger user;
 alter table ota_receivables disable trigger user;
 alter table period_locks disable trigger user;
 
+do $$ begin
+  if to_regclass('public.cash_counts') is not null then execute 'delete from cash_counts'; end if;
+  if to_regclass('public.fixed_assets') is not null then execute 'delete from fixed_assets'; end if;
+end $$;
 delete from notifications;
 delete from support_messages;
 delete from support_threads;
