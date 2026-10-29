@@ -716,7 +716,7 @@ const Core = (function () {
     let d = 0, c = 0;
     for (const l of lines) { if (!S.accounts[l.a]) fail('invalid_account', l.a); if (l.dr < 0 || l.cr < 0) fail('unbalanced_entry'); d += l.dr; c += l.cr; }
     if (d !== c || d === 0) fail('unbalanced_entry', 'Dr ' + d + ' Cr ' + c);
-    const e = { id: S.seq.je++, date, desc, ref: ref || '', src, rev: reverses || null, revBy: null, at: new Date().toISOString(), lines };
+    const e = { id: S.seq.je++, date, desc, ref: ref || '', src, rev: reverses || null, revBy: null, at: new Date().toISOString(), lines, by: S.me ? S.me.name : 'system' };
     S.journal.push(e); return e;
   }
   function vatSplit(amount) {
@@ -1066,7 +1066,7 @@ const Core = (function () {
       S.claims.filter(c => c.bk === b.id && c.status === 'pending').forEach(c => c.status = 'rejected'); log('booking.expired', b.id, { reason: 'payment not confirmed by arrival date' }); ex++; });
     S.bookings.filter(b => b.status === 'confirmed' && b.ci <= d).forEach(b => { applyDeposits(b, d, 'forfeit'); b.status = 'noshow'; ns++; });
     S.bookings.filter(b => b.status === 'inhouse').sort((a, b) => a.room < b.room ? -1 : 1).forEach(b => { addCharge(b, d, 'room', { k: 'night', room: b.room, d }, b.rate); n++; amt += b.rate; const r = roomOf(b.room); if (r.hk !== 'ooo') r.hk = 'dirty'; });
-    S.bizDate = addD(d, 1);
+    S.bizDate = addD(d, 1); autoDailyClose();
     log('night_audit', d, { room_nights: n, amount: amt, noshows: ns, unpaid_released: ex });
     return { room_nights: n, amount: amt, noshows: ns, unpaid_released: ex, business_date: S.bizDate };
   }
@@ -1215,6 +1215,54 @@ const Core = (function () {
     return { rows, op, inv, fin, opening: start, end, ok: end === check, book: check };
   }
   const a5950 = other => other.length === 1 && other[0] === '5950';
+  // ---------- money in / money out (same rules as money_rows() in the database) ----------
+  const CAT_IN_BOOKING = ['2150', '1130', '4100', '4200', '4300'];
+  function moneyRows(from, to) {
+    const out = [], openIds = new Set(S.journal.filter(e => e.src === 'open').map(e => e.id));
+    for (const e of S.journal) {
+      if (e.date < from || e.date > to || e.src === 'open' || (e.rev && openIds.has(e.rev))) continue;
+      const delta = e.lines.reduce((s, l) => s + (CASH.includes(l.a) ? l.dr - l.cr : 0), 0); if (!delta) continue;
+      const others = e.lines.filter(l => !CASH.includes(l.a)).slice().sort((x, y) => (y.dr + y.cr) - (x.dr + x.cr) || (x.a < y.a ? -1 : 1));
+      const main = others.length ? others[0].a : '', fin = e.lines.some(l => ['eq', 'ncl'].includes((S.accounts[l.a] || [])[0]));
+      let kind, cat;
+      if (fin) { kind = 'fin'; cat = delta > 0 ? 'fin_in' : 'fin_out'; }
+      else if (delta > 0) { kind = 'in'; if (CAT_IN_BOOKING.includes(main)) { const b = S.bookings.find(x => x.id === e.ref); cat = !b ? 'otherbk' : b.source === 'website' ? 'web' : b.ch === 'WALK' ? 'walkin' : 'otherbk'; } else cat = main === '1140' ? 'ota' : main === '5950' ? 'cashover' : 'other_in'; }
+      else { kind = 'out'; cat = ['1210', '1220'].includes(main) ? 'capex' : ['2170', '1130', '2150'].includes(main) ? 'refund' : ['2140', '1150'].includes(main) ? 'vat' : ['2120', '5300'].includes(main) ? 'comm' : ['2160', '5200'].includes(main) ? 'staff' : main === '2110' ? 'payables' : main; }
+      const method = (e.desc && e.desc.m) || (e.lines.some(l => l.a === '1110' && l.dr !== l.cr) ? 'cash' : 'bank');
+      out.push({ entry: e.id, e, day: e.date, delta, kind, cat, method, by: e.by || (S.jby && S.jby[e.id]) || '' });
+    }
+    return out;
+  }
+  function dayMoney(d) {
+    const R = moneyRows(d, d), sum = f => R.filter(f).reduce((s, r) => s + r.delta, 0), by = (f, k) => R.filter(f).reduce((m, r) => { m[r[k]] = (m[r[k]] || 0) + Math.abs(r.delta); return m; }, {});
+    const inh = S.bookings.filter(b => b.ci === d && b.ci_at);
+    return { income: sum(r => r.kind === 'in'), expense: (-sum(r => r.kind === 'out')) || 0, fin_in: sum(r => r.cat === 'fin_in'), fin_out: (-sum(r => r.cat === 'fin_out')) || 0,
+      by_cat: by(() => true, 'cat'), by_method: by(r => r.kind === 'in', 'method'), entries: R.length, room_nights: roomNightsIn(d, d), checkins: inh.length, walkins: inh.filter(b => b.ch === 'WALK').length };
+  }
+  function closeDaySummary(d, who) {
+    S.closings = S.closings || []; if (S.closings.some(c => c.day === d)) return false;
+    const m = dayMoney(d); S.closings.unshift({ day: d, ...m, closed_at: new Date().toISOString(), closed_by: who }); S.closings.sort((a, b) => a.day < b.day ? 1 : -1);
+    log('day.summary', d, { ...m, by: who }); return true;
+  }
+  function autoDailyClose() {
+    S.closings = S.closings || []; const last = addD(S.bizDate, -1); let n = 0;
+    let d = S.closings.length ? addD(S.closings[0].day, 1) : (S.journal[0] ? S.journal[0].date : last);
+    while (d <= last && n < 400) { if (closeDaySummary(d, 'auto')) n++; d = addD(d, 1); }
+    return n;
+  }
+  function closeDay(d) {
+    need('manager', 'accountant', 'frontdesk');
+    if (!d || d >= S.bizDate) fail('day_not_finished');
+    if ((S.closings || []).some(c => c.day === d)) fail('already_posted');
+    return closeDaySummary(d, S.me ? S.me.name : 'staff');
+  }
+  function payPayable(amount, pay, note) {
+    need('manager', 'accountant'); amount = Math.round(+amount);
+    if (!['1110', '1120'].includes(pay)) fail('invalid_account');
+    if (!(amount > 0) || amount > -accBal('2110')) fail('invalid_amount');
+    const e = post(S.bizDate, { k: 'payBill', text: String(note || '').slice(0, 160) }, 'AP', 'cash', [{ a: '2110', dr: amount }, { a: pay, cr: amount }]);
+    log('payable.pay', 'JV-' + e.id, { amount, from: pay, note }); return e.id;
+  }
   function lockMonth(m) { need('manager', 'accountant'); if (m >= S.bizDate.slice(0, 7)) fail('month_open'); if (!S.locks.includes(m)) { S.locks.push(m); S.locks.sort(); } log('period_locks.insert', m); }
   function unlockMonth(m) { need('owner'); S.locks = S.locks.filter(x => x !== m); log('period_locks.delete', m); }
 
@@ -1538,7 +1586,7 @@ const Core = (function () {
         messages: [{ id: S.seq.msg++, sender: 'member', body: 'Do you offer airport pickup in the evening?', at: t0 }, { id: S.seq.msg++, sender: 'staff', staff: 'Manivanh', body: 'Yes, until 23:00. Write your flight number in the booking request. (demo)', at: t1 }] });
       notify('M1', 'support_reply', null, { thread: 1, subject: 'Airport pickup' }); }
     S.bookings.filter(b => b.member === 'M1' && b.status === 'pending').forEach(b => notify('M1', 'booking_received', b.id, { code: b.code, ci: b.ci, co: b.co, total: b.rate * nightsOf(b) }));
-    S.bizDate = today; S.audit = [];
+    S.bizDate = today; S.closings = []; autoDailyClose(); S.audit = [];
     S.me = S.staff[0];
     log('demo.seed', SIM0, { note: 'two months of simulated operations' });
     S.me = null;
@@ -1552,7 +1600,7 @@ const Core = (function () {
     memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
     adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, memberActivity, adminMemberHistory, linkMember, unlinkMember, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
-    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth, opening, assetAdd, cashCount, cashFlow, assetDepr, assetStatus, deprFor,
+    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth, opening, assetAdd, cashCount, cashFlow, assetDepr, assetStatus, deprFor, moneyRows, dayMoney, closeDay, autoDailyClose, payPayable,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
     balances, plFor, bsAt, vatFor, vatPaid, posted, roomNightsIn, onBooks, availRooms, roomFree, freeRooms, balanceOf, chargesOf, paidOf, roomGrossOf, accBal, integrity, typeOf, chOf, roomOf
   };
@@ -1571,7 +1619,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|day_already_closed|close_amount_missing|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|day_already_closed|close_amount_missing|day_not_finished|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1669,6 +1717,8 @@ const API = (function () {
     opening: (d, lines) => ['acct_opening', { p_date: d, p_lines: lines }],
     assetAdd: p => ['acct_asset_add', { p }],
     cashCount: (acc, counted, note) => ['acct_cash_count', { p_account: acc, p_counted: counted, p_note: note || '' }],
+    closeDay: d => ['staff_close_day', { p_day: d }],
+    payPayable: (amt, pay, note) => ['acct_pay_payable', { p_amount: amt, p_pay: pay, p_note: note || '' }],
     lockMonth: m => ['acct_lock_month', { p_month: m }],
     unlockMonth: m => ['acct_unlock_month', { p_month: m }]
   };
@@ -1787,7 +1837,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
-      try { const fin = await rpc('admin_finance'); s.assets = (fin.assets || []).map(x => ({ ...x, cost: +x.cost, salvage: +x.salvage, life: +x.life })); s.counts = (fin.counts || []).map(c => ({ ...c, counted: +c.counted, book: +c.book, diff: +c.diff })); } catch (e) { s.assets = []; s.counts = []; }
+      try { const fin = await rpc('admin_finance'); s.assets = (fin.assets || []).map(x => ({ ...x, cost: +x.cost, salvage: +x.salvage, life: +x.life })); s.counts = (fin.counts || []).map(c => ({ ...c, counted: +c.counted, book: +c.book, diff: +c.diff })); s.closings = (fin.closings || []).map(c => ({ ...c, day: String(c.day).slice(0, 10), income: +c.income, expense: +c.expense })); s.jby = fin.jby || {}; } catch (e) { s.assets = []; s.counts = []; s.closings = []; s.jby = {}; }
       try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by, old_code: x.old_code }); }); } catch (e) { }
       return s;
     },

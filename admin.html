@@ -371,6 +371,24 @@ td .tk.done+button.tk{margin-top:4px}
 #sttable td.n:last-child{display:table-cell}
 #sttable td.n:last-child>.tk,#sttable td.n:last-child>span.tk{display:flex;width:max-content;margin:0 0 4px auto}
 .tickask,.tickask small{white-space:normal;overflow-wrap:anywhere}
+/* ---------- money in / out ---------- */
+.mstool{flex-wrap:wrap;gap:8px;align-items:center}
+.mstool .grow{flex:1}
+.msseg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.msseg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font:600 13px inherit;color:var(--muted);cursor:pointer}
+.msseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.mstiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:12px 0}
+.mstile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;border-top:4px solid var(--line)}
+.mstile span{font-size:13px;color:var(--muted);font-weight:600}.mstile b{font-size:22px;line-height:1.3}.mstile small{font-size:12px;color:var(--faint)}
+.mstile.in{border-top-color:var(--good)}.mstile.in b{color:var(--good)}.mstile.out{border-top-color:var(--warn)}.mstile.net{border-top-color:var(--accent)}.mstile.neg{border-top-color:var(--bad)}.mstile.neg b{color:var(--bad)}.mstile.cash{border-top-color:var(--info, #3b6fb6)}
+.msbar{height:7px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:4px}
+.msbar i{display:block;height:100%;border-radius:999px;background:var(--warn)}.msbar i.in{background:var(--good)}
+.mscat{padding:2px 0}
+.msday{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.wisum{display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);border-radius:10px;padding:10px 14px;margin:10px 0}
+.wisum b{font-size:20px}
+.cta-wi{background:var(--good);border-color:var(--good);color:#fff}
+@media (max-width:900px){.mstiles,.msday{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -514,7 +532,7 @@ const Core = (function () {
     let d = 0, c = 0;
     for (const l of lines) { if (!S.accounts[l.a]) fail('invalid_account', l.a); if (l.dr < 0 || l.cr < 0) fail('unbalanced_entry'); d += l.dr; c += l.cr; }
     if (d !== c || d === 0) fail('unbalanced_entry', 'Dr ' + d + ' Cr ' + c);
-    const e = { id: S.seq.je++, date, desc, ref: ref || '', src, rev: reverses || null, revBy: null, at: new Date().toISOString(), lines };
+    const e = { id: S.seq.je++, date, desc, ref: ref || '', src, rev: reverses || null, revBy: null, at: new Date().toISOString(), lines, by: S.me ? S.me.name : 'system' };
     S.journal.push(e); return e;
   }
   function vatSplit(amount) {
@@ -864,7 +882,7 @@ const Core = (function () {
       S.claims.filter(c => c.bk === b.id && c.status === 'pending').forEach(c => c.status = 'rejected'); log('booking.expired', b.id, { reason: 'payment not confirmed by arrival date' }); ex++; });
     S.bookings.filter(b => b.status === 'confirmed' && b.ci <= d).forEach(b => { applyDeposits(b, d, 'forfeit'); b.status = 'noshow'; ns++; });
     S.bookings.filter(b => b.status === 'inhouse').sort((a, b) => a.room < b.room ? -1 : 1).forEach(b => { addCharge(b, d, 'room', { k: 'night', room: b.room, d }, b.rate); n++; amt += b.rate; const r = roomOf(b.room); if (r.hk !== 'ooo') r.hk = 'dirty'; });
-    S.bizDate = addD(d, 1);
+    S.bizDate = addD(d, 1); autoDailyClose();
     log('night_audit', d, { room_nights: n, amount: amt, noshows: ns, unpaid_released: ex });
     return { room_nights: n, amount: amt, noshows: ns, unpaid_released: ex, business_date: S.bizDate };
   }
@@ -1013,6 +1031,54 @@ const Core = (function () {
     return { rows, op, inv, fin, opening: start, end, ok: end === check, book: check };
   }
   const a5950 = other => other.length === 1 && other[0] === '5950';
+  // ---------- money in / money out (same rules as money_rows() in the database) ----------
+  const CAT_IN_BOOKING = ['2150', '1130', '4100', '4200', '4300'];
+  function moneyRows(from, to) {
+    const out = [], openIds = new Set(S.journal.filter(e => e.src === 'open').map(e => e.id));
+    for (const e of S.journal) {
+      if (e.date < from || e.date > to || e.src === 'open' || (e.rev && openIds.has(e.rev))) continue;
+      const delta = e.lines.reduce((s, l) => s + (CASH.includes(l.a) ? l.dr - l.cr : 0), 0); if (!delta) continue;
+      const others = e.lines.filter(l => !CASH.includes(l.a)).slice().sort((x, y) => (y.dr + y.cr) - (x.dr + x.cr) || (x.a < y.a ? -1 : 1));
+      const main = others.length ? others[0].a : '', fin = e.lines.some(l => ['eq', 'ncl'].includes((S.accounts[l.a] || [])[0]));
+      let kind, cat;
+      if (fin) { kind = 'fin'; cat = delta > 0 ? 'fin_in' : 'fin_out'; }
+      else if (delta > 0) { kind = 'in'; if (CAT_IN_BOOKING.includes(main)) { const b = S.bookings.find(x => x.id === e.ref); cat = !b ? 'otherbk' : b.source === 'website' ? 'web' : b.ch === 'WALK' ? 'walkin' : 'otherbk'; } else cat = main === '1140' ? 'ota' : main === '5950' ? 'cashover' : 'other_in'; }
+      else { kind = 'out'; cat = ['1210', '1220'].includes(main) ? 'capex' : ['2170', '1130', '2150'].includes(main) ? 'refund' : ['2140', '1150'].includes(main) ? 'vat' : ['2120', '5300'].includes(main) ? 'comm' : ['2160', '5200'].includes(main) ? 'staff' : main === '2110' ? 'payables' : main; }
+      const method = (e.desc && e.desc.m) || (e.lines.some(l => l.a === '1110' && l.dr !== l.cr) ? 'cash' : 'bank');
+      out.push({ entry: e.id, e, day: e.date, delta, kind, cat, method, by: e.by || (S.jby && S.jby[e.id]) || '' });
+    }
+    return out;
+  }
+  function dayMoney(d) {
+    const R = moneyRows(d, d), sum = f => R.filter(f).reduce((s, r) => s + r.delta, 0), by = (f, k) => R.filter(f).reduce((m, r) => { m[r[k]] = (m[r[k]] || 0) + Math.abs(r.delta); return m; }, {});
+    const inh = S.bookings.filter(b => b.ci === d && b.ci_at);
+    return { income: sum(r => r.kind === 'in'), expense: (-sum(r => r.kind === 'out')) || 0, fin_in: sum(r => r.cat === 'fin_in'), fin_out: (-sum(r => r.cat === 'fin_out')) || 0,
+      by_cat: by(() => true, 'cat'), by_method: by(r => r.kind === 'in', 'method'), entries: R.length, room_nights: roomNightsIn(d, d), checkins: inh.length, walkins: inh.filter(b => b.ch === 'WALK').length };
+  }
+  function closeDaySummary(d, who) {
+    S.closings = S.closings || []; if (S.closings.some(c => c.day === d)) return false;
+    const m = dayMoney(d); S.closings.unshift({ day: d, ...m, closed_at: new Date().toISOString(), closed_by: who }); S.closings.sort((a, b) => a.day < b.day ? 1 : -1);
+    log('day.summary', d, { ...m, by: who }); return true;
+  }
+  function autoDailyClose() {
+    S.closings = S.closings || []; const last = addD(S.bizDate, -1); let n = 0;
+    let d = S.closings.length ? addD(S.closings[0].day, 1) : (S.journal[0] ? S.journal[0].date : last);
+    while (d <= last && n < 400) { if (closeDaySummary(d, 'auto')) n++; d = addD(d, 1); }
+    return n;
+  }
+  function closeDay(d) {
+    need('manager', 'accountant', 'frontdesk');
+    if (!d || d >= S.bizDate) fail('day_not_finished');
+    if ((S.closings || []).some(c => c.day === d)) fail('already_posted');
+    return closeDaySummary(d, S.me ? S.me.name : 'staff');
+  }
+  function payPayable(amount, pay, note) {
+    need('manager', 'accountant'); amount = Math.round(+amount);
+    if (!['1110', '1120'].includes(pay)) fail('invalid_account');
+    if (!(amount > 0) || amount > -accBal('2110')) fail('invalid_amount');
+    const e = post(S.bizDate, { k: 'payBill', text: String(note || '').slice(0, 160) }, 'AP', 'cash', [{ a: '2110', dr: amount }, { a: pay, cr: amount }]);
+    log('payable.pay', 'JV-' + e.id, { amount, from: pay, note }); return e.id;
+  }
   function lockMonth(m) { need('manager', 'accountant'); if (m >= S.bizDate.slice(0, 7)) fail('month_open'); if (!S.locks.includes(m)) { S.locks.push(m); S.locks.sort(); } log('period_locks.insert', m); }
   function unlockMonth(m) { need('owner'); S.locks = S.locks.filter(x => x !== m); log('period_locks.delete', m); }
 
@@ -1336,7 +1402,7 @@ const Core = (function () {
         messages: [{ id: S.seq.msg++, sender: 'member', body: 'Do you offer airport pickup in the evening?', at: t0 }, { id: S.seq.msg++, sender: 'staff', staff: 'Manivanh', body: 'Yes, until 23:00. Write your flight number in the booking request. (demo)', at: t1 }] });
       notify('M1', 'support_reply', null, { thread: 1, subject: 'Airport pickup' }); }
     S.bookings.filter(b => b.member === 'M1' && b.status === 'pending').forEach(b => notify('M1', 'booking_received', b.id, { code: b.code, ci: b.ci, co: b.co, total: b.rate * nightsOf(b) }));
-    S.bizDate = today; S.audit = [];
+    S.bizDate = today; S.closings = []; autoDailyClose(); S.audit = [];
     S.me = S.staff[0];
     log('demo.seed', SIM0, { note: 'two months of simulated operations' });
     S.me = null;
@@ -1350,7 +1416,7 @@ const Core = (function () {
     memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
     adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, memberActivity, adminMemberHistory, linkMember, unlinkMember, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
-    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth, opening, assetAdd, cashCount, cashFlow, assetDepr, assetStatus, deprFor,
+    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth, opening, assetAdd, cashCount, cashFlow, assetDepr, assetStatus, deprFor, moneyRows, dayMoney, closeDay, autoDailyClose, payPayable,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
     balances, plFor, bsAt, vatFor, vatPaid, posted, roomNightsIn, onBooks, availRooms, roomFree, freeRooms, balanceOf, chargesOf, paidOf, roomGrossOf, accBal, integrity, typeOf, chOf, roomOf
   };
@@ -1369,7 +1435,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|day_already_closed|close_amount_missing|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|day_already_closed|close_amount_missing|day_not_finished|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1467,6 +1533,8 @@ const API = (function () {
     opening: (d, lines) => ['acct_opening', { p_date: d, p_lines: lines }],
     assetAdd: p => ['acct_asset_add', { p }],
     cashCount: (acc, counted, note) => ['acct_cash_count', { p_account: acc, p_counted: counted, p_note: note || '' }],
+    closeDay: d => ['staff_close_day', { p_day: d }],
+    payPayable: (amt, pay, note) => ['acct_pay_payable', { p_amount: amt, p_pay: pay, p_note: note || '' }],
     lockMonth: m => ['acct_lock_month', { p_month: m }],
     unlockMonth: m => ['acct_unlock_month', { p_month: m }]
   };
@@ -1585,7 +1653,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
-      try { const fin = await rpc('admin_finance'); s.assets = (fin.assets || []).map(x => ({ ...x, cost: +x.cost, salvage: +x.salvage, life: +x.life })); s.counts = (fin.counts || []).map(c => ({ ...c, counted: +c.counted, book: +c.book, diff: +c.diff })); } catch (e) { s.assets = []; s.counts = []; }
+      try { const fin = await rpc('admin_finance'); s.assets = (fin.assets || []).map(x => ({ ...x, cost: +x.cost, salvage: +x.salvage, life: +x.life })); s.counts = (fin.counts || []).map(c => ({ ...c, counted: +c.counted, book: +c.book, diff: +c.diff })); s.closings = (fin.closings || []).map(c => ({ ...c, day: String(c.day).slice(0, 10), income: +c.income, expense: +c.expense })); s.jby = fin.jby || {}; } catch (e) { s.assets = []; s.counts = []; s.closings = []; s.jby = {}; }
       try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by, old_code: x.old_code }); }); } catch (e) { }
       return s;
     },
@@ -2144,11 +2212,50 @@ Object.assign(TX, {
   e_invalid_account: ['ບັນຊີນີ້ໃຊ້ບໍ່ໄດ້ໃນລາຍການນີ້', 'ใช้บัญชีนี้ในรายการนี้ไม่ได้', 'That account cannot be used here'],
   e_invalid_amount: ['ຈຳນວນເງິນບໍ່ຖືກຕ້ອງ', 'จำนวนเงินไม่ถูกต้อง', 'Invalid amount']
 });
+Object.assign(TX, {
+  tab_sum: ['ສະຫຼຸບລາຍຮັບ–ລາຍຈ່າຍ', 'สรุปรายรับ–รายจ่าย', 'Money in & out'],
+  ms_mode_day: ['ລາຍວັນ', 'รายวัน', 'Day'], ms_mode_month: ['ລາຍເດືອນ', 'รายเดือน', 'Month'], ms_mode_year: ['ລາຍປີ', 'รายปี', 'Year'], ms_mode_range: ['ເລືອກຊ່ວງວັນທີ', 'เลือกช่วงวันที่', 'Date range'],
+  ms_in: ['ລາຍຮັບ', 'รายรับ', 'Money in'], ms_out: ['ລາຍຈ່າຍ', 'รายจ่าย', 'Money out'], ms_net: ['ຍອດຄົງເຫຼືອສຸດທິ', 'ยอดคงเหลือสุทธิ', 'Net'], ms_cashEnd: ['ເງິນສົດ + ທະນາຄານ', 'เงินสด + ธนาคาร', 'Cash + bank'],
+  ms_netNote: ['ລາຍຮັບ − ລາຍຈ່າຍ', 'รายรับ − รายจ่าย', 'money in − money out'],
+  ms_finNote: ['ບໍ່ນັບເປັນລາຍຮັບ–ລາຍຈ່າຍ: ເງິນທຶນ/ເງິນກູ້ເຂົ້າ ₭{i} · ຖອນທຶນ/ຈ່າຍຄືນເງິນກູ້ ₭{o}', 'ไม่นับเป็นรายรับ–รายจ่าย: เงินทุน/เงินกู้เข้า ₭{i} · ถอนทุน/จ่ายคืนเงินกู้ ₭{o}', 'Not counted as income or expense: owner/loan money in ₭{i} · drawings/loan repaid ₭{o}'],
+  ms_owedNote: ['ມີບິນຄ້າງຈ່າຍຜູ້ຂາຍ {a} — ຈະນັບເປັນລາຍຈ່າຍໃນມື້ທີ່ຈ່າຍຈິງ', 'มีบิลค้างจ่ายผู้ขาย {a} — จะนับเป็นรายจ่ายในวันที่จ่ายจริง', 'Unpaid supplier bills: {a}. They count as money out on the day they are paid'],
+  ms_byDay: ['ແຍກລາຍວັນ', 'แยกรายวัน', 'By day'], ms_byMonth: ['ແຍກລາຍເດືອນ', 'แยกรายเดือน', 'By month'], ms_summary: ['ສະຫຼຸບປະຈຳວັນ', 'สรุปประจำวัน', 'Daily summary'],
+  ms_open: ['ວັນນີ້ຍັງບໍ່ຈົບ', 'วันนี้ยังไม่จบ', 'Day still open'], ms_notClosed: ['ຍັງບໍ່ສະຫຼຸບ', 'ยังไม่สรุป', 'Not summarised'], ms_closeNow: ['ສະຫຼຸບດຽວນີ້', 'สรุปตอนนี้', 'Summarise now'],
+  ms_closed: ['ສະຫຼຸບແລ້ວ', 'สรุปแล้ว', 'Summarised'], ms_closedBy: ['ສະຫຼຸບ {t} · ໂດຍ {b}', 'สรุปเมื่อ {t} · โดย {b}', 'Summarised {t} by {b}'], ms_auto: ['ລະບົບອັດຕະໂນມັດ', 'ระบบอัตโนมัติ', 'the system'],
+  ms_changed: ['ມີລາຍການເພີ່ມ', 'มีรายการเพิ่ม', 'changed'], ms_changedT: ['ມີລາຍການລົງຍ້ອນຫຼັງ ຫຼັງຈາກສະຫຼຸບແລ້ວ', 'มีรายการลงย้อนหลังหลังจากสรุปแล้ว', 'Entries were back-dated after the summary'],
+  ms_changedD: ['ຫຼັງສະຫຼຸບ ມີລາຍການລົງຍ້ອນຫຼັງ: ຕອນສະຫຼຸບ ຮັບ {i} / ຈ່າຍ {e} → ດຽວນີ້ ຮັບ {ni} / ຈ່າຍ {ne}. ກວດໃນລາຍການຂ້າງລຸ່ມ.', 'หลังสรุปมีรายการลงย้อนหลัง: ตอนสรุป รับ {i} / จ่าย {e} → ตอนนี้ รับ {ni} / จ่าย {ne} ตรวจในรายการด้านล่าง', 'Back-dated entries after the summary: at summary in {i} / out {e} → now in {ni} / out {ne}. See the list below.'],
+  ms_dayReport: ['ສະຫຼຸບວັນທີ {d}', 'สรุปวันที่ {d}', 'Day report {d}'], ms_roomNights: ['ຫ້ອງທີ່ຂາຍ (ຄືນ)', 'ห้องที่ขาย (คืน)', 'Room nights sold'], ms_checkins: ['ເຊັກອິນ', 'เช็คอิน', 'Check-ins'],
+  ms_walkins: ['Walk-in {n}', 'Walk-in {n}', 'walk-in {n}'], ms_byMethod: ['ຮັບເງິນຕາມວິທີ', 'รับเงินตามวิธี', 'Received by method'],
+  ms_autoNote: ['ລະບົບສະຫຼຸບລາຍຮັບຂອງແຕ່ລະວັນໃຫ້ອັດຕະໂນມັດ ເວລາ 11:30 ຂອງວັນຖັດໄປ (ກ່ອນ 12:00). ພະນັກງານກົດສະຫຼຸບກ່ອນໄດ້.', 'ระบบสรุปรายรับของแต่ละวันให้อัตโนมัติเวลา 11:30 ของวันถัดไป (ก่อน 12:00) พนักงานกดสรุปก่อนได้', 'Each day is summarised automatically at 11:30 the next day (before 12:00). Staff can summarise earlier.'],
+  ms_closedOk: ['ສະຫຼຸບວັນທີ {d} ແລ້ວ', 'สรุปวันที่ {d} แล้ว', 'Day {d} summarised'],
+  ms_inCats: ['ລາຍຮັບແຍກຕາມທີ່ມາ', 'รายรับแยกตามที่มา', 'Money in by source'], ms_outCats: ['ລາຍຈ່າຍແຍກຕາມໝວດ', 'รายจ่ายแยกตามหมวด', 'Money out by category'],
+  ms_list: ['ລາຍການທັງໝົດ', 'รายการทั้งหมด', 'All transactions'], ms_type: ['ປະເພດ', 'ประเภท', 'Type'], ms_by: ['ຜູ້ບັນທຶກ', 'ผู้บันทึก', 'Recorded by'], ms_system: ['ລະບົບ', 'ระบบ', 'System'],
+  ms_noTx: ['ບໍ່ມີການຮັບ-ຈ່າຍເງິນໃນຊ່ວງນີ້', 'ไม่มีการรับ-จ่ายเงินในช่วงนี้', 'No money in or out in this period'],
+  ms_k_in: ['ຮັບ', 'รับ', 'In'], ms_k_out: ['ຈ່າຍ', 'จ่าย', 'Out'], ms_k_fin: ['ທຶນ/ເງິນກູ້', 'ทุน/เงินกู้', 'Owner/loan'],
+  ms_addExp: ['＋ ບັນທຶກລາຍຈ່າຍ', '＋ บันทึกรายจ่าย', '＋ Record expense'], ms_payBill: ['ຈ່າຍບິນຄ້າງ', 'จ่ายบิลค้าง', 'Pay unpaid bills'],
+  ms_web: ['ຈອງຜ່ານເວັບໄຊ (QR)', 'จองผ่านเว็บไซต์ (QR)', 'Website bookings (QR)'], ms_walkin: ['ເປີດຫ້ອງທີ່ເຄົາເຕີ (Walk-in)', 'เปิดห้องที่เคาน์เตอร์ (Walk-in)', 'Counter walk-ins'],
+  ms_otherbk: ['ການຈອງຊ່ອງທາງອື່ນ (ໂທ, Facebook, ເອເຢັ້ນ)', 'การจองช่องทางอื่น (โทร, Facebook, เอเจนต์)', 'Other bookings (phone, Facebook, agents)'], ms_ota: ['ເງິນໂອນຈາກ OTA', 'เงินโอนจาก OTA', 'OTA payouts'],
+  ms_cashover: ['ເງິນສົດເກີນ', 'เงินสดเกิน', 'Cash over'], ms_other_in: ['ລາຍຮັບອື່ນ', 'รายรับอื่น', 'Other income'],
+  ms_capex: ['ຊື້ຊັບສົມບັດ', 'ซื้อทรัพย์สิน', 'Asset purchases'], ms_refund: ['ຄືນເງິນລູກຄ້າ', 'คืนเงินลูกค้า', 'Refunds to guests'], ms_vat: ['ຈ່າຍອາກອນ VAT', 'จ่ายภาษี VAT', 'VAT paid'],
+  ms_comm: ['ຄ່ານາຍໜ້າ OTA', 'ค่าคอมมิชชั่น OTA', 'OTA commissions'], ms_staff: ['ເງິນເດືອນພະນັກງານ', 'เงินเดือนพนักงาน', 'Staff salaries'], ms_payables: ['ຈ່າຍບິນຄ້າງຈ່າຍ', 'จ่ายบิลค้างจ่าย', 'Supplier bills paid'],
+  ms_fin_in: ['ເງິນທຶນ / ເງິນກູ້ເຂົ້າ', 'เงินทุน / เงินกู้เข้า', 'Owner / loan money in'], ms_fin_out: ['ຖອນທຶນ / ຈ່າຍຄືນເງິນກູ້', 'ถอนทุน / จ่ายคืนเงินกู้', 'Drawings / loan repaid'],
+  ms_m_bank: ['ທະນາຄານ', 'ธนาคาร', 'Bank'], ms_m_cash: ['ເງິນສົດ', 'เงินสด', 'Cash'],
+  wi_btn: ['ເປີດຫ້ອງ (Walk-in)', 'เปิดห้อง (Walk-in)', 'Walk-in'], wi_title: ['ເປີດຫ້ອງໃຫ້ລູກຄ້າ Walk-in', 'เปิดห้องให้ลูกค้า Walk-in', 'Open a room for a walk-in guest'],
+  wi_intro: ['ເຊັກອິນທັນທີ ວັນທີ {d}. ເງິນທີ່ຮັບຈະເຂົ້າບັນຊີ ແລະ ສະຫຼຸບລາຍຮັບໃຫ້ອັດຕະໂນມັດ.', 'เช็คอินทันที วันที่ {d} เงินที่รับจะเข้าบัญชีและสรุปรายรับให้อัตโนมัติ', 'Checked in now, {d}. The money received goes straight to the books and the daily summary.'],
+  wi_nights: ['ຈຳນວນຄືນ', 'จำนวนคืน', 'Nights'], wi_room: ['ຫ້ອງທີ່ວ່າງ', 'ห้องที่ว่าง', 'Free rooms'], wi_rate: ['ລາຄາ / ຄືນ', 'ราคา / คืน', 'Rate / night'],
+  wi_total: ['ລວມ {n} ຄືນ', 'รวม {n} คืน', 'Total for {n} night(s)'], wi_paid: ['ເງິນທີ່ຮັບຈິງ', 'เงินที่รับจริง', 'Amount received'], wi_ref: ['ເລກອ້າງອີງ (QR / ໂອນ / ບັດ)', 'เลขอ้างอิง (QR / โอน / บัตร)', 'Reference (QR / transfer / card)'],
+  wi_go: ['ເປີດຫ້ອງ ແລະ ເຊັກອິນ', 'เปิดห้องและเช็คอิน', 'Open room & check in'], wi_noRoom: ['ບໍ່ມີຫ້ອງວ່າງສຳລັບຈຳນວນຄືນນີ້', 'ไม่มีห้องว่างสำหรับจำนวนคืนนี้', 'No room is free for these nights'],
+  wi_done: ['ເປີດຫ້ອງ {r} ແລ້ວ · {c} · ຮັບເງິນ {a}', 'เปิดห้อง {r} แล้ว · {c} · รับเงิน {a}', 'Room {r} opened · {c} · received {a}'],
+  e_day_not_finished: ['ວັນນີ້ຍັງບໍ່ຈົບ — ສະຫຼຸບໄດ້ຫຼັງປິດຍອດ', 'วันนี้ยังไม่จบ — สรุปได้หลังปิดยอด', 'The day is not finished yet']
+});
+Object.assign(DESC, { payBill: ['ຈ່າຍບິນຄ້າງຈ່າຍ — {text}', 'จ่ายบิลค้างจ่าย — {text}', 'Supplier bill paid: {text}'] });
+Object.assign(ACTIONS, { 'day.summary': ['ສະຫຼຸບລາຍຮັບປະຈຳວັນ', 'สรุปรายรับประจำวัน', 'Daily summary'], 'payable.pay': ['ຈ່າຍບິນຄ້າງຈ່າຍ', 'จ่ายบิลค้างจ่าย', 'Supplier bill paid'] });
+Object.assign(TX, { e_name_required: ['ກະລຸນາໃສ່ຊື່ລູກຄ້າ', 'กรุณาใส่ชื่อลูกค้า', 'Enter the guest name'] });
 
 // ===== BACK OFFICE =====
 (function () {
   const LANGS = ['lo', 'th', 'en'];
-  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'close', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, stDate: null, stF: 'notin', stQ: '', gTab: 'members', gSel: null, ibTab: 'msg', ibFilter: 'todo' };
+  const V = { view: 'dash', calStart: null, bkQ: '', bkSt: 'act', bkCh: '', bkTab: 'list', gQ: '', acctTab: 'sum', period: null, jeLimit: 50, mktMonth: null, modal: null, jeRows: null, resetAsk: false, auQ: '', auA: '', busy: false, stDate: null, stF: 'notin', stQ: '', gTab: 'members', gSel: null, ibTab: 'msg', ibFilter: 'todo' };
   let S = null, lang = 'lo';
   try { const l = localStorage.getItem('saynam-lang'); if (LANGS.includes(l)) lang = l; } catch (e) { }
   const $ = s => document.querySelector(s);
@@ -2673,6 +2780,7 @@ Object.assign(TX, {
     return `${lag ? `<div class="note warn spread"><span>${t('bizLag', { b: dfm(biz), r: dfm(realToday()) })}</span>${can('manager', 'frontdesk') ? `<button class="btn sm pri" data-act="nightAudit">${t('naRun')}</button>` : ''}</div>` : ''}
       <div class="card stayfind"><label class="codeq"><span class="pre">SN</span><input id="st_code" inputmode="numeric" maxlength="12" placeholder="0000" autocomplete="off" value="${esc(V.stCode || '')}" aria-label="${esc(t('sl_codeSearch'))}"></label>
         <button class="btn pri" data-act="stFind">${t('sl_find')}</button>
+        ${can('frontdesk', 'manager') ? `<button class="btn cta-wi" data-act="walkIn">＋ ${t('wi_btn')}</button>` : ''}
         <input class="input" id="stq" data-in="stq" placeholder="${esc(t('sl_search'))}" value="${esc(V.stQ)}">
         ${searching ? `<button class="btn sm ghost" data-act="stClear">✕ ${t('sl_clear')}</button>` : ''}</div>
       ${V.stMsg ? `<div class="note ${V.stMsg.k}">${esc(V.stMsg.t)}</div>` : ''}
@@ -2828,8 +2936,8 @@ Object.assign(TX, {
   function vAcc() {
     if (!V.period) V.period = S.bizDate.slice(0, 7);
     const months = monthsList().filter(m => m <= S.bizDate.slice(0, 7)), ic = Core.integrity();
-    const tabs = ['close', 'journal', 'tb', 'pl', 'bs', 'cf', 'vat', 'ar', 'fa', 'cash', 'coa'];
-    const body = ({ close: aClose, journal: aJournal, tb: aTB, pl: aPL, bs: aBS, cf: aCF, vat: aVat, ar: aAR, fa: aFA, cash: aCash, coa: aCOA }[V.acctTab] || aClose)();
+    const tabs = ['sum', 'close', 'journal', 'tb', 'pl', 'bs', 'cf', 'vat', 'ar', 'fa', 'cash', 'coa'];
+    const body = ({ sum: aSum, close: aClose, journal: aJournal, tb: aTB, pl: aPL, bs: aBS, cf: aCF, vat: aVat, ar: aAR, fa: aFA, cash: aCash, coa: aCOA }[V.acctTab] || aClose)();
     const showPeriod = ['close', 'journal', 'tb', 'pl', 'bs', 'cf', 'fa'].includes(V.acctTab);
     return `<div class="tabs" role="tablist">${tabs.map(k => `<button class="${V.acctTab === k ? 'on' : ''}" data-act="atab" data-t="${k}">${t('tab_' + k)}</button>`).join('')}</div>
     <div class="spread">${showPeriod ? `<div class="toolbar"><span class="muted">${t('period')}</span><select class="input" data-in="aper" style="width:auto">${months.map(m => `<option value="${m}" ${V.period === m ? 'selected' : ''}>${mfm(m)}${S.locks.includes(m) ? ' 🔒' : ''}</option>`).join('')}${V.acctTab !== 'close' ? `<option value="all" ${V.period === 'all' ? 'selected' : ''}>${t('allTime')}</option>` : ''}</select></div>` : '<span></span>'}
@@ -2913,6 +3021,123 @@ Object.assign(TX, {
     const b = Core.balances('0000-01-01', '9999-12-31'), tn = { ca: t('curAssets'), nca: t('ncAssets'), cl: t('curLiab'), ncl: t('ncLiab'), eq: t('equity'), rev: t('revenue'), cos: t('costSales'), opx: t('opex'), fin: t('finCost') };
     return `<div class="card statement"><h3>${t('tab_coa')} <small>IFRS for SMEs · LAK</small></h3><div class="tablewrap"><table class="t"><thead><tr><th>${t('code')}</th><th>${t('account')}</th><th>${t('kind')}</th><th class="n">${t('balance')}</th></tr></thead><tbody>
     ${Object.keys(S.accounts).map(k => { const ty = S.accounts[k][0], v = DEBIT_NORMAL(ty) ? b[k] : -b[k]; return `<tr><td class="mono">${k}</td><td>${accName(k)}<div class="small faint">${esc(S.accounts[k][1].en)}</div></td><td class="small muted">${tn[ty]} · ${DEBIT_NORMAL(ty) ? 'Dr' : 'Cr'}</td><td class="n">${par(v)}</td></tr>`; }).join('')}</tbody></table></div></div>`;
+  }
+  // ---------- money in / money out summary ----------
+  const MS_IN = ['web', 'walkin', 'otherbk', 'ota', 'cashover', 'other_in'];
+  const msCat = c => TX['ms_' + c] ? t('ms_' + c) : (S.accounts[c] ? accName(c) : c);
+  const msMeth = m => PM[m] ? nm(PM[m]) : t('ms_m_' + m);
+  function msState() {
+    const biz = S.bizDate;
+    if (!V.ms) V.ms = { mode: 'month', day: addD(biz, -1) < (S.journal[0] || { date: biz }).date ? biz : addD(biz, -1), month: biz.slice(0, 7), year: biz.slice(0, 4), from: biz.slice(0, 7) + '-01', to: biz };
+    return V.ms;
+  }
+  function msRange() {
+    const m = msState();
+    if (m.mode === 'day') return [m.day, m.day, dfm(m.day), 'none'];
+    if (m.mode === 'month') return [m.month + '-01', monthEnd(m.month), mfm(m.month), 'day'];
+    if (m.mode === 'year') return [m.year + '-01-01', m.year + '-12-31', m.year, 'month'];
+    const f = m.from <= m.to ? m.from : m.to, to = m.from <= m.to ? m.to : m.from;
+    return [f, to, dfm(f) + ' – ' + dfm(to), diffD(f, to) > 62 ? 'month' : 'day'];
+  }
+  function aSum() {
+    const m = msState(), biz = S.bizDate, [from, to, label, grain] = msRange(), R = Core.moneyRows(from, to);
+    const inc = R.filter(r => r.kind === 'in').reduce((s, r) => s + r.delta, 0), exp = (-R.filter(r => r.kind === 'out').reduce((s, r) => s + r.delta, 0)) || 0;
+    const finIn = R.filter(r => r.cat === 'fin_in').reduce((s, r) => s + r.delta, 0), finOut = (-R.filter(r => r.cat === 'fin_out').reduce((s, r) => s + r.delta, 0)) || 0;
+    const endD = to < biz ? to : biz, cashEnd = Core.accBal('1110', endD) + Core.accBal('1120', endD), owed = -Core.accBal('2110');
+    const years = []; for (let y = +((S.journal[0] || { date: biz }).date.slice(0, 4)); y <= +biz.slice(0, 4); y++) years.push(String(y));
+    const ctl = m.mode === 'day' ? `<input class="input" type="date" data-in="msDay" value="${m.day}" max="${biz}" style="width:auto">`
+      : m.mode === 'month' ? `<input class="input" type="month" data-in="msMonth" value="${m.month}" max="${biz.slice(0, 7)}" style="width:auto">`
+      : m.mode === 'year' ? `<select class="input" data-in="msYear" style="width:auto">${years.map(y => `<option ${y === m.year ? 'selected' : ''}>${y}</option>`).join('')}</select>`
+      : `<input class="input" type="date" data-in="msFrom" value="${m.from}" max="${biz}" style="width:auto"><span class="faint">→</span><input class="input" type="date" data-in="msTo" value="${m.to}" max="${biz}" style="width:auto">`;
+    const tile = (k, v, cls, sub) => `<div class="mstile ${cls}"><span>${t(k)}</span><b class="tnum">${kip(v)}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    // per-period rows
+    let rowsHtml = '';
+    if (grain !== 'none') {
+      const keyOf = d => grain === 'day' ? d : d.slice(0, 7), buckets = new Map();
+      if (grain === 'day') for (let d = from; d <= to && d <= biz; d = addD(d, 1)) buckets.set(d, { i: 0, o: 0 });
+      else for (let mo = from.slice(0, 7); mo <= to.slice(0, 7) && mo <= biz.slice(0, 7); mo = addD(mo + '-01', 32).slice(0, 7)) buckets.set(mo, { i: 0, o: 0 });
+      R.forEach(r => { const b = buckets.get(keyOf(r.day)); if (!b) return; if (r.kind === 'in') b.i += r.delta; else if (r.kind === 'out') b.o -= r.delta; });
+      const cl = new Map((S.closings || []).map(c => [String(c.day).slice(0, 10), c]));
+      const status = d => { if (d >= biz) return `<span class="small faint">${t('ms_open')}</span>`; const c = cl.get(d), live = Core.dayMoney(d);
+        if (!c) return `<span class="small warnc">${t('ms_notClosed')}</span>${can('manager', 'accountant', 'frontdesk') ? ` <button class="btn sm" data-act="msClose" data-d="${d}">${t('ms_closeNow')}</button>` : ''}`;
+        const diff = (live.income - +c.income) || (live.expense - +c.expense);
+        return `<span class="small goodc" title="${esc(t('ms_closedBy', { t: tfm(c.closed_at), b: c.closed_by === 'auto' ? t('ms_auto') : c.closed_by }))}">✓ ${t('ms_closed')}</span>${diff ? ` <span class="pill p-noshow" title="${esc(t('ms_changedT'))}">${t('ms_changed')}</span>` : ''}`; };
+      rowsHtml = `<div class="card"><h3>${grain === 'day' ? t('ms_byDay') : t('ms_byMonth')}</h3><div class="tablewrap"><table class="t" id="mstbl"><thead><tr><th>${grain === 'day' ? t('date') : t('month')}</th><th class="n">${t('ms_in')}</th><th class="n">${t('ms_out')}</th><th class="n">${t('ms_net')}</th>${grain === 'day' ? `<th>${t('ms_summary')}</th>` : ''}</tr></thead><tbody>
+        ${[...buckets.entries()].reverse().map(([k, v]) => `<tr class="click" data-act="msPick" data-g="${grain}" data-k="${k}"><td class="tnum">${grain === 'day' ? dfm(k) : mfm(k)}</td><td class="n goodc">${v.i ? fm(v.i) : '–'}</td><td class="n">${v.o ? fm(v.o) : '–'}</td><td class="n"><b class="${v.i - v.o < 0 ? 'bad' : ''}">${par(v.i - v.o)}</b></td>${grain === 'day' ? `<td>${status(k)}</td>` : ''}</tr>`).join('')}
+        </tbody><tfoot><tr class="tot"><td>${t('total')}</td><td class="n">${fm(inc)}</td><td class="n">${fm(exp)}</td><td class="n">${par(inc - exp)}</td>${grain === 'day' ? '<td></td>' : ''}</tr></tfoot></table></div></div>`;
+    }
+    // categories
+    const byCat = kind => { const o = {}; R.filter(r => r.kind === kind).forEach(r => o[r.cat] = (o[r.cat] || 0) + Math.abs(r.delta)); return Object.entries(o).sort((a, b) => b[1] - a[1]); };
+    const catCard = (title, list, total, cls) => `<div class="card"><h3>${title} <small class="tnum">${kip(total)}</small></h3>${list.length ? `<div class="stack">${list.map(([c, v]) => `<div class="mscat"><div class="spread"><span>${esc(msCat(c))}</span><b class="tnum">${fm(v)}</b></div><div class="msbar"><i class="${cls}" style="width:${total ? Math.max(2, Math.round(v / total * 100)) : 0}%"></i></div></div>`).join('')}</div>` : `<div class="empty">${t('none')}</div>`}</div>`;
+    // day details
+    let dayCard = '';
+    if (m.mode === 'day') {
+      const dm = Core.dayMoney(m.day), c = (S.closings || []).find(x => String(x.day).slice(0, 10) === m.day);
+      dayCard = `<div class="card"><h3>${t('ms_dayReport', { d: dfm(m.day) })}</h3><div class="msday small">
+        <div><span class="muted">${t('ms_roomNights')}</span><div><b class="tnum">${dm.room_nights}</b></div></div><div><span class="muted">${t('ms_checkins')}</span><div><b class="tnum">${dm.checkins}</b> <span class="faint">(${t('ms_walkins', { n: dm.walkins })})</span></div></div>
+        <div><span class="muted">${t('ms_byMethod')}</span><div>${Object.entries(dm.by_method).map(([k, v]) => `${esc(msMeth(k))} <b class="tnum">${fm(v)}</b>`).join(' · ') || '–'}</div></div>
+        <div><span class="muted">${t('ms_summary')}</span><div>${m.day >= biz ? t('ms_open') : c ? `✓ ${t('ms_closedBy', { t: tfm(c.closed_at), b: c.closed_by === 'auto' ? t('ms_auto') : esc(c.closed_by) })}` : `${t('ms_notClosed')} ${can('manager', 'accountant', 'frontdesk') ? `<button class="btn sm" data-act="msClose" data-d="${m.day}">${t('ms_closeNow')}</button>` : ''}`}</div></div></div>
+        ${c && ((dm.income - +c.income) || (dm.expense - +c.expense)) ? `<p class="note warn" style="margin:10px 0 0">${t('ms_changedD', { i: fm(+c.income), e: fm(+c.expense), ni: fm(dm.income), ne: fm(dm.expense) })}</p>` : ''}
+        <p class="small muted" style="margin:10px 0 0">${t('ms_autoNote')}</p></div>`;
+    }
+    // transactions
+    const list = R.slice().sort((a, b) => a.day === b.day ? b.entry - a.entry : a.day < b.day ? 1 : -1), shown = list.slice(0, V.msLimit || 100);
+    const bkOf = r => S.bookings.find(b => b.id === r.e.ref);
+    const tx = `<div class="card"><h3>${t('ms_list')} <small>${list.length} ${t('entries')}</small></h3>${list.length ? `<div class="tablewrap"><table class="t" id="mslist"><thead><tr><th>${t('date')}</th><th>${t('ms_type')}</th><th>${t('category')}</th><th>${t('desc')}</th><th>${t('payMethod')}</th><th class="n">${t('amount')}</th><th>${t('ms_by')}</th></tr></thead><tbody>
+      ${shown.map(r => { const b = bkOf(r); return `<tr ${b ? `class="click" data-act="openBk" data-id="${b.id}"` : ''}><td class="tnum">${dfm(r.day)}<div class="tiny faint mono">JV-${String(r.entry).padStart(5, '0')}</div></td>
+        <td><span class="pill ${r.kind === 'in' ? 'p-confirmed' : r.kind === 'out' ? 'p-noshow' : 'p-out'}">${t('ms_k_' + r.kind)}</span></td><td class="small">${esc(msCat(r.cat))}</td>
+        <td>${descText(r.e.desc)}${b ? `<div class="small faint"><span class="mono">${esc(b.code || '')}</span> · ${t('room')} ${b.room}</div>` : ''}</td><td class="small">${esc(msMeth(r.method))}</td>
+        <td class="n"><b class="${r.delta > 0 ? 'goodc' : ''}">${r.delta > 0 ? '+' : '−'}${fm(Math.abs(r.delta))}</b></td><td class="small">${esc(r.by === 'system' ? t('ms_system') : r.by || '')}</td></tr>`; }).join('')}</tbody></table></div>
+      ${list.length > shown.length ? `<button class="btn" data-act="msMore" style="margin-top:10px">${t('showMore')} (${t('showing', { n: shown.length, t: list.length })})</button>` : ''}` : `<div class="empty">${t('ms_noTx')}</div>`}</div>`;
+    return `<div class="toolbar mstool"><div class="msseg">${['day', 'month', 'year', 'range'].map(k => `<button class="${m.mode === k ? 'on' : ''}" data-act="msMode" data-m="${k}">${t('ms_mode_' + k)}</button>`).join('')}</div>${ctl}
+        <span class="grow"></span>${canBooks() ? `<button class="btn pri" data-act="newExp">${t('ms_addExp')}</button>${owed > 0 ? `<button class="btn" data-act="payBill">${t('ms_payBill')}</button>` : ''}` : ''}<button class="btn" data-act="msCsv">${t('sl_export')}</button></div>
+      <div class="mstiles">${tile('ms_in', inc, 'in', label)}${tile('ms_out', exp, 'out', label)}${tile('ms_net', inc - exp, inc - exp < 0 ? 'neg' : 'net', t('ms_netNote'))}${tile('ms_cashEnd', cashEnd, 'cash', t('asAt', { d: dfm(endD) }))}</div>
+      ${finIn || finOut ? `<p class="note" style="margin:0 0 12px">${t('ms_finNote', { i: fm(finIn), o: fm(finOut) })}</p>` : ''}
+      ${owed > 0 ? `<p class="note warn" style="margin:0 0 12px">${t('ms_owedNote', { a: kip(owed) })}</p>` : ''}
+      <div class="stack">${dayCard}${rowsHtml}<div class="grid g2">${catCard(t('ms_inCats'), byCat('in'), inc, 'in')}${catCard(t('ms_outCats'), byCat('out'), exp, 'out')}</div>${tx}</div>`;
+  }
+  function msCsv() {
+    const [from, to] = msRange(), R = Core.moneyRows(from, to).sort((a, b) => a.day < b.day ? -1 : a.day > b.day ? 1 : a.entry - b.entry);
+    const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const lines = [['date', 'entry', 'type', 'category', 'description', 'booking', 'method', 'amount', 'recorded_by'].join(',')].concat(R.map(r => { const b = S.bookings.find(x => x.id === r.e.ref);
+      return [r.day, 'JV-' + r.entry, r.kind, msCat(r.cat), descText(r.e.desc).replace(/<[^>]+>/g, ''), b ? b.code : '', msMeth(r.method), r.delta, r.by].map(q).join(','); }));
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv' })); a.download = `saynam-money-${from}_${to}.csv`; a.click();
+  }
+  function payBillForm() {
+    V.modal = { k: 'bill' }; const owed = -Core.accBal('2110');
+    openModal(`<div class="mh"><div><h2>${t('ms_payBill')}</h2><p>${t('ms_owedNote', { a: kip(owed) })}</p></div><button class="btn ghost" data-act="closeModal">✕</button></div>
+    <div class="fgrid"><label class="field"><span>${t('amount')}</span><input class="input" type="number" id="pb_v" min="0" max="${owed}" step="1000" value="${owed}"></label>
+    <label class="field"><span>${t('paidFrom')}</span><select class="input" id="pb_p"><option value="1110">${accName('1110')}</option><option value="1120">${accName('1120')}</option></select></label>
+    <label class="field full"><span>${t('desc')}</span><input class="input" id="pb_t" maxlength="160"></label></div><div id="pb_msg"></div>
+    <div class="actions"><button class="btn" data-act="closeModal">${t('cancel')}</button><button class="btn pri" data-act="payBillPost">${t('payNow')}</button></div>`);
+  }
+  // ---------- walk-in: open a room at the counter ----------
+  function walkInForm() {
+    if (!V.wi) V.wi = { n: 1 };
+    const biz = S.bizDate, n = Math.max(1, Math.min(30, +V.wi.n || 1)), co = addD(biz, n);
+    const free = S.rooms.filter(r => r.active && r.hk !== 'ooo' && Core.roomFree(r.no, biz, co)).sort((a, b) => a.no.localeCompare(b.no));
+    if (!V.wi.room || !free.some(r => r.no === V.wi.room)) V.wi.room = (free.find(r => r.hk === 'clean' || r.hk === 'inspected') || free[0] || {}).no || '';
+    const rm = free.find(r => r.no === V.wi.room), ty = rm ? S.types.find(x => x.id === rm.type) : null;
+    if (V.wi.rateFor !== V.wi.room) { V.wi.rate = ty ? ty.rate : 0; V.wi.rateFor = V.wi.room; }
+    const total = Math.round(+V.wi.rate || 0) * n;
+    V.modal = { k: 'walkin' };
+    openModal(`<div class="mh"><div><h2>${t('wi_title')}</h2><p>${t('wi_intro', { d: dfm(biz) })}</p></div><button class="btn ghost" data-act="closeModal">✕</button></div>
+    <div class="fgrid">
+      <label class="field"><span>${t('wi_nights')}</span><input class="input" type="number" id="wi_n" data-in="wi" data-f="n" min="1" max="30" value="${n}"></label>
+      <label class="field"><span>${t('depart')}</span><input class="input" value="${dfm(co)} ${S.settings.check_out_time || '12:00'}" disabled></label>
+      <label class="field full"><span>${t('wi_room')} (${free.length})</span><select class="input" id="wi_room" data-in="wi" data-f="room">${free.map(r => { const tt = S.types.find(x => x.id === r.type); return `<option value="${r.no}" ${r.no === V.wi.room ? 'selected' : ''}>${r.no} · ${tt ? nm(tt.name) : r.type} · ${fm(tt ? tt.rate : 0)} · ${t('hk_' + r.hk)}</option>`; }).join('')}</select></label>
+      <label class="field"><span>${t('wi_rate')}</span><input class="input" type="number" id="wi_rate" data-in="wi" data-f="rate" min="0" step="1000" value="${V.wi.rate || 0}"></label>
+      <label class="field"><span>${t('adults')}</span><input class="input" type="number" id="wi_ad" min="1" max="${ty ? ty.capacity : 4}" value="${Math.min(2, ty ? ty.capacity : 2)}"></label>
+      <label class="field"><span>${t('guestName')}</span><input class="input" id="wi_name" value="${esc(V.wi.name || '')}" autocomplete="off"></label>
+      <label class="field"><span>${t('phone')}</span><input class="input" id="wi_phone" value="${esc(V.wi.phone || '')}" inputmode="tel" autocomplete="off"></label>
+    </div>
+    <div class="wisum"><span>${t('wi_total', { n })}</span><b class="tnum">${kip(total)}</b></div>
+    <div class="fgrid"><label class="field"><span>${t('wi_paid')}</span><input class="input" type="number" id="wi_paid" min="0" step="1000" value="${V.wi.paidTouched ? V.wi.paid : total}" data-in="wi" data-f="paid"></label>
+      <label class="field"><span>${t('payMethod')}</span><select class="input" id="wi_m">${Object.keys(PM).map(k => `<option value="${k}" ${k === (V.wi.m || 'cash') ? 'selected' : ''}>${nm(PM[k])}</option>`).join('')}</select></label>
+      <label class="field full"><span>${t('wi_ref')}</span><input class="input" id="wi_ref" maxlength="80"></label></div>
+    ${rm && rm.hk !== 'clean' && rm.hk !== 'inspected' ? `<div class="note warn">${t('roomNotReadyShort', { s: t('hk_' + rm.hk) })}</div>` : ''}
+    ${!free.length ? `<div class="note bad">${t('wi_noRoom')}</div>` : ''}<div id="wi_msg"></div>
+    <div class="actions"><button class="btn" data-act="closeModal">${t('cancel')}</button><button class="btn pri" data-act="wiPost" ${free.length ? '' : 'disabled'}>✓ ${t('wi_go')}</button></div>`);
   }
   // ---------- finance controls ----------
   const hasOpening = () => S.journal.some(e => e.src === 'open' && !e.revBy && !e.rev);
@@ -3198,6 +3423,21 @@ Object.assign(TX, {
     revDo: async d => { const r = $('#rv_r').value.trim(); try { await act('reverse', +d.id, r); V.revAsk = null; render(); toast(t('posted')); } catch (e) { } },
     newJe: () => { V.jeRows = null; jeForm(); },
     newOB: () => obForm(),
+    msMode: d => { msState().mode = d.m; V.msLimit = 100; render(); },
+    msPick: d => { const m = msState(); if (d.g === 'day') { m.mode = 'day'; m.day = d.k; } else { m.mode = 'month'; m.month = d.k; } V.msLimit = 100; render(); },
+    msMore: () => { V.msLimit = (V.msLimit || 100) + 200; render(); },
+    msCsv: () => msCsv(),
+    msClose: async d => { try { await act('closeDay', d.d); render(); toast(t('ms_closedOk', { d: dfm(d.d) })); } catch (e) { } },
+    payBill: () => payBillForm(),
+    payBillPost: async () => { const v = Math.round(+$('#pb_v').value || 0); try { await act('payPayable', v, $('#pb_p').value, $('#pb_t').value.trim()); closeModal(); render(); toast(t('posted')); } catch (e) { $('#pb_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; } },
+    walkIn: () => { V.wi = { n: 1 }; walkInForm(); },
+    wiPost: async () => {
+      const biz = S.bizDate, n = Math.max(1, +$('#wi_n').value || 1), name = $('#wi_name').value.trim(), paid = Math.round(+$('#wi_paid').value || 0), m = $('#wi_m').value;
+      if (name.length < 2) { $('#wi_msg').innerHTML = `<div class="note bad">${t('e_name_required')}</div>`; return; }
+      const p = { name, phone: $('#wi_phone').value.trim(), ci: biz, co: addD(biz, n), room: $('#wi_room').value, ch: 'WALK', rate: Math.round(+$('#wi_rate').value || 0), adults: +$('#wi_ad').value || 1, deposit: paid, method: m, ref: $('#wi_ref').value.trim(), checkin: true };
+      if (!(p.rate > 0)) { $('#wi_msg').innerHTML = `<div class="note bad">${t('errAmt')}</div>`; return; }
+      try { const id = await act('createBooking', p); closeModal(); V.wi = null; render(); const b = S.bookings.find(x => x.id === id); toast(t('wi_done', { r: p.room, c: b ? b.code : '', a: fm(paid) })); } catch (e) { $('#wi_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
+    },
     obPost: async () => {
       const L = obLines(); if (!L.length) return;
       try { await act('opening', $('#ob_d').value || S.bizDate, L); closeModal(); render(); toast(t('posted')); } catch (e) { $('#ob_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
@@ -3284,6 +3524,8 @@ Object.assign(TX, {
     else if (k === 'nbt') nbRefresh(true);
     else if (k === 'mktm') { V.mktMonth = el.value; render(); }
     else if (k === 'aper') { V.period = el.value; V.jeLimit = 50; render(); }
+    else if (k && k.startsWith('ms') && el.value) { const m = msState(), f = { msDay: 'day', msMonth: 'month', msYear: 'year', msFrom: 'from', msTo: 'to' }[k]; if (f) { m[f] = el.value; V.msLimit = 100; render(); } }
+    else if (k === 'wi') { V.wi = V.wi || {}; ['name', 'phone'].forEach(x => V.wi[x] = ($('#wi_' + x) || {}).value || ''); V.wi.m = ($('#wi_m') || {}).value; const f = el.dataset.f; if (f === 'paid') { V.wi.paid = el.value; V.wi.paidTouched = true; } else V.wi[f] = el.value; if (f !== 'paid') walkInForm(); }
     else if (k === 'aua') { V.auA = el.value; render(); }
     else if (k === 'jer') { V.jeRows[+el.dataset.i][el.dataset.f] = el.value; jeTotals(); }
     else if (el.id === 's_qr') { }
