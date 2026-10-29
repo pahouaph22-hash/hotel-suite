@@ -571,6 +571,7 @@ footer a{color:var(--sub)}
 .lb-x{top:14px;right:14px}.lb-nav{top:50%;transform:translateY(-50%)}.lb-nav.prev{left:14px}.lb-nav.next{right:14px}
 .lb-x:hover,.lb-nav:hover{background:rgba(255,255,255,.28)}
 @keyframes fade{from{opacity:0}}
+.qrimg img{width:240px;height:auto;aspect-ratio:auto}@media (max-width:520px){.qrimg{flex:1 1 100%}.qrimg img{width:min(300px,100%)}}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -1484,7 +1485,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|day_already_closed|close_amount_missing|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -2053,6 +2054,11 @@ Object.assign(SX, {
   ph_pool: ['ສະລອຍນ້ຳ', 'สระว่ายน้ำ', 'Pool'], ph_dinner: ['ອາຫານແລງລິມນ້ຳ', 'มื้อค่ำริมน้ำ', 'Riverside dinner'], ph_lobby: ['ລັອບບີ້', 'ล็อบบี้', 'Lobby'],
   ph_food: ['ຮ້ານອາຫານ', 'ห้องอาหาร', 'Restaurant'], ph_garden: ['ສວນຍາມຄ່ຳ', 'สวนยามค่ำ', 'Garden at night'], ph_view: ['ວິວຈາກໂຮງແຮມ', 'วิวจากโรงแรม', 'The view']
 });
+Object.assign(SX, {
+  faq2a: ['ສົ່ງຂໍ້ຄວາມຫາເຮົາໃນບັນຊີສະມາຊິກ (ຕິດຕໍ່ເຮົາ) ຫຼື ໂທຫາເຮົາ ພ້ອມລະຫັດການຈອງ. ພະນັກງານຈະກວດຫ້ອງວ່າງ ແລະ ແຈ້ງກັບໃຫ້ທ່ານ.', 'ส่งข้อความหาเราในบัญชีสมาชิก (ติดต่อเรา) หรือโทรหาเรา พร้อมรหัสการจอง พนักงานจะตรวจห้องว่างและแจ้งกลับ', 'Send us a message from your member account (Contact us) or call us with your booking code. Our team will check availability and get back to you.'],
+  faq3q: ['ຕິດຕໍ່ໂຮງແຮມໄດ້ແນວໃດ?', 'ติดต่อโรงแรมได้อย่างไร', 'How do I contact the hotel?'],
+  faq3a: ['ໂທ {p} ຫຼື ອີເມວ {e}. ຖ້າເປັນສະມາຊິກ ສົ່ງຂໍ້ຄວາມໃນບັນຊີໄດ້ ແລະ ຕິດຕາມການຕອບກັບໄດ້ທີ່ນັ້ນ.', 'โทร {p} หรืออีเมล {e} ถ้าเป็นสมาชิก ส่งข้อความในบัญชีได้และติดตามการตอบกลับได้ที่นั่น', 'Call {p} or email {e}. Members can also send a message from their account and follow the reply there.']
+});
 
 // ===== GUEST WEBSITE =====
 (function () {
@@ -2216,7 +2222,7 @@ Object.assign(SX, {
     <div class="wrap" style="margin-top:28px"><h2 style="font-size:28px;margin-bottom:8px">${t('faqTitle')}</h2>
       <details><summary>${t('faq1q')}</summary><p>${esc(L(h.payment_note))}</p></details>
       <details><summary>${t('faq2q')}</summary><p>${t('faq2a')}</p></details>
-      <details><summary>${t('faq3q')}</summary><p>${t('faq3a')}</p></details></div></section>
+      <details><summary>${t('faq3q')}</summary><p>${t('faq3a', { p: esc(h.phone || ''), e: esc(h.email || '') })}</p></details></div></section>
     <footer><div class="wrap"><span>© ${new Date().getFullYear()} ${esc(h.name)} · ${esc(h.address)}</span><span><a href="#" data-act="account">${t('nav_manage')}</a> · <a href="admin.html">${t('staffLogin')}</a></span></div></footer>`;
     renderSheet();
   }
