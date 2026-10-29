@@ -2251,6 +2251,16 @@ Object.assign(TX, {
 Object.assign(DESC, { payBill: ['ຈ່າຍບິນຄ້າງຈ່າຍ — {text}', 'จ่ายบิลค้างจ่าย — {text}', 'Supplier bill paid: {text}'] });
 Object.assign(ACTIONS, { 'day.summary': ['ສະຫຼຸບລາຍຮັບປະຈຳວັນ', 'สรุปรายรับประจำวัน', 'Daily summary'], 'payable.pay': ['ຈ່າຍບິນຄ້າງຈ່າຍ', 'จ่ายบิลค้างจ่าย', 'Supplier bill paid'] });
 Object.assign(TX, { e_name_required: ['ກະລຸນາໃສ່ຊື່ລູກຄ້າ', 'กรุณาใส่ชื่อลูกค้า', 'Enter the guest name'] });
+Object.assign(TX, {
+  db_view_table: ['ຕາຕະລາງລາຍຮັບ', 'ตารางรายรับ', 'Receipts table'], db_view_ledger: ['ແບບບັນຊີຄູ່ (Dr/Cr)', 'แบบบัญชีคู่ (Dr/Cr)', 'Ledger (Dr/Cr)'],
+  db_title: ['ປຶ້ມບັນຊີປະຈຳວັນ — ເງິນທີ່ຮັບຈິງ', 'สมุดบัญชีประจำวัน — เงินที่รับจริง', 'Daily book: money received'],
+  db_allDays: ['ທຸກວັນໃນງວດ', 'ทุกวันในงวด', 'All days in period'],
+  db_no: ['ລຳດັບ', 'ลำดับ', 'No.'], db_guest: ['ຊື່ລູກຄ້າ', 'ชื่อลูกค้า', 'Guest'], db_source: ['ແຫຼ່ງທີ່ມາ', 'แหล่งที่มา', 'Source'],
+  db_nights: ['ຈຳນວນຄືນ', 'จำนวนคืนที่เข้าพัก', 'Nights'], db_running: ['ຍອດເງິນລວມ', 'ยอดเงินรวม', 'Running total'],
+  db_advance: ['ຈອງລ່ວງໜ້າ', 'จองล่วงหน้า', 'Advance booking'],
+  db_none: ['ຍັງບໍ່ມີເງິນຮັບໃນຊ່ວງນີ້', 'ยังไม่มีเงินรับในช่วงนี้', 'No money received in this period'],
+  db_note: ['ສະແດງທຸກຄັ້ງທີ່ຮັບເງິນ (ມັດຈຳ, ຈ່າຍຕອນເຊັກເອົາ, Walk-in) ຕາມລຳດັບເວລາ. ລາຍການບັນຊີແບບ Dr/Cr ເບິ່ງໄດ້ທີ່ປຸ່ມ "ແບບບັນຊີຄູ່".', 'แสดงทุกครั้งที่รับเงิน (มัดจำ จ่ายตอนเช็คเอาท์ Walk-in) เรียงตามเวลา รายการบัญชีแบบ Dr/Cr ดูได้ที่ปุ่ม "แบบบัญชีคู่"', 'Every payment received (deposits, check-out payments, walk-ins) in order. The Dr/Cr entries are under "Ledger".']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2953,10 +2963,36 @@ Object.assign(TX, { e_name_required: ['ກະລຸນາໃສ່ຊື່ລ�
       <div class="card"><h3>${t('locks')}</h3><p class="small muted" style="margin:0 0 8px">${t('lockNote')}</p><div class="stack">${lockable.map(m => `<div class="spread"><span class="tnum">${mfm(m)}</span>${S.locks.includes(m) ? `<span class="row"><span class="pill p-out">🔒 ${t('lockedLbl')}</span>${can('owner') && S.me.role === 'owner' ? `<button class="btn sm ghost" data-act="unlock" data-m="${m}">${t('unlockBtn')}</button>` : ''}</span>` : canBooks() ? `<button class="btn sm" data-act="lock" data-m="${m}">${t('lockBtn', { m: mfm(m) })}</button>` : ''}</div>`).join('') || `<div class="empty">${t('none')}</div>`}</div></div></div></div>`;
   }
   const REVERSIBLE = ['manual', 'expense', 'close', 'tax', 'finance', 'cash', 'open'];
+  // daily book as a simple table: every payment received from guests, in order, with a running total
+  function aDayBook() {
+    const [pf, pt] = periodRange(), from = V.dbDay || pf, to = V.dbDay || pt;
+    const R = Core.moneyRows(from, to).filter(r => r.kind === 'in').sort((a, b) => a.day < b.day ? -1 : a.day > b.day ? 1 : a.entry - b.entry);
+    let run = 0;
+    const SRC = { DIR: 'db_src_web', FB: 'db_src_fb', TA: 'db_src_ta' };
+    const rows = R.map((r, i) => {
+      const b = S.bookings.find(x => x.id === r.e.ref); run += r.delta;
+      const walk = b && b.ch === 'WALK', ch = b ? (S.channels.find(c => c.id === b.ch) || {}) : null;
+      const name = b ? esc(b.guest.name) : descText(r.e.desc);
+      const src = b ? `<span class="pill ${walk ? 'p-pending' : 'p-confirmed'}">${walk ? 'Walk-in' : t('db_advance')}</span>${walk ? '' : `<div class="tiny faint">${esc(ch && ch.name ? nm(ch.name) : b.ch)}</div>`}` : `<span class="small">${esc(msCat(r.cat))}</span>`;
+      return `<tr ${b ? `class="click" data-act="openBk" data-id="${b.id}"` : ''}><td class="n tnum">${i + 1}</td><td class="tnum">${dfm(r.day)}</td>
+        <td><b>${name}</b>${b ? `<div class="tiny faint"><span class="mono">${esc(b.code || '')}</span> · ${t('room')} ${b.room}</div>` : ''}</td><td>${src}</td>
+        <td class="n tnum">${b ? `${nightsOf(b)}<div class="tiny faint">${dsh(b.ci)} → ${dsh(b.co)}</div>` : '–'}</td>
+        <td class="n tnum"><b>${fm(r.delta)}</b><div class="tiny faint">${esc(msMeth(r.method))}</div></td><td class="n tnum">${fm(run)}</td></tr>`;
+    }).join('');
+    const days = [...new Set(Core.moneyRows(pf, pt).filter(r => r.kind === 'in').map(r => r.day))].sort().reverse();
+    return `<div class="toolbar">${['table', 'ledger'].map(k => `<button class="btn ${(V.jeView || 'table') === k ? 'pri' : ''}" data-act="jeView" data-v="${k}">${t('db_view_' + k)}</button>`).join('')}
+      <select class="input" data-in="dbDay" style="width:auto"><option value="">${t('db_allDays')}</option>${days.map(d => `<option value="${d}" ${V.dbDay === d ? 'selected' : ''}>${dfm(d)}</option>`).join('')}</select>
+      <span class="small muted">${R.length} ${t('entries')}</span><span style="flex:1"></span><button class="btn sm" data-act="copyTbl" data-t="dbtbl">${t('copyXl')}</button></div>
+    <div class="card"><h3>${t('db_title')} <small>${V.dbDay ? dfm(V.dbDay) : V.period === 'all' ? t('allTime') : mfm(V.period)} · LAK</small></h3>
+    ${R.length ? `<div class="tablewrap"><table class="t" id="dbtbl"><thead><tr><th class="n">${t('db_no')}</th><th>${t('date')}</th><th>${t('db_guest')}</th><th>${t('db_source')}</th><th class="n">${t('db_nights')}</th><th class="n">${t('amount')}</th><th class="n">${t('db_running')}</th></tr></thead>
+      <tbody>${rows}</tbody><tfoot><tr class="tot"><td colspan="5">${t('total')}</td><td class="n">${fm(run)}</td><td class="n">${fm(run)}</td></tr></tfoot></table></div>` : `<div class="empty">${t('db_none')}</div>`}
+    <p class="small muted" style="margin:10px 0 0">${t('db_note')}</p></div>`;
+  }
   function aJournal() {
+    if ((V.jeView || 'table') === 'table') return aDayBook();
     const [from, to] = periodRange();
     const list = S.journal.filter(e => e.date >= from && e.date <= to).slice().sort((a, b) => a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1), shown = list.slice(0, V.jeLimit);
-    return `<div class="toolbar">${canBooks() ? `<button class="btn pri" data-act="newExp">${t('newExp')}</button><button class="btn" data-act="newJe">${t('newJe')}</button>` : ''}<span class="small muted">${list.length} ${t('entries')}</span></div>
+    return `<div class="toolbar">${['table', 'ledger'].map(k => `<button class="btn ${(V.jeView || 'table') === k ? 'pri' : ''}" data-act="jeView" data-v="${k}">${t('db_view_' + k)}</button>`).join('')}${canBooks() ? `<button class="btn pri" data-act="newExp">${t('newExp')}</button><button class="btn" data-act="newJe">${t('newJe')}</button>` : ''}<span class="small muted">${list.length} ${t('entries')}</span></div>
     <p class="note" style="margin:0">${t('immutableNote')}</p>
     <div class="stack">${shown.map(e => `<div class="je ${e.revBy ? 'is-rev' : ''}"><div class="jh"><span class="tnum muted">${dfm(e.date)}</span><span class="mono small faint">JV-${String(e.id).padStart(5, '0')}</span><b>${descText(e.desc)}</b>${e.ref && e.ref.startsWith('BK') ? `<button class="btn sm ghost mono" data-act="openBk" data-id="${e.ref}">${e.ref}</button>` : ''}<span class="src">${esc(e.src)}</span>
       ${e.revBy ? `<span class="pill p-cancelled">${t('reversed')} → JV-${e.revBy}</span>` : ''}${e.rev ? `<span class="pill p-out">${t('reversalOf', { id: e.rev })}</span>` : ''}
@@ -3423,6 +3459,7 @@ Object.assign(TX, { e_name_required: ['ກະລຸນາໃສ່ຊື່ລ�
     revDo: async d => { const r = $('#rv_r').value.trim(); try { await act('reverse', +d.id, r); V.revAsk = null; render(); toast(t('posted')); } catch (e) { } },
     newJe: () => { V.jeRows = null; jeForm(); },
     newOB: () => obForm(),
+    jeView: d => { V.jeView = d.v; render(); },
     msMode: d => { msState().mode = d.m; V.msLimit = 100; render(); },
     msPick: d => { const m = msState(); if (d.g === 'day') { m.mode = 'day'; m.day = d.k; } else { m.mode = 'month'; m.month = d.k; } V.msLimit = 100; render(); },
     msMore: () => { V.msLimit = (V.msLimit || 100) + 200; render(); },
@@ -3523,7 +3560,8 @@ Object.assign(TX, { e_name_required: ['ກະລຸນາໃສ່ຊື່ລ�
     else if (k === 'nb') nbRefresh(false);
     else if (k === 'nbt') nbRefresh(true);
     else if (k === 'mktm') { V.mktMonth = el.value; render(); }
-    else if (k === 'aper') { V.period = el.value; V.jeLimit = 50; render(); }
+    else if (k === 'aper') { V.period = el.value; V.jeLimit = 50; V.dbDay = ''; render(); }
+    else if (k === 'dbDay') { V.dbDay = el.value; render(); }
     else if (k && k.startsWith('ms') && el.value) { const m = msState(), f = { msDay: 'day', msMonth: 'month', msYear: 'year', msFrom: 'from', msTo: 'to' }[k]; if (f) { m[f] = el.value; V.msLimit = 100; render(); } }
     else if (k === 'wi') { V.wi = V.wi || {}; ['name', 'phone'].forEach(x => V.wi[x] = ($('#wi_' + x) || {}).value || ''); V.wi.m = ($('#wi_m') || {}).value; const f = el.dataset.f; if (f === 'paid') { V.wi.paid = el.value; V.wi.paidTouched = true; } else V.wi[f] = el.value; if (f !== 'paid') walkInForm(); }
     else if (k === 'aua') { V.auA = el.value; render(); }
