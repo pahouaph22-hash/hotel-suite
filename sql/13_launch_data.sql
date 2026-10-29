@@ -38,6 +38,7 @@ alter table period_locks disable trigger user;
 do $$ begin
   if to_regclass('public.cash_counts') is not null then execute 'delete from cash_counts'; end if;
   if to_regclass('public.fixed_assets') is not null then execute 'delete from fixed_assets'; end if;
+  if to_regclass('public.daily_closings') is not null then execute 'delete from daily_closings'; end if;
 end $$;
 delete from notifications;
 delete from support_messages;
