@@ -391,6 +391,11 @@ td .tk.done+button.tk{margin-top:4px}
 @media (max-width:900px){.mstiles,.msday{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .msrange{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:3px 6px;background:var(--surface)}
 .msrange .input{border:0;padding:5px 4px;width:auto;background:transparent}
+button.mstile{font:inherit;text-align:left;cursor:pointer;color:inherit;transition:transform .12s,box-shadow .12s}
+button.mstile:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+button.mstile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.msmore{font-style:normal;opacity:.5;margin-left:2px}
+#modal .sheet.wide{width:min(1100px,100%)}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -2268,6 +2273,13 @@ Object.assign(TX, {
   ms_p_lastMonth: ['ເດືອນແລ້ວ', 'เดือนที่แล้ว', 'Last month'], ms_p_year: ['ປີນີ້', 'ปีนี้', 'This year'], ms_p_lastYear: ['ປີກ່ອນ', 'ปีก่อน', 'Last year'],
   ms_p_custom: ['ກຳນົດເອງ', 'กำหนดเอง', 'Custom'], ms_from: ['ຈາກວັນທີ', 'จากวันที่', 'From'], ms_to: ['ຫາວັນທີ', 'ถึงวันที่', 'To']
 });
+Object.assign(TX, {
+  ms_clickDetail: ['ກົດເພື່ອເບິ່ງລາຍລະອຽດທັງໝົດ', 'กดเพื่อดูรายละเอียดทั้งหมด', 'Click for full details'],
+  ms_openBal: ['ຍອດຍົກມາ {d}', 'ยอดยกมา {d}', 'Opening {d}'], ms_closeBal: ['ຍອດຄົງເຫຼືອ {d}', 'ยอดคงเหลือ {d}', 'Closing {d}'],
+  ms_transfers: ['ໂອນລະຫວ່າງບັນຊີ / ທຶນ', 'โอนระหว่างบัญชี / ทุน', 'Transfers / owner money'],
+  ms_netExplain: ['ຍອດຄົງເຫຼືອສຸດທິ = ເງິນທີ່ຮັບຈິງ − ເງິນທີ່ຈ່າຍຈິງ ໃນຊ່ວງນີ້. ບໍ່ລວມເງິນທຶນ ແລະ ເງິນກູ້.', 'ยอดคงเหลือสุทธิ = เงินที่รับจริง − เงินที่จ่ายจริงในช่วงนี้ ไม่รวมเงินทุนและเงินกู้', 'Net = money actually received − money actually paid in this period, excluding owner and loan money.'],
+  ms_cashExplain: ['ຍອດຍົກມາ + ຮັບ − ຈ່າຍ ± ໂອນລະຫວ່າງເງິນສົດ/ທະນາຄານ ແລະ ເງິນທຶນ = ຍອດຄົງເຫຼືອ (ຕົງກັບບັນຊີ 1110 ແລະ 1120).', 'ยอดยกมา + รับ − จ่าย ± โอนระหว่างเงินสด/ธนาคาร และเงินทุน = ยอดคงเหลือ (ตรงกับบัญชี 1110 และ 1120)', 'Opening + in − out ± transfers and owner money = closing (agrees to accounts 1110 and 1120).']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2332,7 +2344,7 @@ Object.assign(TX, {
   // ---------- toast & modal ----------
   let toastTimer;
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 3200); }
-  function openModal(html) { $('#modal .sheet').innerHTML = html; $('#modal').hidden = false; }
+  function openModal(html) { const sh = $('#modal .sheet'); sh.classList.remove('wide'); sh.innerHTML = html; $('#modal').hidden = false; }
   function closeModal() { $('#modal').hidden = true; V.modal = null; }
 
   // ---------- icons & nav ----------
@@ -3092,7 +3104,7 @@ Object.assign(TX, {
     const finIn = R.filter(r => r.cat === 'fin_in').reduce((s, r) => s + r.delta, 0), finOut = (-R.filter(r => r.cat === 'fin_out').reduce((s, r) => s + r.delta, 0)) || 0;
     const endD = to < biz ? to : biz, cashEnd = Core.accBal('1110', endD) + Core.accBal('1120', endD), owed = -Core.accBal('2110');
     const ctl = `<span class="msrange"><input class="input" type="date" data-in="msFrom" value="${from}" max="${biz}" aria-label="${esc(t('ms_from'))}"><span class="faint">→</span><input class="input" type="date" data-in="msTo" value="${to}" max="${biz}" aria-label="${esc(t('ms_to'))}"></span>`;
-    const tile = (k, v, cls, sub) => `<div class="mstile ${cls}"><span>${t(k)}</span><b class="tnum">${kip(v)}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    const tile = (k, v, cls, sub) => `<button class="mstile ${cls}" data-act="msDetail" data-k="${k}" title="${esc(t('ms_clickDetail'))}"><span>${t(k)} <i class="msmore">›</i></span><b class="tnum">${kip(v)}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
     // per-period rows
     let rowsHtml = '';
     if (grain !== 'none') {
@@ -3138,6 +3150,52 @@ Object.assign(TX, {
       ${finIn || finOut ? `<p class="note" style="margin:0 0 12px">${t('ms_finNote', { i: fm(finIn), o: fm(finOut) })}</p>` : ''}
       ${owed > 0 ? `<p class="note warn" style="margin:0 0 12px">${t('ms_owedNote', { a: kip(owed) })}</p>` : ''}
       <div class="stack">${dayCard}${rowsHtml}<div class="grid g2">${catCard(t('ms_inCats'), byCat('in'), inc, 'in')}${catCard(t('ms_outCats'), byCat('out'), exp, 'out')}</div>${tx}</div>`;
+  }
+  // full details behind each summary tile
+  function msDetail(k) {
+    const [from, to, label] = msRange(), biz = S.bizDate, R = Core.moneyRows(from, to).sort((a, b) => a.day < b.day ? -1 : a.day > b.day ? 1 : a.entry - b.entry);
+    const IN = R.filter(r => r.kind === 'in'), OUT = R.filter(r => r.kind === 'out'), FIN = R.filter(r => r.kind === 'fin');
+    const sumAbs = a => a.reduce((s, r) => s + Math.abs(r.delta), 0), inc = sumAbs(IN), exp = sumAbs(OUT);
+    const bk = r => S.bookings.find(b => b.id === r.e.ref);
+    const group = (list, key) => { const o = {}; list.forEach(r => { const g = key(r); o[g] = (o[g] || 0) + Math.abs(r.delta); }); return Object.entries(o).sort((a, b) => b[1] - a[1]); };
+    const gtable = (title, rows, total, lab) => `<div><h3 style="margin:0 0 6px">${title}</h3><table class="t"><tbody>${rows.map(([g, v]) => `<tr><td>${esc(lab(g))}</td><td class="n tnum">${fm(v)}</td><td class="n small faint" style="width:60px">${total ? Math.round(v / total * 1000) / 10 : 0}%</td></tr>`).join('') || `<tr><td class="faint">${t('none')}</td><td></td><td></td></tr>`}</tbody><tfoot><tr class="tot"><td>${t('total')}</td><td class="n tnum">${fm(total)}</td><td></td></tr></tfoot></table></div>`;
+    const who = r => esc(r.by === 'system' ? t('ms_system') : r.by || '');
+    let title = t(k), body = '';
+    if (k === 'ms_in') {
+      let run = 0;
+      body = `<div class="grid g2">${gtable(t('ms_inCats'), group(IN, r => r.cat), inc, msCat)}${gtable(t('ms_byMethod'), group(IN, r => r.method), inc, msMeth)}</div>
+      <h3 style="margin:6px 0 0">${t('ms_list')} <small>${IN.length}</small></h3><div class="tablewrap"><table class="t" id="mdtbl"><thead><tr><th class="n">${t('db_no')}</th><th>${t('date')}</th><th>${t('db_guest')}</th><th>${t('db_source')}</th><th class="n">${t('db_nights')}</th><th>${t('payMethod')}</th><th class="n">${t('amount')}</th><th class="n">${t('db_running')}</th><th>${t('ms_by')}</th></tr></thead><tbody>
+      ${IN.map((r, i) => { const b = bk(r); run += r.delta; return `<tr><td class="n">${i + 1}</td><td class="tnum">${dfm(r.day)}</td><td>${b ? `<b>${esc(b.guest.name)}</b><div class="tiny faint"><span class="mono">${esc(b.code || '')}</span> · ${t('room')} ${b.room}${b.guest.phone ? ' · ' + esc(b.guest.phone) : ''}</div>` : descText(r.e.desc)}</td>
+        <td class="small">${esc(msCat(r.cat))}</td><td class="n">${b ? nightsOf(b) : '–'}</td><td class="small">${esc(msMeth(r.method))}${r.e.ref && !b ? '' : ''}</td><td class="n tnum"><b>${fm(r.delta)}</b></td><td class="n tnum">${fm(run)}</td><td class="small">${who(r)}</td></tr>`; }).join('')}</tbody></table></div>`;
+    } else if (k === 'ms_out') {
+      let run = 0;
+      body = `${gtable(t('ms_outCats'), group(OUT, r => r.cat), exp, msCat)}
+      <h3 style="margin:6px 0 0">${t('ms_list')} <small>${OUT.length}</small></h3><div class="tablewrap"><table class="t" id="mdtbl"><thead><tr><th class="n">${t('db_no')}</th><th>${t('date')}</th><th>${t('category')}</th><th>${t('desc')}</th><th>${t('payMethod')}</th><th class="n">${t('amount')}</th><th class="n">${t('db_running')}</th><th>${t('ms_by')}</th></tr></thead><tbody>
+      ${OUT.map((r, i) => { run -= r.delta; return `<tr><td class="n">${i + 1}</td><td class="tnum">${dfm(r.day)}<div class="tiny faint mono">JV-${String(r.entry).padStart(5, '0')}</div></td><td class="small">${esc(msCat(r.cat))}</td><td>${descText(r.e.desc)}</td><td class="small">${esc(msMeth(r.method))}</td><td class="n tnum"><b>${fm(-r.delta)}</b></td><td class="n tnum">${fm(run)}</td><td class="small">${who(r)}</td></tr>`; }).join('') || `<tr><td colspan="8" class="faint">${t('none')}</td></tr>`}</tbody></table></div>`;
+    } else if (k === 'ms_net') {
+      const days = new Map(); R.forEach(r => { if (r.kind === 'fin') return; const d = days.get(r.day) || { i: 0, o: 0 }; if (r.kind === 'in') d.i += r.delta; else d.o -= r.delta; days.set(r.day, d); });
+      body = `<table class="t"><tbody><tr class="hd"><td>${t('ms_in')}</td><td></td></tr>${group(IN, r => r.cat).map(([g, v]) => `<tr><td class="ind">${esc(msCat(g))}</td><td class="n tnum">${fm(v)}</td></tr>`).join('')}<tr class="sub"><td>${t('ms_in')}</td><td class="n tnum">${fm(inc)}</td></tr>
+        <tr class="hd"><td>${t('ms_out')}</td><td></td></tr>${group(OUT, r => r.cat).map(([g, v]) => `<tr><td class="ind">${esc(msCat(g))}</td><td class="n tnum">(${fm(v)})</td></tr>`).join('')}<tr class="sub"><td>${t('ms_out')}</td><td class="n tnum">(${fm(exp)})</td></tr>
+        <tr class="tot"><td>${t('ms_net')}</td><td class="n tnum ${inc - exp < 0 ? 'bad' : ''}">${par(inc - exp)}</td></tr></tbody></table>
+        <h3 style="margin:6px 0 0">${t('ms_byDay')}</h3><div class="tablewrap"><table class="t" id="mdtbl"><thead><tr><th>${t('date')}</th><th class="n">${t('ms_in')}</th><th class="n">${t('ms_out')}</th><th class="n">${t('ms_net')}</th></tr></thead><tbody>
+        ${[...days.entries()].sort().map(([d, v]) => `<tr><td class="tnum">${dfm(d)}</td><td class="n tnum goodc">${fm(v.i)}</td><td class="n tnum">${fm(v.o)}</td><td class="n tnum"><b>${par(v.i - v.o)}</b></td></tr>`).join('') || `<tr><td colspan="4" class="faint">${t('none')}</td></tr>`}</tbody></table></div>
+        <p class="small muted" style="margin:0">${t('ms_netExplain')}</p>`;
+    } else {
+      const endD = to < biz ? to : biz, before = addD(from, -1);
+      const acc = a => { const open = Core.accBal(a, before), mv = R.filter(r => r.kind !== 'fin' && r.e.lines.some(l => l.a === a)), rin = mv.reduce((s, r) => s + r.e.lines.filter(l => l.a === a).reduce((x, l) => x + Math.max(0, l.dr - l.cr), 0), 0), rout = mv.reduce((s, r) => s + r.e.lines.filter(l => l.a === a).reduce((x, l) => x + Math.max(0, l.cr - l.dr), 0), 0), close = Core.accBal(a, endD); return { open, rin, rout, other: close - open - rin + rout, close }; };
+      const C = acc('1110'), B = acc('1120'), lastC = (S.counts || []).find(c => c.account === '1110'), lastB = (S.counts || []).find(c => c.account === '1120');
+      const col = (x) => `<td class="n tnum">${fm(x.open)}</td><td class="n tnum goodc">${x.rin ? fm(x.rin) : '–'}</td><td class="n tnum">${x.rout ? '(' + fm(x.rout) + ')' : '–'}</td><td class="n tnum">${x.other ? par(x.other) : '–'}</td><td class="n tnum"><b>${fm(x.close)}</b></td>`;
+      body = `<div class="tablewrap"><table class="t"><thead><tr><th></th><th class="n">${t('ms_openBal', { d: dfm(before) })}</th><th class="n">${t('ms_in')}</th><th class="n">${t('ms_out')}</th><th class="n">${t('ms_transfers')}</th><th class="n">${t('ms_closeBal', { d: dfm(endD) })}</th></tr></thead><tbody>
+        <tr><td><b>${accName('1110')}</b> <span class="mono faint">1110</span></td>${col(C)}</tr><tr><td><b>${accName('1120')}</b> <span class="mono faint">1120</span></td>${col(B)}</tr></tbody>
+        <tfoot><tr class="tot"><td>${t('total')}</td>${col({ open: C.open + B.open, rin: C.rin + B.rin, rout: C.rout + B.rout, other: C.other + B.other, close: C.close + B.close })}</tr></tfoot></table></div>
+        ${FIN.length ? `<p class="note" style="margin:0">${t('ms_finNote', { i: fm(FIN.filter(r => r.delta > 0).reduce((s, r) => s + r.delta, 0)), o: fm(-FIN.filter(r => r.delta < 0).reduce((s, r) => s + r.delta, 0)) })}</p>` : ''}
+        <div class="grid g2"><div class="card stack small"><b>${t('cashCountT')}</b>${lastC ? `<span>${dfm(String(lastC.date).slice(0, 10))} · ${t('counted')} ${fm(lastC.counted)} · ${t('diff')} <b class="${lastC.diff ? 'bad' : 'goodc'}">${lastC.diff ? par(lastC.diff) : '✓'}</b> · ${esc(lastC.by || '')}</span>` : `<span class="warnc">${t('notYet')}</span>`}</div>
+        <div class="card stack small"><b>${t('bankRecT')}</b>${lastB ? `<span>${dfm(String(lastB.date).slice(0, 10))} · ${t('stmtBal')} ${fm(lastB.counted)} · ${t('diff')} <b class="${lastB.diff ? 'bad' : 'goodc'}">${lastB.diff ? par(lastB.diff) : '✓'}</b></span>` : `<span class="warnc">${t('notYet')}</span>`}</div></div>
+        <p class="small muted" style="margin:0">${t('ms_cashExplain')}</p>`;
+    }
+    V.modal = { k: 'msd' };
+    openModal(`<div class="mh"><div><h2>${title}</h2><p>${esc(label)} · LAK</p></div><div class="row">${k === 'ms_in' || k === 'ms_out' || k === 'ms_net' ? `<button class="btn sm" data-act="copyTbl" data-t="mdtbl">${t('copyXl')}</button>` : ''}<button class="btn ghost" data-act="closeModal">✕</button></div></div>${body}`);
+    $('#modal .sheet').classList.add('wide');
   }
   function msCsv() {
     const [from, to] = msRange(), R = Core.moneyRows(from, to).sort((a, b) => a.day < b.day ? -1 : a.day > b.day ? 1 : a.entry - b.entry);
@@ -3471,6 +3529,7 @@ Object.assign(TX, {
     msPick: d => { const m = msState(); m.mode = 'custom'; if (d.g === 'day') { m.from = m.to = d.k; } else { m.from = d.k + '-01'; m.to = monthEnd(d.k) < S.bizDate ? monthEnd(d.k) : S.bizDate; } V.msLimit = 100; render(); },
     msMore: () => { V.msLimit = (V.msLimit || 100) + 200; render(); },
     msCsv: () => msCsv(),
+    msDetail: d => msDetail(d.k),
     msClose: async d => { try { await act('closeDay', d.d); render(); toast(t('ms_closedOk', { d: dfm(d.d) })); } catch (e) { } },
     payBill: () => payBillForm(),
     payBillPost: async () => { const v = Math.round(+$('#pb_v').value || 0); try { await act('payPayable', v, $('#pb_p').value, $('#pb_t').value.trim()); closeModal(); render(); toast(t('posted')); } catch (e) { $('#pb_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; } },
