@@ -515,7 +515,13 @@ const Core = (function () {
     if (ci < S.bizDate) fail('date_in_past');
     if (diffD(ci, co) > 30 || diffD(S.bizDate, ci) > 400) fail('stay_too_long');
   }
-  function newCode() { const a = 'ABCDEF0123456789'; let s; do { s = ''; for (let i = 0; i < 6; i++) s += a[Math.floor(Math.random() * 16)]; } while (S.bookings.some(b => b.code === s)); return s; }
+  // booking codes: "SN" (ສາຍນ້ຳ) + 4 random digits, never reused
+  function newCode() {
+    const used = new Set(S.bookings.flatMap(b => [b.code, b.old_code]));
+    for (let i = 0; i < 200; i++) { const c = 'SN' + String(Math.floor(Math.random() * 10000)).padStart(4, '0'); if (!used.has(c)) return c; }
+    for (let n = 0; n < 10000; n++) { const c = 'SN' + String(n).padStart(4, '0'); if (!used.has(c)) return c; }
+    fail('booking_codes_exhausted');
+  }
   function newGuest(name, phone, email, country) { return { id: 'G' + S.seq.g++, name: String(name).trim(), phone: phone || '', email: email || '', country: country || 'OT' }; }
 
   // ---------- folio primitives ----------
@@ -641,7 +647,7 @@ const Core = (function () {
     if (String(p.name || '').trim().length < 2) fail('name_required');
     if (!roomFree(r.no, p.ci, p.co)) fail('no_double_booking');
     const b = { id: 'BK' + S.seq.bk++, code: newCode(), guest: newGuest(p.name, p.phone, p.email, p.country), room: r.no, type: r.type, ci: p.ci, co: p.co, adults: +p.adults || 1, ch: p.ch,
-      rate: Math.round(+p.rate || 0), status: 'confirmed', created: S.bizDate, source: 'staff', deposit_due: 0, promo: null, request: p.request || '', folio: [], pays: [] };
+      rate: Math.round(+p.rate || 0), status: 'confirmed', createdAt: Date.now(), created: S.bizDate, source: 'staff', deposit_due: 0, promo: null, request: p.request || '', folio: [], pays: [] };
     S.bookings.push(b);
     if (+p.deposit > 0) addPayment(b, S.bizDate, p.method || 'qr', +p.deposit, p.ref);
     if (p.checkin && p.ci === S.bizDate) doCheckIn(b);
@@ -1008,7 +1014,7 @@ const Core = (function () {
   function memberNotifRead(id, ids) { return asMember(id, () => { hubInit(); S.notifs.filter(n => n.member === id && !n.read && (!ids || ids.includes(n.id))).forEach(n => n.read = true); }); }
   function memberHub(id) {
     return asMember(id, () => { expireUnpaid(); hubInit();
-      return { me: memberMeFull(id), bookings: memberBookings(id), payments: memberPayments(id), threads: memberThreads(id), reviews: memberReviews(id), notifications: memberNotifications(id),
+      return { me: memberMeFull(id), bookings: memberBookings(id), payments: memberPayments(id), threads: memberThreads(id), reviews: memberReviews(id), notifications: memberNotifications(id), activity: activityRows(id, false),
         unread: S.notifs.filter(n => n.member === id && !n.read).length }; });
   }
   function memberPassword(id, current, next) {
@@ -1044,6 +1050,29 @@ const Core = (function () {
     notify(r.member, 'review_reply', r.bk, { code: (S.bookings.find(b => b.id === r.bk) || {}).code });
   }
   function reviewStatus(rid, st) { need('manager'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found'); if (!['published', 'hidden'].includes(st)) fail('invalid_kind'); r.status = st; log('review.' + st, r.bk, null); }
+  // full activity history: member view hides staff names and internal details
+  const ACT_BK = ['booking.create', 'booking.confirmed', 'booking.checkin', 'booking.checkout', 'booking.cancelled', 'booking.noshow', 'booking.guest_cancel', 'booking.expired', 'booking.extend',
+    'booking.link_member', 'claim.create', 'claim.verify', 'claim.reject', 'payment.take', 'folio.charge', 'folio.void', 'refund.paid', 'review.create', 'review.update', 'review.reply'];
+  const ACT_ME = ['member.register', 'member.password_changed', 'support.new', 'support.reply', 'support.close'];
+  const SAFE = ['amount', 'method', 'refund', 'fee', 'pct', 'room', 'total', 'ci', 'co', 'kind', 'text', 'rating', 'subject', 'from', 'to', 'reason', 'was'];
+  function activityRows(mid, staffView) {
+    hubInit(); const m = memberOf(mid) || {}, mine = new Map(S.bookings.filter(b => b.member === mid).map(b => [b.id, b]));
+    const myThreads = new Set(S.threads.filter(t => t.member === mid).map(t => 'T-' + t.id));
+    const isMe = a => String(a.actor || '') === 'member: ' + m.name;
+    return S.audit.filter(a => (mine.has(a.ref) && ACT_BK.includes(a.action)) || (ACT_ME.includes(a.action) && (a.ref === m.email || myThreads.has(a.ref)) && isMe(a))).map(a => {
+      const b = mine.get(a.ref);
+      return { id: a.id, at: a.at, action: a.action, code: b ? b.code : null, bk: b ? b.id : null, who: isMe(a) ? 'member' : a.actor && a.actor !== 'website' && !String(a.actor).startsWith('member:') ? 'hotel' : 'system',
+        actor: staffView ? a.actor : null, detail: staffView ? a.detail : Object.fromEntries(Object.entries(a.detail || {}).filter(([k]) => SAFE.includes(k))) };
+    });
+  }
+  function memberActivity(id) { return asMember(id, () => activityRows(id, false)); }
+  function adminMemberHistory(mid) { need('manager', 'frontdesk', 'accountant'); return { activity: activityRows(mid, true) }; }
+  function linkMember(bid, mid) {
+    need('manager', 'frontdesk'); const b = bk(bid), m = memberOf(mid) || fail('user_not_found');
+    if (b.member) fail('already_linked');
+    b.member = mid; log('booking.link_member', b.id, { member: m.email, name: m.name }); notify(mid, 'booking_linked', b.id, { code: b.code });
+  }
+  function unlinkMember(bid) { need('manager'); const b = bk(bid); if (!b.member) fail('not_found'); const m = memberOf(b.member) || {}; b.member = null; log('booking.unlink_member', b.id, { member: m.email }); }
   function publicReviews() {
     hubInit(); const pub = S.reviews.filter(r => r.status === 'published');
     return { count: pub.length, avg: pub.length ? Math.round(pub.reduce((s, r) => s + r.rating, 0) / pub.length * 10) / 10 : null,
@@ -1092,7 +1121,7 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 10, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 11, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
         cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
@@ -1198,7 +1227,7 @@ const Core = (function () {
     catalog, availability, publicBook, lookup, claim, acceptBooking, openSlip, refundPaid, cancelDeadline,
     memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, run,
     memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
-    adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, promoPct, directRate,
+    adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, memberActivity, adminMemberHistory, linkMember, unlinkMember, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
     expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
@@ -1211,7 +1240,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v10', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v11', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1219,7 +1248,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1228,7 +1257,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 10) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 11) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1302,6 +1331,8 @@ const API = (function () {
     threadStatus: (id, st) => ['staff_thread_status', { p_thread: id, p_status: st }],
     reviewReply: (id, text) => ['staff_review_reply', { p_id: id, p_reply: text }],
     reviewStatus: (id, st) => ['staff_review_status', { p_id: id, p_status: st }],
+    linkMember: (id, mid) => ['staff_link_member', { p_id: id, p_member: mid }],
+    unlinkMember: id => ['staff_unlink_member', { p_id: id }],
     acceptBooking: id => ['staff_accept_booking', { p_id: id }],
     setHk: (no, st) => ['staff_set_hk', { p_room: no, p_status: st }],
     nightAudit: () => ['staff_night_audit', {}],
@@ -1384,6 +1415,7 @@ const API = (function () {
       }
     },
     reviews: () => LIVE ? rpc('public_reviews') : demoRun(() => Core.publicReviews()),
+    memberHistory: mid => LIVE ? rpc('admin_member_history', { p_member: mid }) : demoRun(() => Core.adminMemberHistory(mid), true),
     // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
     async uploadSlip(code, blob) {
       if (!LIVE) return await blobToDataURL(blob);
@@ -1429,7 +1461,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
-      try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by }); }); } catch (e) { }
+      try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by, old_code: x.old_code }); }); } catch (e) { }
       return s;
     },
     act(name, ...args) {
@@ -1886,6 +1918,18 @@ Object.assign(TX, {
   settled: ['ຄົບແລ້ວ', 'ครบแล้ว', 'Settled'], needPay: ['ລໍຖ້າຊຳລະ', 'รอชำระ', 'Awaiting payment'], checkedInOk: ['ເຊັກອິນແລ້ວ', 'เช็คอินแล้ว', 'Checked in'],
   att_stay: ['ຍັງບໍ່ເຊັກອິນ {a} · ລໍຖ້າເຊັກເອົາ {b}', 'ยังไม่เช็คอิน {a} · รอเช็คเอาท์ {b}', 'Not checked in {a} · still to check out {b}']
 });
+Object.assign(TX, {
+  memHistory: ['ປະຫວັດທັງໝົດ', 'ประวัติทั้งหมด', 'Full history'], memActivity: ['ທຸກການກະທຳທີ່ບັນທຶກ', 'ทุกการกระทำที่บันทึกไว้', 'Every recorded action'],
+  notLinked: ['ການຈອງນີ້ຍັງບໍ່ໄດ້ເຊື່ອມກັບບັນຊີສະມາຊິກ.', 'การจองนี้ยังไม่ได้เชื่อมกับบัญชีสมาชิก', 'This booking is not linked to a member account.'],
+  notLinkedHint: ['ເຊື່ອມເພື່ອໃຫ້ລູກຄ້າເຫັນໃນ "ບັນຊີຂອງຂ້ອຍ". ★ = ເບີໂທກົງກັນ — ກວດໃຫ້ແນ່ໃຈວ່າແມ່ນຄົນດຽວກັນ.', 'เชื่อมเพื่อให้ลูกค้าเห็นใน "บัญชีของฉัน" ★ = เบอร์โทรตรงกัน — ตรวจให้แน่ใจว่าเป็นคนเดียวกัน', 'Link it so the guest sees it in "My account". ★ = same phone number: make sure it is the same person.'],
+  linkMember: ['ເຊື່ອມບັນຊີ', 'เชื่อมบัญชี', 'Link account'], unlink: ['ຍົກເລີກການເຊື່ອມ', 'ยกเลิกการเชื่อม', 'Unlink'], linkedOk: ['ເຊື່ອມບັນຊີແລ້ວ — ລູກຄ້າໄດ້ຮັບແຈ້ງເຕືອນ', 'เชื่อมบัญชีแล้ว — ลูกค้าได้รับแจ้งเตือน', 'Linked: the guest was notified'],
+  oldCode: ['ລະຫັດເກົ່າ', 'รหัสเดิม', 'Previous code'], e_already_linked: ['ການຈອງນີ້ເຊື່ອມກັບບັນຊີແລ້ວ', 'การจองนี้เชื่อมกับบัญชีแล้ว', 'Already linked to an account']
+});
+Object.assign(ACTIONS, {
+  'booking.link_member': ['ເຊື່ອມການຈອງກັບບັນຊີສະມາຊິກ', 'เชื่อมการจองกับบัญชีสมาชิก', 'Booking linked to member'], 'booking.unlink_member': ['ຍົກເລີກການເຊື່ອມບັນຊີ', 'ยกเลิกการเชื่อมบัญชี', 'Booking unlinked'],
+  'booking.confirmed': ['ຢືນຢັນການຈອງ (ໄດ້ຮັບເງິນແລ້ວ)', 'ยืนยันการจอง (ได้รับเงินแล้ว)', 'Booking confirmed (payment received)'], 'booking.guest_cancel': ['ລູກຄ້າຍົກເລີກການຈອງ', 'ลูกค้ายกเลิกการจอง', 'Guest cancelled booking'],
+  'member.register': ['ສະໝັກສະມາຊິກ', 'สมัครสมาชิก', 'Member signed up'], 'refund.paid': ['ໂອນເງິນຄືນ', 'โอนเงินคืน', 'Refund paid']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2108,7 +2152,7 @@ Object.assign(TX, {
       if (V.bkSt === 'act' && !['pending', 'confirmed', 'inhouse'].includes(b.status)) return false;
       if (V.bkSt && !['act', 'all'].includes(V.bkSt) && b.status !== V.bkSt) return false;
       if (V.bkCh && b.ch !== V.bkCh) return false;
-      if (q && !(b.guest.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q) || b.room.includes(q) || (/^[\d\s+()-]{4,}$/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''))))) return false;
+      if (q && !(b.guest.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q) || (b.old_code || '').toLowerCase().includes(q) || b.room.includes(q) || (/^[\d\s+()-]{4,}$/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, ''))))) return false;
       return true;
     }).sort((a, b) => V.bkSt === 'act' ? (a.ci < b.ci ? -1 : 1) : (a.ci > b.ci ? -1 : 1));
     const shown = list.slice(0, 150);
@@ -2177,7 +2221,12 @@ Object.assign(TX, {
       <div class="fact"><label>${t('balance')}</label><b class="${owed(b) > 0 && b.status === 'inhouse' ? 'warnc' : ''}">${['cancelled', 'noshow'].includes(b.status) ? '—' : kip(owed(b))}</b></div>
       <div class="fact"><label>${t('source')}</label><b>${b.source === 'website' ? t('website') : t('staffSrc')} · ${dfm(b.created)}</b></div>
     </div>
-    ${b.member ? (() => { const m = memberOf(b.member); return `<div class="note"><b>${t('memberAcct')}:</b> ${esc(m ? m.email || m.name : b.member)}${b.cancel_until ? ` · ${t('guestCancelUntil', { t: tfm(b.cancel_until) })}` : ''}</div>`; })() : ''}
+    ${b.member ? (() => { const m = memberOf(b.member); return `<div class="note"><b>${t('memberAcct')}:</b> ${esc(m ? (m.name + ' · ' + (m.email || '')) : b.member)}${b.cancel_until ? ` · ${t('guestCancelUntil', { t: tfm(b.cancel_until) })}` : ''}
+        <span class="row" style="display:inline-flex;margin-left:8px"><button class="btn sm" data-act="memHist" data-id="${esc(b.member)}">${t('memHistory')}</button>${can('manager') ? `<button class="btn sm ghost" data-act="unlinkMem" data-id="${b.id}">${t('unlink')}</button>` : ''}</span></div>`; })()
+      : can('frontdesk', 'manager') && (S.members || []).length ? (() => {
+        const ph = (b.guest.phone || '').replace(/\D/g, '').slice(-8), list = (S.members || []).slice().sort((x, y) => (((y.phone || '').replace(/\D/g, '').slice(-8) === ph) - ((x.phone || '').replace(/\D/g, '').slice(-8) === ph)));
+        return `<div class="note warn"><b>${t('notLinked')}</b> ${t('notLinkedHint')}<div class="inline-form" style="grid-template-columns:1fr auto;margin-top:8px"><select class="input" id="lk_m">${list.map(m => `<option value="${esc(m.id)}">${(m.phone || '').replace(/\D/g, '').slice(-8) === ph && ph ? '★ ' : ''}${esc(m.name)} · ${esc(m.email || '')} · ${esc(m.phone || '')}</option>`).join('')}</select><button class="btn" data-act="linkMem" data-id="${b.id}">${t('linkMember')}</button></div></div>`; })() : ''}
+    ${b.old_code ? `<div class="small muted">${t('oldCode')}: <span class="mono">${esc(b.old_code)}</span></div>` : ''}
     ${refundBlock(b)}
     ${b.request ? `<div class="note"><b>${t('request')}:</b> ${esc(b.request)}</div>` : ''}
     ${held ? `<div class="note">${t('deposit')}: ${kip(held)} — ${t('depositHeld')} (2150)${b.status === 'confirmed' ? ' · ' + t('freeCancelUntil', { d: dfm(freeUntil) }) : ''}</div>` : ''}
@@ -2303,7 +2352,7 @@ Object.assign(TX, {
       const bs = S.bookings.filter(b => b.member === m.id), act = bs.filter(b => ['pending', 'confirmed', 'inhouse'].includes(b.status)).length, paid = bs.reduce((x, b) => x + Core.paidOf(b), 0);
       const open = V.gSel === m.id;
       return `<tr class="click" data-act="gOpen" data-id="${esc(m.id)}"><td><b>${esc(m.name)}</b><div class="small faint">${esc(m.email || '')}</div></td><td class="tnum">${esc(m.phone || '')}</td><td>${nm(COUNTRIES[m.country] || COUNTRIES.OT)}</td><td class="tnum small">${tfm(m.since)}</td><td class="n">${bs.length}</td><td class="n">${act}</td><td class="n">${fm(paid)}</td></tr>
-        ${open ? `<tr><td colspan="7" style="background:var(--surface-2)">${bs.length ? `<table class="t"><tbody>${bs.slice().sort((a, b) => (b.createdAt || b.created || '') > (a.createdAt || a.created || '') ? 1 : -1).map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td class="mono small">${b.id} · ${esc(b.code)}</td><td>${typeName(b.type)}</td><td class="tnum">${dsh(b.ci)} → ${dsh(b.co)}</td><td>${stPill(b.status)}</td><td class="n">${fm(b.rate * nightsOf(b))}</td><td class="n">${fm(Core.paidOf(b))}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">${t('none')}</div>`}</td></tr>` : ''}`;
+        ${open ? `<tr><td colspan="7" style="background:var(--surface-2)"><div class="row" style="justify-content:flex-end;margin-bottom:6px"><button class="btn sm pri" data-act="memHist" data-id="${esc(m.id)}">${t('memHistory')}</button></div>${bs.length ? `<table class="t"><tbody>${bs.slice().sort((a, b) => (b.createdAt || b.created || '') > (a.createdAt || a.created || '') ? 1 : -1).map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td class="mono small">${b.id} · ${esc(b.code)}</td><td>${typeName(b.type)}</td><td class="tnum">${dsh(b.ci)} → ${dsh(b.co)}</td><td>${stPill(b.status)}</td><td class="n">${fm(b.rate * nightsOf(b))}</td><td class="n">${fm(Core.paidOf(b))}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">${t('none')}</div>`}</td></tr>` : ''}`;
     }).join('');
     return `<div class="toolbar"><input class="input" id="gq" data-in="gq" placeholder="${esc(t('memberSearch'))}" value="${esc(V.gQ)}" style="max-width:360px"></div>
     <div class="card tablewrap" id="gtable">${ms.length ? `<table class="t"><thead><tr><th>${t('guest')}</th><th>${t('phone')}</th><th>${t('country')}</th><th>${t('memberSince')}</th><th class="n">${t('nav_bk')}</th><th class="n">${t('activeBk')}</th><th class="n">${t('paid')}</th></tr></thead><tbody>${rows}</tbody></table>` : `<div class="empty">${t('noMembers')}</div>`}</div>`;
@@ -2323,6 +2372,26 @@ Object.assign(TX, {
     <div class="card tablewrap" id="gtable"><table class="t"><thead><tr><th>${t('guest')}</th><th>${t('phone')}</th><th>${t('country')}</th><th class="n">${t('stays')}</th><th class="n">${t('nights')}</th><th class="n">${t('spent')}</th><th>${t('lastStay')}</th></tr></thead><tbody>
       ${list.map(g => `<tr class="click" data-act="openBk" data-id="${g.ids[g.ids.length - 1]}"><td>${esc(g.name)}</td><td class="tnum">${esc(g.phone || '—')}</td><td>${nm(COUNTRIES[g.country] || COUNTRIES.OT)}</td><td class="n">${g.stays}</td><td class="n">${g.nights}</td><td class="n">${fm(g.spent)}</td><td class="tnum">${dfm(g.last)}</td></tr>`).join('')}
     </tbody></table></div>`;
+  }
+
+  // ---------- one member: every booking, every money movement, every recorded action ----------
+  async function showMemberHistory(mid) {
+    const m = memberOf(mid) || { name: mid }; V.modal = { k: 'mh', id: mid };
+    const bs = S.bookings.filter(b => b.member === mid).sort((a, b) => (b.createdAt || b.created || '') > (a.createdAt || a.created || '') ? 1 : -1);
+    const paid = bs.reduce((x, b) => x + Core.paidOf(b), 0), rf = (S.refunds || []).filter(r => bs.some(b => b.id === r.bk));
+    const head = `<div class="mh"><div><h2>${esc(m.name)}</h2><p>${esc(m.email || '')} · ${esc(m.phone || '')} · ${t('memberSince')} ${m.since ? tfm(m.since) : '—'}</p></div><button class="btn ghost" data-act="closeModal" aria-label="${esc(t('close'))}">✕</button></div>
+      <div class="facts"><div class="fact"><label>${t('nav_bk')}</label><b>${bs.length}</b></div><div class="fact"><label>${t('paid')}</label><b>${kip(paid)}</b></div>
+        <div class="fact"><label>${t('refunds')}</label><b>${kip(rf.reduce((x, r) => x + r.amount, 0))}</b></div><div class="fact"><label>${t('refundOwedL')}</label><b>${kip(rf.filter(r => r.status === 'owed').reduce((x, r) => x + r.amount, 0))}</b></div></div>
+      <section><h4>${t('nav_bk')}</h4><div class="tablewrap"><table class="t"><thead><tr><th>${t('code')}</th><th>${t('room')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('status')}</th><th class="n">${t('total')}</th><th class="n">${t('paid')}</th></tr></thead><tbody>
+        ${bs.map(b => `<tr class="click" data-act="openBk" data-id="${b.id}"><td class="mono">${esc(b.code)}<div class="small faint">${b.id}${b.old_code ? ' · ' + esc(b.old_code) : ''}</div></td><td>${b.room}</td><td class="tnum">${dsh(b.ci)} → ${dsh(b.co)}</td><td>${stPill(b.status)}</td><td class="n">${fm(b.rate * nightsOf(b))}</td><td class="n">${fm(Core.paidOf(b))}</td></tr>`).join('') || `<tr><td colspan="6" class="empty">${t('none')}</td></tr>`}
+      </tbody></table></div></section>`;
+    openModal(`${head}<section><h4>${t('memActivity')}</h4><div id="mh_list" class="empty">${t('loading')}</div></section>`);
+    try {
+      const h = await API.memberHistory(mid); const box = $('#mh_list'); if (!box || !V.modal || V.modal.id !== mid) return;
+      const det = d => { if (!d) return ''; const p = []; if (d.amount != null) p.push(kip(d.amount)); if (d.refund != null) p.push(t('refund') + ' ' + kip(d.refund)); if (d.method) p.push(nm(PM[d.method] || [d.method, d.method, d.method])); if (d.bank_ref) p.push('ref ' + esc(d.bank_ref)); if (d.room) p.push(t('room') + ' ' + esc(d.room)); if (d.subject) p.push('"' + esc(d.subject) + '"'); return p.join(' · '); };
+      box.className = ''; box.innerHTML = h.activity.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>${t('when')}</th><th>${t('what')}</th><th>${t('code')}</th><th>${t('who')}</th><th>${t('detail')}</th></tr></thead><tbody>
+        ${h.activity.map(a => `<tr><td class="tnum small">${tfm(a.at)}</td><td>${ACTIONS[a.action] ? nm(ACTIONS[a.action]) : esc(a.action)}</td><td class="mono small">${esc(a.code || '')}</td><td class="small">${esc(a.actor || '—')}</td><td class="small">${det(a.detail)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${t('none')}</div>`;
+    } catch (e) { const box = $('#mh_list'); if (box) box.innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
   }
 
   // ---------- check-in / check-out status ----------
@@ -2347,7 +2416,7 @@ Object.assign(TX, {
     const f = STF.includes(V.stF) ? V.stF : 'notin';
     const tone = { notin: 'warn', arrived: 'good', staying: 'info', dueout: 'warn', left: 'good', noshow: 'bad' };
     const tiles = `<div class="staytiles">${STF.map(k => `<button class="stile ${tone[k]} ${f === k ? 'on' : ''}" data-act="stF" data-f="${k}"><span>${t('sg_' + k)}</span><b>${G[k].length}</b><small>${t('sgd_' + k)}</small></button>`).join('')}</div>`;
-    const match = b => !q || b.guest.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q) || b.room.includes(q) || b.id.toLowerCase().includes(q) || (/\d{4,}/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '')));
+    const match = b => !q || b.guest.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q) || (b.old_code || '').toLowerCase().includes(q) || b.room.includes(q) || b.id.toLowerCase().includes(q) || (/\d{4,}/.test(q) && (b.guest.phone || '').replace(/\D/g, '').includes(q.replace(/\D/g, '')));
     const rows = G[f].filter(match).sort((a, b) => f === 'left' ? String(b.co_at || '').localeCompare(String(a.co_at || '')) : f === 'arrived' ? String(b.ci_at || '').localeCompare(String(a.ci_at || '')) : a.room.localeCompare(b.room));
     const when = (at, by) => at ? `<b class="tnum">${tfm(at)}</b><div class="small faint">${esc(by || '—')}</div>` : '<span class="faint">—</span>';
     const pay = b => { const due = owed(b); return ['cancelled', 'noshow'].includes(b.status) ? '—' : due > 0 ? `<span class="warnc tnum">${fm(due)}</span>` : `<span class="goodc">${t('settled')}</span>`; };
@@ -2719,6 +2788,9 @@ Object.assign(TX, {
     addPay: async d => { const a = Math.round(+$('#pf_a').value || 0); if (a <= 0) return toast(t('errAmt')); try { await act('payment', d.id, $('#pf_m').value, a, $('#pf_r').value.trim()); render(); showBk(d.id); } catch (e) { } },
     viewSlip: d => showSlip(+d.id),
     ibTab: d => { V.ibTab = d.t; render(); },
+    memHist: d => showMemberHistory(d.id),
+    linkMem: async d => { const mid = ($('#lk_m') || {}).value; if (!mid) return; try { await act('linkMember', d.id, mid); render(); reopen(); toast(t('linkedOk')); } catch (e) { } },
+    unlinkMem: async d => { try { await act('unlinkMember', d.id); render(); reopen(); } catch (e) { } },
     stF: d => { V.stF = d.f; render(); },
     stDay: d => { const n = +d.n; V.stDate = n === 0 ? S.bizDate : addD(V.stDate || S.bizDate, n); render(); },
     stCi: async d => { try { await act('checkIn', d.id); render(); toast(t('checkedInOk')); } catch (e) { } },

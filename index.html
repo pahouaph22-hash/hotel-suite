@@ -522,6 +522,16 @@ footer a{color:var(--sub)}
   .bell.has svg{animation:none}
 }
 .pane-b>*{flex-shrink:0}
+.tlist{display:flex;flex-direction:column;gap:0;position:relative}
+.tl{display:flex;gap:12px;align-items:flex-start;padding:8px 0;position:relative;animation:rise .35s ease both;animation-delay:calc(var(--i,0)*30ms)}
+.tl:not(:last-child)::before{content:'';position:absolute;left:16px;top:42px;bottom:-8px;width:2px;background:var(--line)}
+.tl .tt span{font-size:14px;white-space:normal}
+.tl.ok .ti{background:var(--good-soft);color:var(--good)} .tl.bad .ti{background:var(--bad-soft);color:var(--bad)} .tl.warn .ti{background:var(--warn-soft);color:var(--warn)}
+.who{font-weight:700;border-radius:999px;padding:0 7px;background:var(--mist)} .who.member{color:var(--river)} .who.hotel{color:var(--champa-2)}
+.bkhist{border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:0 12px}
+.bkhist summary{cursor:pointer;padding:11px 0;font-weight:600;display:flex;align-items:center;gap:8px;list-style:none}
+.bkhist summary::-webkit-details-marker{display:none}
+.seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -690,7 +700,13 @@ const Core = (function () {
     if (ci < S.bizDate) fail('date_in_past');
     if (diffD(ci, co) > 30 || diffD(S.bizDate, ci) > 400) fail('stay_too_long');
   }
-  function newCode() { const a = 'ABCDEF0123456789'; let s; do { s = ''; for (let i = 0; i < 6; i++) s += a[Math.floor(Math.random() * 16)]; } while (S.bookings.some(b => b.code === s)); return s; }
+  // booking codes: "SN" (ສາຍນ້ຳ) + 4 random digits, never reused
+  function newCode() {
+    const used = new Set(S.bookings.flatMap(b => [b.code, b.old_code]));
+    for (let i = 0; i < 200; i++) { const c = 'SN' + String(Math.floor(Math.random() * 10000)).padStart(4, '0'); if (!used.has(c)) return c; }
+    for (let n = 0; n < 10000; n++) { const c = 'SN' + String(n).padStart(4, '0'); if (!used.has(c)) return c; }
+    fail('booking_codes_exhausted');
+  }
   function newGuest(name, phone, email, country) { return { id: 'G' + S.seq.g++, name: String(name).trim(), phone: phone || '', email: email || '', country: country || 'OT' }; }
 
   // ---------- folio primitives ----------
@@ -816,7 +832,7 @@ const Core = (function () {
     if (String(p.name || '').trim().length < 2) fail('name_required');
     if (!roomFree(r.no, p.ci, p.co)) fail('no_double_booking');
     const b = { id: 'BK' + S.seq.bk++, code: newCode(), guest: newGuest(p.name, p.phone, p.email, p.country), room: r.no, type: r.type, ci: p.ci, co: p.co, adults: +p.adults || 1, ch: p.ch,
-      rate: Math.round(+p.rate || 0), status: 'confirmed', created: S.bizDate, source: 'staff', deposit_due: 0, promo: null, request: p.request || '', folio: [], pays: [] };
+      rate: Math.round(+p.rate || 0), status: 'confirmed', createdAt: Date.now(), created: S.bizDate, source: 'staff', deposit_due: 0, promo: null, request: p.request || '', folio: [], pays: [] };
     S.bookings.push(b);
     if (+p.deposit > 0) addPayment(b, S.bizDate, p.method || 'qr', +p.deposit, p.ref);
     if (p.checkin && p.ci === S.bizDate) doCheckIn(b);
@@ -1183,7 +1199,7 @@ const Core = (function () {
   function memberNotifRead(id, ids) { return asMember(id, () => { hubInit(); S.notifs.filter(n => n.member === id && !n.read && (!ids || ids.includes(n.id))).forEach(n => n.read = true); }); }
   function memberHub(id) {
     return asMember(id, () => { expireUnpaid(); hubInit();
-      return { me: memberMeFull(id), bookings: memberBookings(id), payments: memberPayments(id), threads: memberThreads(id), reviews: memberReviews(id), notifications: memberNotifications(id),
+      return { me: memberMeFull(id), bookings: memberBookings(id), payments: memberPayments(id), threads: memberThreads(id), reviews: memberReviews(id), notifications: memberNotifications(id), activity: activityRows(id, false),
         unread: S.notifs.filter(n => n.member === id && !n.read).length }; });
   }
   function memberPassword(id, current, next) {
@@ -1219,6 +1235,29 @@ const Core = (function () {
     notify(r.member, 'review_reply', r.bk, { code: (S.bookings.find(b => b.id === r.bk) || {}).code });
   }
   function reviewStatus(rid, st) { need('manager'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found'); if (!['published', 'hidden'].includes(st)) fail('invalid_kind'); r.status = st; log('review.' + st, r.bk, null); }
+  // full activity history: member view hides staff names and internal details
+  const ACT_BK = ['booking.create', 'booking.confirmed', 'booking.checkin', 'booking.checkout', 'booking.cancelled', 'booking.noshow', 'booking.guest_cancel', 'booking.expired', 'booking.extend',
+    'booking.link_member', 'claim.create', 'claim.verify', 'claim.reject', 'payment.take', 'folio.charge', 'folio.void', 'refund.paid', 'review.create', 'review.update', 'review.reply'];
+  const ACT_ME = ['member.register', 'member.password_changed', 'support.new', 'support.reply', 'support.close'];
+  const SAFE = ['amount', 'method', 'refund', 'fee', 'pct', 'room', 'total', 'ci', 'co', 'kind', 'text', 'rating', 'subject', 'from', 'to', 'reason', 'was'];
+  function activityRows(mid, staffView) {
+    hubInit(); const m = memberOf(mid) || {}, mine = new Map(S.bookings.filter(b => b.member === mid).map(b => [b.id, b]));
+    const myThreads = new Set(S.threads.filter(t => t.member === mid).map(t => 'T-' + t.id));
+    const isMe = a => String(a.actor || '') === 'member: ' + m.name;
+    return S.audit.filter(a => (mine.has(a.ref) && ACT_BK.includes(a.action)) || (ACT_ME.includes(a.action) && (a.ref === m.email || myThreads.has(a.ref)) && isMe(a))).map(a => {
+      const b = mine.get(a.ref);
+      return { id: a.id, at: a.at, action: a.action, code: b ? b.code : null, bk: b ? b.id : null, who: isMe(a) ? 'member' : a.actor && a.actor !== 'website' && !String(a.actor).startsWith('member:') ? 'hotel' : 'system',
+        actor: staffView ? a.actor : null, detail: staffView ? a.detail : Object.fromEntries(Object.entries(a.detail || {}).filter(([k]) => SAFE.includes(k))) };
+    });
+  }
+  function memberActivity(id) { return asMember(id, () => activityRows(id, false)); }
+  function adminMemberHistory(mid) { need('manager', 'frontdesk', 'accountant'); return { activity: activityRows(mid, true) }; }
+  function linkMember(bid, mid) {
+    need('manager', 'frontdesk'); const b = bk(bid), m = memberOf(mid) || fail('user_not_found');
+    if (b.member) fail('already_linked');
+    b.member = mid; log('booking.link_member', b.id, { member: m.email, name: m.name }); notify(mid, 'booking_linked', b.id, { code: b.code });
+  }
+  function unlinkMember(bid) { need('manager'); const b = bk(bid); if (!b.member) fail('not_found'); const m = memberOf(b.member) || {}; b.member = null; log('booking.unlink_member', b.id, { member: m.email }); }
   function publicReviews() {
     hubInit(); const pub = S.reviews.filter(r => r.status === 'published');
     return { count: pub.length, avg: pub.length ? Math.round(pub.reduce((s, r) => s + r.rating, 0) / pub.length * 10) / 10 : null,
@@ -1267,7 +1306,7 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 10, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 11, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
         cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
@@ -1373,7 +1412,7 @@ const Core = (function () {
     catalog, availability, publicBook, lookup, claim, acceptBooking, openSlip, refundPaid, cancelDeadline,
     memberSignUp, memberSignIn, memberMe, memberRegister, memberBook, memberBookings, memberClaim, memberCancel, run,
     memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
-    adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, promoPct, directRate,
+    adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, memberActivity, adminMemberHistory, linkMember, unlinkMember, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
     expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
@@ -1386,7 +1425,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v10', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v11', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1394,7 +1433,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1403,7 +1442,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 10) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 11) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1477,6 +1516,8 @@ const API = (function () {
     threadStatus: (id, st) => ['staff_thread_status', { p_thread: id, p_status: st }],
     reviewReply: (id, text) => ['staff_review_reply', { p_id: id, p_reply: text }],
     reviewStatus: (id, st) => ['staff_review_status', { p_id: id, p_status: st }],
+    linkMember: (id, mid) => ['staff_link_member', { p_id: id, p_member: mid }],
+    unlinkMember: id => ['staff_unlink_member', { p_id: id }],
     acceptBooking: id => ['staff_accept_booking', { p_id: id }],
     setHk: (no, st) => ['staff_set_hk', { p_room: no, p_status: st }],
     nightAudit: () => ['staff_night_audit', {}],
@@ -1559,6 +1600,7 @@ const API = (function () {
       }
     },
     reviews: () => LIVE ? rpc('public_reviews') : demoRun(() => Core.publicReviews()),
+    memberHistory: mid => LIVE ? rpc('admin_member_history', { p_member: mid }) : demoRun(() => Core.adminMemberHistory(mid), true),
     // guest slip: live mode stores it in the private 'slips' bucket under the booking code; demo keeps a small data URL
     async uploadSlip(code, blob) {
       if (!LIVE) return await blobToDataURL(blob);
@@ -1604,7 +1646,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
-      try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by }); }); } catch (e) { }
+      try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by, old_code: x.old_code }); }); } catch (e) { }
       return s;
     },
     act(name, ...args) {
@@ -1916,6 +1958,35 @@ Object.assign(SX, {
   msgHint: ['ພະນັກງານຈະຕອບກັບໂດຍໄວ ແລະ ທ່ານຈະໄດ້ຮັບແຈ້ງເຕືອນ. ເລື່ອງດ່ວນ ກະລຸນາໂທຫາເຮົາ.', 'พนักงานจะตอบกลับโดยเร็ว และคุณจะได้รับการแจ้งเตือน เรื่องด่วนกรุณาโทรหาเรา', 'Our team replies as soon as possible and you will get a notification. For anything urgent, please call.'],
   helpMoreD: ['ສົ່ງຂໍ້ຄວາມຫາພະນັກງານ ແລ້ວຕິດຕາມຄຳຕອບໄດ້ທີ່ນີ້', 'ส่งข้อความหาพนักงาน แล้วติดตามคำตอบได้ที่นี่', 'Message our team and follow the reply here'],
   fa_a2: ['ສະມາຊິກແຕ່ລະຄົນເຫັນສະເພາະຂໍ້ມູນຂອງຕົນເອງ, ສະລິບເປີດໄດ້ສະເພາະພະນັກງານ ແລະ ທຸກການປ່ຽນແປງຖືກບັນທຶກໄວ້ເພື່ອກວດສອບ.', 'สมาชิกแต่ละคนเห็นเฉพาะข้อมูลของตนเอง สลิปเปิดได้เฉพาะพนักงาน และทุกการเปลี่ยนแปลงถูกบันทึกไว้เพื่อตรวจสอบ', 'Each member sees only their own data, slips are visible to staff only, and every change is logged for audit.']
+});
+Object.assign(SX, {
+  pv_money: ['ການເງິນ', 'การเงิน', 'Money'], pv_all: ['ປະຫວັດທຸກລາຍການ', 'ประวัติทุกรายการ', 'All activity'], allBookingsOpt: ['ທຸກການຈອງ', 'ทุกการจอง', 'All bookings'],
+  noActivity: ['ຍັງບໍ່ມີລາຍການ', 'ยังไม่มีรายการ', 'Nothing yet'], bkHistory: ['ປະຫວັດການຈອງນີ້', 'ประวัติการจองนี้', 'History of this booking'],
+  actHint: ['ທຸກການກະທຳກ່ຽວກັບບັນຊີ ແລະ ການຈອງຂອງທ່ານ ຖືກບັນທຶກໃນລະບົບ ແລະ ບໍ່ສາມາດລຶບ ຫຼື ແກ້ໄຂໄດ້.', 'ทุกการกระทำเกี่ยวกับบัญชีและการจองของคุณถูกบันทึกในระบบ และไม่สามารถลบหรือแก้ไขได้', 'Every action on your account and bookings is recorded and cannot be deleted or edited.'],
+  who_member: ['ທ່ານ', 'คุณ', 'You'], who_hotel: ['ໂຮງແຮມ', 'โรงแรม', 'Hotel'], who_system: ['ລະບົບ', 'ระบบ', 'System'],
+  payRestHotel: ['ຈອງສຳເລັດແລ້ວ — ຍອດທີ່ເຫຼືອ {a} ຊຳລະທີ່ໂຮງແຮມ (ການຈອງນີ້ເຮັດກ່ອນໃຊ້ເງື່ອນໄຂຊຳລະເຕັມ)', 'จองสำเร็จแล้ว — ยอดคงเหลือ {a} ชำระที่โรงแรม (การจองนี้ทำก่อนใช้เงื่อนไขชำระเต็ม)', 'Confirmed: the remaining {a} is paid at the hotel (booked before full prepayment applied)'],
+  n_booking_linked: ['ການຈອງ {code} ຖືກເພີ່ມເຂົ້າບັນຊີຂອງທ່ານແລ້ວ', 'การจอง {code} ถูกเพิ่มเข้าบัญชีของคุณแล้ว', 'Booking {code} was added to your account'],
+  'a_booking.create': ['ສ້າງການຈອງ {code} · {a}', 'สร้างการจอง {code} · {a}', 'Booking {code} created · {a}'],
+  'a_booking.confirmed': ['ການຈອງ {code} ສຳເລັດ (ຢືນຢັນແລ້ວ)', 'การจอง {code} สำเร็จ (ยืนยันแล้ว)', 'Booking {code} confirmed'],
+  'a_booking.checkin': ['ເຊັກອິນ {code} · ຫ້ອງ {room}', 'เช็คอิน {code} · ห้อง {room}', 'Checked in {code} · room {room}'],
+  'a_booking.checkout': ['ເຊັກເອົາ {code}', 'เช็คเอาท์ {code}', 'Checked out {code}'],
+  'a_booking.cancelled': ['ການຈອງ {code} ຖືກຍົກເລີກ', 'การจอง {code} ถูกยกเลิก', 'Booking {code} cancelled'],
+  'a_booking.noshow': ['ການຈອງ {code} ບໍ່ໄດ້ມາພັກ', 'การจอง {code} ไม่มาเข้าพัก', 'Booking {code}: no-show'],
+  'a_booking.guest_cancel': ['ທ່ານຍົກເລີກ {code} · ເງິນຄືນ {a}', 'คุณยกเลิก {code} · เงินคืน {a}', 'You cancelled {code} · refund {a}'],
+  'a_booking.expired': ['ການຈອງ {code} ໝົດເວລາ (ບໍ່ໄດ້ຊຳລະ)', 'การจอง {code} หมดเวลา (ไม่ได้ชำระ)', 'Booking {code} expired (unpaid)'],
+  'a_booking.extend': ['ຂະຫຍາຍການພັກ {code}', 'ขยายการเข้าพัก {code}', 'Stay {code} extended'],
+  'a_booking.link_member': ['ເພີ່ມການຈອງ {code} ເຂົ້າບັນຊີ', 'เพิ่มการจอง {code} เข้าบัญชี', 'Booking {code} added to your account'],
+  'a_claim.create': ['ສົ່ງສະລິບ {a} · {code}', 'ส่งสลิป {a} · {code}', 'Slip sent {a} · {code}'],
+  'a_claim.verify': ['ຢືນຢັນການຊຳລະ {a} · {code}', 'ยืนยันการชำระ {a} · {code}', 'Payment {a} confirmed · {code}'],
+  'a_claim.reject': ['ສະລິບ {a} ບໍ່ຜ່ານ · {code}', 'สลิป {a} ไม่ผ่าน · {code}', 'Slip {a} not accepted · {code}'],
+  'a_payment.take': ['ຊຳລະທີ່ໂຮງແຮມ {a} · {code}', 'ชำระที่โรงแรม {a} · {code}', 'Paid at the hotel {a} · {code}'],
+  'a_folio.charge': ['ຄ່າບໍລິການເພີ່ມ {a} · {code}', 'ค่าบริการเพิ่ม {a} · {code}', 'Extra charge {a} · {code}'],
+  'a_folio.void': ['ຍົກເລີກລາຍການຄ່າບໍລິການ · {code}', 'ยกเลิกรายการค่าบริการ · {code}', 'Charge voided · {code}'],
+  'a_refund.paid': ['ໂອນເງິນຄືນ {a} · {code}', 'โอนเงินคืน {a} · {code}', 'Refund {a} paid · {code}'],
+  'a_review.create': ['ຂຽນຣີວິວ {r}★ · {code}', 'เขียนรีวิว {r}★ · {code}', 'Review {r}★ · {code}'], 'a_review.update': ['ແກ້ໄຂຣີວິວ {r}★ · {code}', 'แก้ไขรีวิว {r}★ · {code}', 'Review edited {r}★ · {code}'],
+  'a_review.reply': ['ໂຮງແຮມຕອບຣີວິວ · {code}', 'โรงแรมตอบรีวิว · {code}', 'Hotel replied to review · {code}'],
+  'a_member.register': ['ສະໝັກສະມາຊິກ', 'สมัครสมาชิก', 'Joined as a member'], 'a_member.password_changed': ['ປ່ຽນລະຫັດຜ່ານ', 'เปลี่ยนรหัสผ่าน', 'Password changed'],
+  'a_support.new': ['ສົ່ງຂໍ້ຄວາມ "{s}"', 'ส่งข้อความ "{s}"', 'Message sent "{s}"'], 'a_support.reply': ['ຕອບຂໍ້ຄວາມ', 'ตอบข้อความ', 'Replied to a message'], 'a_support.close': ['ປິດເລື່ອງ', 'ปิดเรื่อง', 'Closed a conversation']
 });
 
 // ===== GUEST WEBSITE =====
@@ -2258,10 +2329,12 @@ Object.assign(SX, {
           <span class="status s-${d.status}">${t('st_' + d.status)}</span><h3>${esc(L(d.type))}</h3>
           <p class="tnum">${dfm(d.ci)} → ${dfm(d.co)} · ${d.nights} ${t('nights')} · ${d.adults} ${t('guests').toLowerCase()}</p>
           <button class="codechip" data-act="copy" data-v="${esc(d.code)}" title="${esc(t('copy'))}"><span>${t('code')}</span><b>${esc(d.code)}</b>${ico('qr', 14)}</button></div></section>
+        ${['confirmed', 'inhouse'].includes(d.status) && d.paid < d.total ? `<div class="msg info">${t('payRestHotel', { a: kip(d.total - d.paid) })}</div>` : ''}
         ${['cancelled', 'noshow'].includes(d.status) ? '' : `<div class="paybox"><div class="r1"><span>${t('payStatusL')}</span>${payState(d)}</div><div class="bar big"><i style="--w:${pp}%"></i></div><div class="r1 tnum"><span>${t('paid')} ${kip(d.paid)}</span><span>${t('total')} ${kip(d.total)}</span></div></div>`}
         <div class="summary"><span class="k">${t('bookedOn')}</span><span class="v">${fmtTs(d.created)}</span>
         ${d.pending_claims ? `<span class="k">${t('checking')}</span><span class="v">${kip(d.pending_claims)}</span>` : ''}</div>
         ${v.body}${slips}${cx}
+        ${(() => { const rows = ((F.hub && F.hub.activity) || []).filter(x => x.code === d.code); return rows.length ? `<details class="bkhist" ${F.histOpen ? 'open' : ''}><summary>${ico('clock', 15)} ${t('bkHistory')} (${rows.length})</summary>${timeline(rows)}</details>` : ''; })()}
         <div class="dlinks">${d.status === 'out' ? `<button class="btn sm cta" data-act="revWrite" data-c="${esc(d.code)}">★ ${(F.hub && (F.hub.reviews || []).some(r => r.code === d.code)) ? t('editReview') : t('writeReview')}</button>` : ''}<button class="btn sm" data-act="msgAbout" data-c="${esc(d.code)}">${ico('chat', 15)} ${t('askAbout')}</button></div>${m}`, v.foot, 0, 'wide');
     }
     // ---- account hub: profile header, section tabs, one section at a time ----
@@ -2336,7 +2409,35 @@ Object.assign(SX, {
   }
 
   // ---- 2. payment history ----
+  // one line per recorded action, newest first, grouped by day
+  const ACT_ICON = { 'booking.create': 'bed', 'booking.confirmed': 'check', 'booking.checkin': 'home', 'booking.checkout': 'up', 'booking.cancelled': 'x', 'booking.noshow': 'x', 'booking.guest_cancel': 'x',
+    'booking.expired': 'clock', 'booking.extend': 'clock', 'booking.link_member': 'user', 'claim.create': 'card', 'claim.verify': 'check', 'claim.reject': 'x', 'payment.take': 'down', 'folio.charge': 'card',
+    'folio.void': 'x', 'refund.paid': 'up', 'review.create': 'star', 'review.update': 'star', 'review.reply': 'chat', 'member.register': 'user', 'member.password_changed': 'lock', 'support.new': 'chat', 'support.reply': 'chat', 'support.close': 'chat' };
+  function timeline(rows) {
+    if (!rows.length) return `<div class="aempty small"><p>${t('noActivity')}</p></div>`;
+    const dkey = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    let last = '', out = '';
+    rows.forEach((x, i) => {
+      const k = dkey(x.at); if (k !== last) { out += `<h4 class="ngroup">${dfm(k)}</h4>`; last = k; }
+      const d = x.detail || {}, amt = d.amount ?? d.refund ?? d.total;
+      const tone = /verify|confirmed|checkin|refund\.paid/.test(x.action) ? 'ok' : /cancel|reject|noshow|expired|void/.test(x.action) ? 'bad' : /claim\.create/.test(x.action) ? 'warn' : '';
+      out += `<div class="tl ${tone}" style="--i:${Math.min(i, 14)}"><span class="ti">${ico(ACT_ICON[x.action] || 'dot', 15)}</span><div class="tt"><span>${t('a_' + x.action, { code: x.code ? `<b>${esc(x.code)}</b>` : '', a: amt != null ? kip(amt) : '', room: esc(d.room || ''), s: esc(d.subject || ''), r: d.rating || '' }).replace(/ · (<\/b>)?$/, '$1').replace(/ · ·/g, ' ·')}</span>
+        <small>${fmtTs(x.at)} · <span class="who ${x.who}">${t('who_' + x.who)}</span></small></div></div>`;
+    });
+    return `<div class="tlist">${out}</div>`;
+  }
   function hubPay() {
+    const view = F.payView === 'all' ? 'all' : 'money';
+    const seg = `<div class="seg" role="tablist"><button class="${view === 'money' ? 'on' : ''}" data-act="payView" data-v="money">${ico('card', 15)} ${t('pv_money')}</button><button class="${view === 'all' ? 'on' : ''}" data-act="payView" data-v="all">${ico('clock', 15)} ${t('pv_all')}</button></div>`;
+    if (view === 'all') {
+      const A0 = F.hub.activity || [], codes = [...new Set(A0.filter(x => x.code).map(x => x.code))], fc = codes.includes(F.actCode) ? F.actCode : '';
+      const rows = fc ? A0.filter(x => x.code === fc) : A0;
+      return { body: `${seg}<div class="sechead"><h3 class="sech">${t('pv_all')}</h3><select class="in" id="act_code" style="width:auto"><option value="">${t('allBookingsOpt')}</option>${codes.map(c => `<option ${fc === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+        ${timeline(rows)}<p class="hint">${t('actHint')}</p>` };
+    }
+    const r0 = hubPayMoney(); return { body: seg + r0.body };
+  }
+  function hubPayMoney() {
     const P = F.hub.payments || [];
     const sum = f => P.filter(f).reduce((s, x) => s + (+x.amount || 0), 0);
     const tot = { in: sum(x => x.kind === 'payment'), out: sum(x => x.kind === 'refund'), owed: sum(x => x.kind === 'refund_owed'), rev: sum(x => x.kind === 'slip' && x.status === 'pending') };
@@ -2697,6 +2798,7 @@ Object.assign(SX, {
       renderSheet(); const b = document.querySelector('.pane-b'); if (b) b.scrollTop = 0;
     },
     payFilter: d => { F.payFilter = d.f; renderSheet(); },
+    payView: d => { F.payView = d.v; renderSheet(); },
     payCsv: () => {
       const rows = [['no', 'date', 'booking', 'type', 'method', 'reference', 'amount_lak', 'status']].concat((F.hub.payments || []).map(x => [x.no, x.at, x.code, x.kind, x.method || '', x.ref || '', (x.kind === 'refund' ? -1 : 1) * x.amount, x.status]));
       const csv = '\ufeff' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -2827,6 +2929,7 @@ Object.assign(SX, {
   document.addEventListener('input', e => {
     const id = e.target.id;
     if (id === 'help_q') { F.helpQ = e.target.value; const pos = e.target.selectionStart; renderSheet(); const i = $('#help_q'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (x) { } } }
+    if (id === 'act_code') { F.actCode = e.target.value; renderSheet(); return; }
     if (id === 'msg_body') { const c = $('#msg_cnt'); if (c) c.textContent = e.target.value.length + '/2000'; }
     if (id === 'pw_new') {
       const v = e.target.value, sc = (v.length >= 6) + (v.length >= 10) + (/[A-Z]/.test(v) && /[a-z]/.test(v)) + /\d/.test(v) + /[^A-Za-z0-9]/.test(v);
