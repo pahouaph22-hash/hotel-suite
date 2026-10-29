@@ -413,6 +413,24 @@ button.mstile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #mstip b{display:block;margin-bottom:2px}#mstip span{display:flex;justify-content:space-between;gap:12px}
 .mslegend .dot{width:10px;height:10px;border-radius:3px;display:inline-block}.mslegend .dot.in{background:var(--good)}.mslegend .dot.out{background:var(--warn)}
 #mstip{background:#16231f;color:#fff}
+/* today's check-outs */
+.copanel{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin:0 0 14px;overflow:hidden}
+.copanel.todo{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 10%,transparent)}
+.cohead{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:auto 1fr 140px auto;gap:12px;align-items:center;padding:12px 16px;cursor:pointer}
+.copanel.todo .cohead{background:var(--warn-soft)}.copanel.clear .cohead{background:var(--good-soft)}
+.cohead b{display:block;font-size:15px}.cohead small{color:var(--muted)}
+.coicon{font-size:20px}.chev{color:var(--muted)}
+.coprog{height:6px;border-radius:999px;background:var(--surface);overflow:hidden;border:1px solid var(--line)}.coprog i{display:block;height:100%;background:var(--good)}
+.colist{display:flex;flex-direction:column}
+.corow{display:grid;grid-template-columns:64px 1fr auto auto;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.corow.late,.corow.over{background:color-mix(in srgb,var(--bad) 5%,transparent)}
+.corow.done{opacity:.65}
+.roomno.big{font-size:17px;text-align:center;padding:6px 0}
+.coinfo{display:flex;flex-direction:column;gap:1px;min-width:0}
+.costate{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.coact{display:flex;gap:6px;align-items:center}
+.badge.warnb{background:var(--warn)}
+@media (max-width:760px){.cohead{grid-template-columns:auto 1fr auto}.coprog{display:none}.corow{grid-template-columns:52px 1fr;}.costate{align-items:flex-start}.coact{grid-column:1/-1;justify-content:flex-end}}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -2307,6 +2325,17 @@ Object.assign(TX, {
   ms_closePending: ['ສະຫຼຸບວັນທີ່ຄ້າງ ({n})', 'สรุปวันที่ค้าง ({n})', 'Summarise pending days ({n})'], ms_closedN: ['ສະຫຼຸບແລ້ວ {n} ວັນ', 'สรุปแล้ว {n} วัน', '{n} day(s) summarised']
 });
 Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກເອງໄດ້ຮອດ {d} (ຄືນ {p}%)', 'ลูกค้ายกเลิกเองได้ถึง {d} (คืน {p}%)', 'guest can cancel online until {d} ({p}% back)'] });
+Object.assign(TX, {
+  co_title: ['ມື້ນີ້ຕ້ອງເຊັກເອົາ {n} ຫ້ອງ', 'วันนี้ต้องเช็คเอาท์ {n} ห้อง', '{n} room(s) to check out today'],
+  co_rooms: ['ຫ້ອງ {r}', 'ห้อง {r}', 'Rooms {r}'], co_doneN: ['ເຊັກເອົາແລ້ວ {n}/{t}', 'เช็คเอาท์แล้ว {n}/{t}', '{n} of {t} done'],
+  co_allDone: ['ເຊັກເອົາຂອງມື້ນີ້ຄົບແລ້ວ', 'เช็คเอาท์ของวันนี้ครบแล้ว', 'All of today\'s check-outs are done'],
+  co_today: ['ອອກມື້ນີ້', 'ออกวันนี้', 'Due today'], co_late: ['ເລີຍເວລາເຊັກເອົາ {t}', 'เลยเวลาเช็คเอาท์ {t}', 'Past check-out time {t}'],
+  co_over: ['ເລີຍກຳນົດ {n} ມື້', 'เลยกำหนด {n} วัน', '{n} day(s) overdue'], co_due: ['ຍອດຄ້າງ {a}', 'ยอดค้าง {a}', '{a} to pay'], co_view: ['ລາຍລະອຽດ', 'รายละเอียด', 'Details'],
+  co_badge: ['ຕ້ອງເຊັກເອົາມື້ນີ້ {n} ຫ້ອງ', 'ต้องเช็คเอาท์วันนี้ {n} ห้อง', '{n} check-out(s) due today'],
+  co_toast: ['🔔 ມື້ນີ້ຕ້ອງເຊັກເອົາ {n} ຫ້ອງ: {r}', '🔔 วันนี้ต้องเช็คเอาท์ {n} ห้อง: {r}', '🔔 {n} check-out(s) today: {r}'],
+  co_toastLate: ['⏰ ເລີຍເວລາເຊັກເອົາແລ້ວ — ຍັງເຫຼືອ {n} ຫ້ອງ: {r}', '⏰ เลยเวลาเช็คเอาท์แล้ว — ยังเหลือ {n} ห้อง: {r}', '⏰ Check-out time has passed: {n} room(s) still in: {r}'],
+  nightsShort: ['ຄືນ', 'คืน', 'nights']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2397,6 +2426,8 @@ Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກ�
   const owedRefunds = () => (S.refunds || []).filter(r => r.status === 'owed' && r.amount > 0);
   const memberOf = id => (S.members || []).find(m => m.id === id) || null;
   const SUP = () => S.support || { threads: [], reviews: [] };
+  // guests due to leave on the business day (and anyone who should have left already)
+  const dueOut = () => S.bookings.filter(b => b.status === 'inhouse' && b.co <= S.bizDate).sort((a, b) => a.co.localeCompare(b.co) || a.room.localeCompare(b.room));
   const inboxTodo = () => SUP().threads.filter(x => x.status === 'open').length + SUP().reviews.filter(r => !r.reply).length;
   const pre = b => b.status === 'pending' || b.status === 'confirmed';   // not yet arrived: total is the booked stay
   const owed = b => pre(b) ? b.rate * nightsOf(b) - Core.paidOf(b) : Core.balanceOf(b);
@@ -2407,7 +2438,7 @@ Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກ�
     $('#side').innerHTML = `
       <div class="brand"><div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f4efe2" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1"/><path d="M3 12c2.5-2 4.5-2 7 0s4.5 2 7 0 3-1.5 4-1" opacity=".6"/><path d="M8 8V4h8v4"/></svg></div>
         <div><b>${esc(S.settings.hotel)}</b><span>${t('boName')}</span></div></div>
-      ${NAV.map(([g, items]) => { const vis = items.filter(([, , r]) => can(...r)); return vis.length ? `<div class="navgrp"><small>${t(g)}</small>${vis.map(([v, k]) => `<button class="navbtn ${V.view === v ? 'on' : ''}" data-act="nav" data-v="${v}">${ico(v)}<span>${t(k)}</span>${v === 'bk' && pc + owedRefunds().length ? `<em class="badge">${pc + owedRefunds().length}</em>` : ''}${v === 'inbox' && inboxTodo() ? `<em class="badge">${inboxTodo()}</em>` : ''}</button>`).join('')}</div>` : ''; }).join('')}
+      ${NAV.map(([g, items]) => { const vis = items.filter(([, , r]) => can(...r)); return vis.length ? `<div class="navgrp"><small>${t(g)}</small>${vis.map(([v, k]) => `<button class="navbtn ${V.view === v ? 'on' : ''}" data-act="nav" data-v="${v}">${ico(v)}<span>${t(k)}</span>${v === 'bk' && pc + owedRefunds().length ? `<em class="badge">${pc + owedRefunds().length}</em>` : ''}${v === 'inbox' && inboxTodo() ? `<em class="badge">${inboxTodo()}</em>` : ''}${v === 'stay' && dueOut().length ? `<em class="badge warnb" title="${esc(t('co_badge', { n: dueOut().length }))}">${dueOut().length}</em>` : ''}</button>`).join('')}</div>` : ''; }).join('')}
       <div class="navgrp"><a class="navbtn" href="index.html" target="_blank" rel="noopener">${ico('web')}<span>${t('viewSite')}</span></a></div>
       <div class="side-foot"><div class="me"><b>${esc(S.me.name)}</b><span>${t('r_' + S.me.role)}</span></div>
         <button class="navbtn" data-act="logout">${ico('out')}<span>${t('signOut')}</span></button>
@@ -2425,7 +2456,18 @@ Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກ�
     renderShell();
     const f = { dash: vDash, stay: vStay, cal: vCal, bk: vBk, guests: vGuests, inbox: vInbox, rooms: vRooms, setup: vSetup, mkt: vMkt, acc: vAcc, audit: vAudit, set: vSet }[V.view];
     $('#view').innerHTML = f();
+    coRemind();
   }
+  // automatic reminder for the desk: once when the day starts with departures, and again when check-out time passes
+  function coRemind() {
+    if (!can('frontdesk', 'manager')) return;
+    const due = dueOut(); if (!due.length) return;
+    const hhmm = new Date(Date.now() + 7 * 3600e3).toISOString().slice(11, 16), late = realToday() === S.bizDate && hhmm > (S.settings.check_out_time || '12:00');
+    const key = S.bizDate + '|' + due.length + '|' + late;
+    if (V.coKey === key) return; V.coKey = key;
+    setTimeout(() => toast(t(late ? 'co_toastLate' : 'co_toast', { n: due.length, r: due.map(b => b.room).join(', ') })), 400);
+  }
+  setInterval(() => { if (S && S.me) { coRemind(); if (V.view === 'stay' && !V.modal && !V.busy) { const a = document.activeElement; if (!a || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) render(); } } }, 60000);
 
   // ---------- login ----------
   async function renderLogin() {
@@ -2805,6 +2847,27 @@ Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກ�
     if (b.status === 'out') return `<span class="tk done"><i>✓</i>${t('st_inhouse')}</span><span class="tk done"><i>✓</i>${t('st_out')}</span>`;
     return '';
   }
+  function coPanel() {
+    const biz = S.bizDate, due = dueOut(), done = S.bookings.filter(b => b.status === 'out' && (b.co_at ? tday(b.co_at) === biz : b.co === biz));
+    const total = due.length + done.length; if (!total) return '';
+    const now = new Date(Date.now() + 7 * 3600e3), hhmm = now.toISOString().slice(11, 16), coTime = S.settings.check_out_time || '12:00';
+    const late = realToday() === biz && hhmm > coTime, fd = can('frontdesk', 'manager');
+    const row = b => { const over = b.co < biz, bal = owed(b);
+      return `<div class="corow ${over ? 'over' : late ? 'late' : ''}"><span class="roomno big">${b.room}</span>
+        <div class="coinfo"><b>${esc(b.guest.name)}</b><span class="small faint">${esc(b.guest.phone || '')} · <span class="mono">${esc(b.code || '')}</span> · ${typeName(b.type)}</span>
+          <span class="small"><span class="muted">${t('arrive')}</span> ${dfm(b.ci)}${b.ci_at ? ` <span class="faint">${tfm(b.ci_at)}</span>` : ''} → <span class="muted">${t('depart')}</span> <b>${dfm(b.co)} ${coTime}</b> · ${nightsOf(b)} ${t('nightsShort')}</span></div>
+        <div class="costate">${over ? `<span class="pill p-noshow">${t('co_over', { n: diffD(b.co, biz) })}</span>` : late ? `<span class="pill p-noshow">${t('co_late', { t: coTime })}</span>` : `<span class="pill p-pending">${t('co_today')}</span>`}
+          <span class="small ${bal > 0 ? 'warnc' : 'goodc'}">${bal > 0 ? t('co_due', { a: fm(bal) }) : t('settled')}</span></div>
+        <div class="coact">${fd ? `<button class="tk" data-act="stTickOut" data-id="${b.id}"><i></i>${t('tickOut')}</button>` : ''}<button class="btn sm ghost" data-act="openBk" data-id="${b.id}">${t('co_view')}</button></div></div>`; };
+    const doneRow = b => `<div class="corow done"><span class="roomno big">${b.room}</span><div class="coinfo"><b>${esc(b.guest.name)}</b><span class="small faint">${dfm(b.ci)} → ${dfm(b.co)}</span></div>
+      <div class="costate"><span class="pill p-out">✓ ${t('st_out')}</span>${b.co_at ? `<span class="small faint">${tfm(b.co_at)} · ${esc(b.co_by || '')}</span>` : ''}</div><div class="coact"></div></div>`;
+    const open = V.coOpen !== false;
+    return `<section class="copanel ${due.length ? 'todo' : 'clear'}"><button class="cohead" data-act="coToggle" aria-expanded="${open}">
+        <span class="coicon">${due.length ? '🔔' : '✓'}</span><span><b>${due.length ? t('co_title', { n: due.length }) : t('co_allDone')}</b>
+        <small>${due.length ? t('co_rooms', { r: due.map(b => b.room).join(', ') }) : ''}${done.length ? (due.length ? ' · ' : '') + t('co_doneN', { n: done.length, t: total }) : ''}</small></span>
+        <span class="coprog"><i style="width:${Math.round(done.length / total * 100)}%"></i></span><span class="chev">${open ? '▴' : '▾'}</span></button>
+      ${open ? `<div class="colist">${due.map(row).join('')}${done.map(doneRow).join('')}</div>` : ''}</section>`;
+  }
   function vStay() {
     const biz = S.bizDate, D = V.stDate || biz, G = stayGroups(D), q = V.stQ.trim().toLowerCase(), lag = realToday() > biz;
     const f = STF.includes(V.stF) ? V.stF : 'notin';
@@ -2839,6 +2902,7 @@ Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກ�
         <input class="input" id="stq" data-in="stq" placeholder="${esc(t('sl_search'))}" value="${esc(V.stQ)}">
         ${searching ? `<button class="btn sm ghost" data-act="stClear">✕ ${t('sl_clear')}</button>` : ''}</div>
       ${V.stMsg ? `<div class="note ${V.stMsg.k}">${esc(V.stMsg.t)}</div>` : ''}
+      ${coPanel()}
       ${tiles}
       <div class="card tablewrap" id="sttable"><div class="spread" style="margin-bottom:8px"><h3 style="margin:0">${searching ? t('sl_results', { n: rows.length, q: esc(V.stQ) }) : t('sg_' + f) + (f !== 'notin' ? ' · ' + dfm(D) : '')}</h3>
         ${dayNav}<button class="btn sm" data-act="stCsv">${t('sl_export')}</button></div>${wins}${table}</div>`;
@@ -3482,6 +3546,7 @@ Object.assign(TX, { guestCancelUntil: ['ລູກຄ້າຍົກເລີກ�
     stF: d => { V.stF = d.f; V.stQ = ''; V.stHit = null; V.stMsg = null; render(); },
     stWin: d => { V.stWin = d.w; render(); },
     stAskNo: () => { V.stAsk = null; render(); },
+    coToggle: () => { V.coOpen = V.coOpen === false; render(); },
     stTickIn: async d => {
       const b = S.bookings.find(x => x.id === d.id); if (!b) return;
       try {
