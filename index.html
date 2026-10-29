@@ -542,6 +542,35 @@ footer a{color:var(--sub)}
 .staytrack li.done{color:var(--ink)} .staytrack li.done::before{content:'✓';background:var(--good);color:#fff;border-color:var(--good)} .staytrack li.done::after{background:var(--good)}
 .staytrack li.now{color:var(--ink)} .staytrack li.now::before{background:var(--champa);color:var(--champa-ink);border-color:var(--champa)}
 .staytrack b{font-size:13.5px} .staytrack small{font-size:12px;color:var(--sub)}
+/* ---------- photos ---------- */
+.hero .heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;animation:heroin 1.2s ease both}
+@keyframes heroin{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
+.hero::after{background:linear-gradient(100deg,rgba(8,20,18,.72) 0%,rgba(8,20,18,.45) 42%,rgba(8,20,18,.08) 75%)}
+.hero h1,.hero p,.hero .eyebrow{color:#fff6e8!important;text-shadow:0 1px 18px rgba(0,0,0,.35)}
+.room .art{position:relative;overflow:hidden}
+.ph-strip{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.ph-strip::-webkit-scrollbar{display:none}
+.ph{all:unset;cursor:zoom-in;display:block;position:relative;overflow:hidden;box-sizing:border-box}
+.ph-strip .ph{flex:0 0 100%;height:100%;scroll-snap-align:start}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease}
+.ph:hover img{transform:scale(1.04)}
+.ph:focus-visible{outline:3px solid var(--champa);outline-offset:-3px}
+.ph-count{position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:4px;background:rgba(10,20,18,.62);color:#fff;font-size:12px;font-weight:600;border-radius:999px;padding:3px 9px;pointer-events:none;backdrop-filter:blur(4px)}
+.gal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:190px;gap:10px}
+.gal .ph{border-radius:14px}
+.gal .g0{grid-column:span 2;grid-row:span 2}
+.gal .g6{grid-column:span 3}
+.gal .ph span{position:absolute;left:10px;bottom:10px;background:rgba(10,20,18,.6);color:#fff;font-size:12.5px;font-weight:600;border-radius:999px;padding:3px 10px;backdrop-filter:blur(4px)}
+@media (max-width:760px){.gal{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:140px}.gal .g5,.gal .g6{grid-column:span 2}}
+#lb{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px}
+.lb-scrim{position:absolute;inset:0;background:rgba(5,10,9,.88);animation:fade .2s ease}
+#lb figure{position:relative;margin:0;max-width:min(1100px,100%);display:flex;flex-direction:column;gap:10px;animation:rise .25s ease both}
+#lb img{max-width:100%;max-height:78vh;object-fit:contain;border-radius:12px;display:block;margin:auto}
+#lb figcaption{color:#fff;text-align:center;font-size:14px}#lb figcaption span{opacity:.6;margin-left:8px}
+.lb-x,.lb-nav{position:absolute;z-index:1;border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;width:44px;height:44px;font-size:22px;cursor:pointer}
+.lb-x{top:14px;right:14px}.lb-nav{top:50%;transform:translateY(-50%)}.lb-nav.prev{left:14px}.lb-nav.next{right:14px}
+.lb-x:hover,.lb-nav:hover{background:rgba(255,255,255,.28)}
+@keyframes fade{from{opacity:0}}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -849,7 +878,18 @@ const Core = (function () {
     log('booking.create', b.id, { source: 'staff', ci: b.ci, co: b.co, room: b.room, ch: b.ch, rate: b.rate });
     return b.id;
   }
-  function checkIn(id) { need('manager', 'frontdesk'); const b = bk(id); if (b.status !== 'confirmed' || b.ci > S.bizDate) fail('cannot_check_in'); doCheckIn(b); log('booking.checkin', id, { room: b.room }); }
+  function checkIn(id, early) {
+    need('manager', 'frontdesk'); const b = bk(id), d = S.bizDate; let extra = 0;
+    if (b.status !== 'confirmed') fail('cannot_check_in');
+    if (b.ci > d) {
+      if (d < new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)) fail('close_day_first');
+      extra = diffD(d, b.ci); if (!early) fail('early_arrival', String(extra));
+      if (!roomFree(b.room, d, b.ci, b.id)) fail('no_double_booking');
+      log('booking.early_arrival', id, { from: b.ci, to: d, nights: extra, rate: b.rate }); b.ci = d;
+    }
+    doCheckIn(b); log('booking.checkin', id, { room: b.room, early_nights: extra });
+    return { room: b.room, early_nights: extra, room_status: (roomOf(b.room) || {}).hk };
+  }
   function checkOut(id, method) { need('manager', 'frontdesk'); const b = bk(id); if (b.status !== 'inhouse') fail('not_in_house'); const r = doCheckOut(b, method); log('booking.checkout', id, { room: b.room, method, commission: r.comm }); }
   function cancel(id, status, refund) {
     need('manager', 'frontdesk'); const b = bk(id);
@@ -1247,7 +1287,7 @@ const Core = (function () {
   }
   function reviewStatus(rid, st) { need('manager'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found'); if (!['published', 'hidden'].includes(st)) fail('invalid_kind'); r.status = st; log('review.' + st, r.bk, null); }
   // full activity history: member view hides staff names and internal details
-  const ACT_BK = ['booking.create', 'booking.confirmed', 'booking.checkin', 'booking.checkout', 'booking.cancelled', 'booking.noshow', 'booking.guest_cancel', 'booking.expired', 'booking.extend',
+  const ACT_BK = ['booking.create', 'booking.confirmed', 'booking.checkin', 'booking.checkout', 'booking.cancelled', 'booking.noshow', 'booking.guest_cancel', 'booking.expired', 'booking.extend', 'booking.early_arrival',
     'booking.link_member', 'claim.create', 'claim.verify', 'claim.reject', 'payment.take', 'folio.charge', 'folio.void', 'refund.paid', 'review.create', 'review.update', 'review.reply'];
   const ACT_ME = ['member.register', 'member.password_changed', 'support.new', 'support.reply', 'support.close'];
   const SAFE = ['amount', 'method', 'refund', 'fee', 'pct', 'room', 'total', 'ci', 'co', 'kind', 'text', 'rating', 'subject', 'from', 'to', 'reason', 'was'];
@@ -1444,7 +1484,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1514,7 +1554,7 @@ const API = (function () {
 
   const STAFF_RPC = {
     createBooking: p => ['staff_create_booking', { p }],
-    checkIn: id => ['staff_check_in', { p_id: id }],
+    checkIn: (id, early) => ['staff_check_in', { p_id: id, p_early: !!early }],
     checkOut: (id, m) => ['staff_check_out', { p_id: id, p_method: m }],
     cancel: (id, st, refund) => ['staff_cancel', { p_id: id, p_status: st, p_refund: !!refund }],
     extend: (id, n) => ['staff_extend', { p_id: id, p_nights: n || 1 }],
@@ -2006,6 +2046,13 @@ Object.assign(SX, {
   sy_wait_in: ['ລໍຖ້າເຊັກອິນ · {d}', 'รอเช็คอิน · {d}', 'Expected {d}'], sy_wait_out: ['ກຳນົດອອກ {d}', 'กำหนดออก {d}', 'Due {d}'], sy_room: ['ຫ້ອງ {r}', 'ห้อง {r}', 'Room {r}'],
   sy_confirmedBy: ['ບັນທຶກໂດຍພະນັກງານໂຮງແຮມ', 'บันทึกโดยพนักงานโรงแรม', 'Recorded by hotel staff']
 });
+Object.assign(SX, { 'a_booking.early_arrival': ['ມາຮອດກ່ອນກຳນົດ — ເລື່ອນວັນເຂົ້າພັກ {code}', 'มาถึงก่อนกำหนด — เลื่อนวันเข้าพัก {code}', 'Arrived early: stay {code} moved earlier'] });
+Object.assign(SX, {
+  nav_gal: ['ຮູບພາບ', 'รูปภาพ', 'Photos'],
+  galTitle: ['ບັນຍາກາດຂອງໂຮງແຮມ', 'บรรยากาศของโรงแรม', 'Around the hotel'], galSub: ['ກົດທີ່ຮູບເພື່ອເບິ່ງຂະໜາດໃຫຍ່', 'แตะที่รูปเพื่อดูภาพใหญ่', 'Tap a photo to enlarge'],
+  ph_pool: ['ສະລອຍນ້ຳ', 'สระว่ายน้ำ', 'Pool'], ph_dinner: ['ອາຫານແລງລິມນ້ຳ', 'มื้อค่ำริมน้ำ', 'Riverside dinner'], ph_lobby: ['ລັອບບີ້', 'ล็อบบี้', 'Lobby'],
+  ph_food: ['ຮ້ານອາຫານ', 'ห้องอาหาร', 'Restaurant'], ph_garden: ['ສວນຍາມຄ່ຳ', 'สวนยามค่ำ', 'Garden at night'], ph_view: ['ວິວຈາກໂຮງແຮມ', 'วิวจากโรงแรม', 'The view']
+});
 
 // ===== GUEST WEBSITE =====
 (function () {
@@ -2031,6 +2078,7 @@ Object.assign(SX, {
 
   // ---------- art ----------
   const ICONS = {
+    camera: '<path d="M3 8h3.5L8 5.5h8L17.5 8H21v11H3z"/><circle cx="12" cy="13" r="3.5"/>',
     wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1"/>',
     cup: '<path d="M4 8h13v5a6 6 0 0 1-12 0zM17 9h1.5a2.5 2.5 0 0 1 0 5H17M7 3v2M11 3v2"/>',
     wave: '<path d="M2 12c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 7c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
@@ -2075,6 +2123,14 @@ Object.assign(SX, {
     </svg>`;
   }
   const ROOMCOL = { STD: ['#d9cdb8', '#7a8f88'], DLX: ['#cfdad6', '#3f7a71'], FAM: ['#e3d3c0', '#b57b45'], STE: ['#d6cbd8', '#6d4f74'] };
+  // hotel photos (served from img/ next to the page); a room type without photos keeps its drawn picture
+  const PH = { STD: ['room-std-1', 'room-std-2'], DLX: ['room-river-1', 'room-river-2'], FAM: ['room-family'], STE: ['room-suite-1', 'room-suite-2'] };
+  const GAL = [['pool-1', 'ph_pool'], ['restaurant-2', 'ph_dinner'], ['lobby', 'ph_lobby'], ['pool-2', 'ph_pool'], ['restaurant-1', 'ph_food'], ['garden-night', 'ph_garden'], ['valley-mist', 'ph_view']];
+  const img = (n, alt, cls) => `<img src="img/${n}.webp" alt="${esc(alt || '')}" loading="lazy" decoding="async"${cls ? ` class="${cls}"` : ''}>`;
+  function roomPhotos(x) {
+    const ps = PH[x.id]; if (!ps) return roomArt(x.id);
+    return `<div class="ph-strip">${ps.map((n, i) => `<button class="ph" data-act="lightbox" data-set="${x.id}" data-i="${i}" aria-label="${esc(L(x.name))} ${i + 1}/${ps.length}">${img(n, L(x.name))}</button>`).join('')}</div>${ps.length > 1 ? `<span class="ph-count">${ico('camera', 13)} ${ps.length}</span>` : ''}`;
+  }
   function roomArt(id, small) {
     const [wall, accent] = ROOMCOL[id] || ['#d9d4c8', '#557a72'];
     const wide = id === 'STE' || id === 'FAM';
@@ -2115,12 +2171,12 @@ Object.assign(SX, {
     ${API.live ? '' : `<div class="demo"><div class="wrap"><span>${t('demoBanner')}</span><a href="admin.html">${t('openAdmin')} →</a></div></div>`}
     <header class="hdr"><div class="wrap">
       <a class="logo" href="#top"><svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="var(--river)"/><path d="M6 18c3-2.4 5.5-2.4 8.5 0s5.5 2.4 8.5 0 2.6-1.8 3-1.4M6 22c3-2.4 5.5-2.4 8.5 0s5.5 2.4 8.5 0" stroke="#fff6e8" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="21" cy="11" r="3.4" fill="var(--champa)"/></svg><b>${esc(h.name)}</b></a>
-      <nav class="links" aria-label="Sections"><a href="#rooms">${t('nav_rooms')}</a><a href="#amenities">${t('nav_amen')}</a><a href="#location">${t('nav_loc')}</a><a href="#" data-act="account">${t('nav_manage')}</a></nav>
+      <nav class="links" aria-label="Sections"><a href="#rooms">${t('nav_rooms')}</a><a href="#gallery">${t('nav_gal')}</a><a href="#amenities">${t('nav_amen')}</a><a href="#location">${t('nav_loc')}</a><a href="#" data-act="account">${t('nav_manage')}</a></nav>
       <div class="lang" role="group" aria-label="Language">${[['lo', 'ລາວ'], ['th', 'ไทย'], ['en', 'EN']].map(([k, l]) => `<button class="${lang === k ? 'on' : ''}" data-act="lang" data-l="${k}">${l}</button>`).join('')}</div>
       <button class="btn acct ${F.hub && F.hub.unread ? 'has' : ''}" data-act="${ME ? 'account' : 'login'}">${ico('user', 16)}<span>${ME && ME.profile ? esc(String(ME.name).split(' ')[0]) : t('login')}</span></button>
       <button class="btn cta" data-act="book">${t('bookNow')}</button>
     </div></header>
-    <section class="hero" id="top">${scene()}<div class="wrap"><span class="eyebrow">Vientiane · Lao PDR</span><h1>${esc(L(h.tagline))}</h1><p>${esc(L(h.about))}</p></div></section>
+    <section class="hero" id="top"><img class="heroimg" src="img/river-sunrise.webp" alt="" fetchpriority="high"><div class="wrap"><span class="eyebrow">Vientiane · Lao PDR</span><h1>${esc(L(h.tagline))}</h1><p>${esc(L(h.about))}</p></div></section>
     <div class="wrap search"><form class="sbar" id="sform">
       <label><span>${t('arrive')}</span><input type="date" id="q_ci" value="${Q.ci}" min="${h.business_date}" required></label>
       <label><span>${t('depart')}</span><input type="date" id="q_co" value="${Q.co}" min="${addD(h.business_date, 1)}" required></label>
@@ -2134,13 +2190,15 @@ Object.assign(SX, {
       <div><i>${ico('qr')}</i><div><b>${t('why3t')}</b><span>${t('why3d')}</span></div></div>
     </div></div>
     <section class="blk" id="rooms"><div class="wrap"><div class="blk-h"><h2>${t('roomsTitle')}</h2><p>${t('from')} ${kip(minRate)} ${t('perNight')}</p></div>
-      <div class="rooms">${CAT.types.map(x => `<article class="room"><div class="art">${roomArt(x.id)}</div><div class="body">
+      <div class="rooms">${CAT.types.map(x => `<article class="room"><div class="art">${roomPhotos(x)}</div><div class="body">
         <h3>${esc(L(x.name))}</h3>
         <div class="meta"><span>${ico('user', 16)}${t('sleeps', { n: x.capacity })}</span><span>${ico('bed', 16)}${esc(L(x.bed))}</span>${x.size_m2 ? `<span>${ico('area', 16)}${t('sqm', { n: x.size_m2 })}</span>` : ''}</div>
         <p>${esc(L(x.description))}</p>
         <div class="chips">${(x.amenities || []).map(a => `<span class="chip">${ico(amenIcon(a), 14)}${esc(amenName(a))}</span>`).join('')}</div>
         <div class="foot"><div class="price"><small>${t('perNight')}</small><b>${kip(x.direct_rate)}</b>${x.base_rate > x.direct_rate ? `<s>${kip(x.base_rate)}</s>` : ''}</div><button class="btn dark" data-act="book" data-t="${x.id}">${t('choose')}</button></div>
       </div></article>`).join('')}</div></div></section>
+    <section class="blk" id="gallery"><div class="wrap"><div class="blk-h"><h2>${t('galTitle')}</h2><p>${t('galSub')}</p></div>
+      <div class="gal">${GAL.map(([n, k], i) => `<button class="ph g${i}" data-act="lightbox" data-set="gal" data-i="${i}">${img(n, t(k))}<span>${t(k)}</span></button>`).join('')}</div></div></section>
     ${REV && REV.count ? reviewsSection() : ''}
     <section class="blk" id="amenities" style="background:var(--mist)"><div class="wrap"><div class="blk-h"><h2>${t('amenTitle')}</h2></div>
       <div class="amen">${CAT.amenities.map(a => `<div><i>${ico(a.icon)}</i>${esc(L(a.name))}</div>`).join('')}</div></div></section>
@@ -2439,7 +2497,7 @@ Object.assign(SX, {
   // ---- 2. payment history ----
   // one line per recorded action, newest first, grouped by day
   const ACT_ICON = { 'booking.create': 'bed', 'booking.confirmed': 'check', 'booking.checkin': 'home', 'booking.checkout': 'up', 'booking.cancelled': 'x', 'booking.noshow': 'x', 'booking.guest_cancel': 'x',
-    'booking.expired': 'clock', 'booking.extend': 'clock', 'booking.link_member': 'user', 'claim.create': 'card', 'claim.verify': 'check', 'claim.reject': 'x', 'payment.take': 'down', 'folio.charge': 'card',
+    'booking.expired': 'clock', 'booking.extend': 'clock', 'booking.early_arrival': 'clock', 'booking.link_member': 'user', 'claim.create': 'card', 'claim.verify': 'check', 'claim.reject': 'x', 'payment.take': 'down', 'folio.charge': 'card',
     'folio.void': 'x', 'refund.paid': 'up', 'review.create': 'star', 'review.update': 'star', 'review.reply': 'chat', 'member.register': 'user', 'member.password_changed': 'lock', 'support.new': 'chat', 'support.reply': 'chat', 'support.close': 'chat' };
   function timeline(rows) {
     if (!rows.length) return `<div class="aempty small"><p>${t('noActivity')}</p></div>`;
@@ -2749,7 +2807,21 @@ Object.assign(SX, {
     await API.member.claim(code, amount, ref);
     clearSlip();
   }
+  let LB = null;
+  function lbSet(set) { return set === 'gal' ? GAL.map(([n, k]) => [n, t(k)]) : (PH[set] || []).map(n => [n, L((CAT.types.find(x => x.id === set) || {}).name)]); }
+  function lbShow() {
+    let el = document.getElementById('lb');
+    if (!LB) { if (el) el.remove(); document.body.style.overflow = ''; return; }
+    const list = lbSet(LB.set), [n, cap] = list[LB.i];
+    if (!el) { el = document.createElement('div'); el.id = 'lb'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); document.body.appendChild(el); }
+    document.body.style.overflow = 'hidden';
+    el.innerHTML = `<div class="lb-scrim" data-act="lbClose"></div><figure><img src="img/${n}.webp" alt="${esc(cap)}"><figcaption>${esc(cap)} <span class="tnum">${LB.i + 1}/${list.length}</span></figcaption></figure>
+      <button class="lb-x" data-act="lbClose" aria-label="${esc(t('close'))}">✕</button>${list.length > 1 ? `<button class="lb-nav prev" data-act="lbGo" data-n="-1" aria-label="‹">‹</button><button class="lb-nav next" data-act="lbGo" data-n="1" aria-label="›">›</button>` : ''}`;
+  }
   const A = {
+    lightbox: d => { LB = { set: d.set, i: +d.i || 0 }; lbShow(); },
+    lbClose: () => { LB = null; lbShow(); },
+    lbGo: d => { if (!LB) return; const n = lbSet(LB.set).length; LB.i = (LB.i + (+d.n) + n) % n; lbShow(); },
     lang: d => { lang = d.l; try { localStorage.setItem('saynam-lang', lang); } catch (e) { } render(); },
     book: d => openBooking(d.t),
     closeSheet,
@@ -2953,7 +3025,7 @@ Object.assign(SX, {
       if (F.step === 2) recheckSelected(); else loadAvail();
     }
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && F.view) closeSheet(); });
+  document.addEventListener('keydown', e => { if (LB) { if (e.key === 'Escape') A.lbClose(); else if (e.key === 'ArrowRight') A.lbGo({ n: 1 }); else if (e.key === 'ArrowLeft') A.lbGo({ n: -1 }); return; } if (e.key === 'Escape' && F.view) closeSheet(); });
   document.addEventListener('input', e => {
     const id = e.target.id;
     if (id === 'help_q') { F.helpQ = e.target.value; const pos = e.target.selectionStart; renderSheet(); const i = $('#help_q'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (x) { } } }
