@@ -354,6 +354,23 @@ body.busy .btn{pointer-events:none}
 .codeq{display:inline-flex;align-items:center;border:2px solid var(--accent);border-radius:10px;overflow:hidden;background:var(--surface)}
 .codeq .pre{padding:0 10px;font-weight:800;letter-spacing:.08em;color:var(--accent);background:var(--surface-2);align-self:stretch;display:flex;align-items:center}
 .codeq input{border:0;outline:none;padding:9px 10px;width:110px;font:600 16px/1 ui-monospace,monospace;letter-spacing:.15em;background:transparent;color:inherit}
+.tk{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--surface);color:inherit;border-radius:10px;padding:6px 11px;font:600 13.5px var(--font,inherit);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s,transform .1s}
+button.tk:hover{border-color:var(--accent);background:var(--surface-2)} button.tk:active{transform:scale(.97)}
+.tk i{width:18px;height:18px;border-radius:5px;border:2px solid var(--faint);display:grid;place-items:center;font-style:normal;font-size:12px;line-height:1;flex:none}
+button.tk:hover i{border-color:var(--accent)}
+.tk.done{border-color:transparent;background:var(--good-soft);color:var(--good);cursor:default;padding:4px 9px;font-size:12.5px;margin:0 0 4px 4px}
+.tk.done i{background:var(--good);border-color:var(--good);color:#fff}
+.tk.off{opacity:.55;cursor:not-allowed}
+td .tk.done+button.tk{margin-top:4px}
+.tickask{display:flex;flex-direction:column;gap:6px;max-width:260px;margin-left:auto;text-align:left;background:var(--warn-soft);border-radius:10px;padding:8px 10px}
+.tickask small{color:var(--warn);font-weight:600}
+.tickask{max-width:230px;min-width:200px}
+.stamp+.stamp{margin-top:4px}
+#sttable td.n:last-child{min-width:150px}
+#sttable td.n:last-child .tk{margin-left:auto}
+#sttable td.n:last-child{display:table-cell}
+#sttable td.n:last-child>.tk,#sttable td.n:last-child>span.tk{display:flex;width:max-content;margin:0 0 4px auto}
+.tickask,.tickask small{white-space:normal;overflow-wrap:anywhere}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -463,6 +480,7 @@ const CATALOG = {
     ['5600', 'opx', 'ການຕະຫຼາດ ແລະ ໂຄສະນາ', 'การตลาดและโฆษณา', 'Marketing'],
     ['5700', 'opx', 'ສ້ອມແປງ ແລະ ບຳລຸງຮັກສາ', 'ซ่อมแซมและบำรุงรักษา', 'Repairs & maintenance'],
     ['5800', 'opx', 'ຄ່າຫຼຸ້ຍຫ້ຽນ', 'ค่าเสื่อมราคา', 'Depreciation'],
+    ['5950', 'opx', 'ເງິນສົດຂາດ / ເກີນ', 'เงินสดขาด / เกิน', 'Cash over / short'],
     ['5900', 'fin', 'ດອກເບ້ຍເງິນກູ້', 'ดอกเบี้ยเงินกู้', 'Interest expense']
   ]
 };
@@ -661,7 +679,18 @@ const Core = (function () {
     log('booking.create', b.id, { source: 'staff', ci: b.ci, co: b.co, room: b.room, ch: b.ch, rate: b.rate });
     return b.id;
   }
-  function checkIn(id) { need('manager', 'frontdesk'); const b = bk(id); if (b.status !== 'confirmed' || b.ci > S.bizDate) fail('cannot_check_in'); doCheckIn(b); log('booking.checkin', id, { room: b.room }); }
+  function checkIn(id, early) {
+    need('manager', 'frontdesk'); const b = bk(id), d = S.bizDate; let extra = 0;
+    if (b.status !== 'confirmed') fail('cannot_check_in');
+    if (b.ci > d) {
+      if (d < new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)) fail('close_day_first');
+      extra = diffD(d, b.ci); if (!early) fail('early_arrival', String(extra));
+      if (!roomFree(b.room, d, b.ci, b.id)) fail('no_double_booking');
+      log('booking.early_arrival', id, { from: b.ci, to: d, nights: extra, rate: b.rate }); b.ci = d;
+    }
+    doCheckIn(b); log('booking.checkin', id, { room: b.room, early_nights: extra });
+    return { room: b.room, early_nights: extra, room_status: (roomOf(b.room) || {}).hk };
+  }
   function checkOut(id, method) { need('manager', 'frontdesk'); const b = bk(id); if (b.status !== 'inhouse') fail('not_in_house'); const r = doCheckOut(b, method); log('booking.checkout', id, { room: b.room, method, commission: r.comm }); }
   function cancel(id, status, refund) {
     need('manager', 'frontdesk'); const b = bk(id);
@@ -861,7 +890,7 @@ const Core = (function () {
   }
   function reverse(id, reason) {
     need('manager', 'accountant'); const e = S.journal.find(x => x.id === id);
-    if (!e || e.revBy || e.rev || !['manual', 'expense', 'close', 'tax', 'finance', 'cash'].includes(e.src)) fail('cannot_reverse');
+    if (!e || e.revBy || e.rev || !['manual', 'expense', 'close', 'tax', 'finance', 'cash', 'open'].includes(e.src)) fail('cannot_reverse');
     if (String(reason || '').trim().length < 3) fail('reason_required');
     const r = post(S.bizDate, { k: 'rev', id, text: String(reason).slice(0, 160) }, 'REV-' + id, 'reversal', e.lines.map(l => ({ a: l.a, dr: l.cr, cr: l.dr })), id);
     e.revBy = r.id; log('journal.reverse', 'JV-' + id, { reversal: r.id, reason }); return r.id;
@@ -898,10 +927,92 @@ const Core = (function () {
     const end = monthEnd(month), d = end < S.bizDate ? end : S.bizDate;
     if (d.slice(0, 7) !== month) fail('month_not_started');
     const k = { depr: 'depr', int: 'int', sal_pay: 'sal', sal_accrue: 'salAcc' }[kind]; if (!k) fail('invalid_kind');
+    const useReg = kind === 'depr' && (S.assets || []).length > 0;
+    const v = useReg ? deprFor(month) : Math.round(+(a[kind === 'depr' ? 'depr' : kind === 'int' ? 'int' : 'sal']) || 0);
+    if (!(v > 0)) fail('close_amount_missing');
     if (posted(k, month) || ((k === 'sal' || k === 'salAcc') && (posted('sal', month) || posted('salAcc', month)))) fail('already_posted');
-    const L = { depr: [{ a: '5800', dr: a.depr }, { a: '1290', cr: a.depr }], int: [{ a: '5900', dr: a.int }, { a: '1120', cr: a.int }], sal_pay: [{ a: '5200', dr: a.sal }, { a: '1120', cr: a.sal }], sal_accrue: [{ a: '5200', dr: a.sal }, { a: '2160', cr: a.sal }] }[kind];
-    const e = post(d, { k, mo: month }, k.toUpperCase() + '-' + month, 'close', L); log('close.' + kind, month); return e.id;
+    const L = { depr: [{ a: '5800', dr: v }, { a: '1290', cr: v }], int: [{ a: '5900', dr: v }, { a: '1120', cr: v }], sal_pay: [{ a: '5200', dr: v }, { a: '1120', cr: v }], sal_accrue: [{ a: '5200', dr: v }, { a: '2160', cr: v }] }[kind];
+    const desc = { k, mo: month }; if (useReg) desc.assets = S.assets.map(x => ({ id: x.id, amt: assetDepr(x, month) })).filter(x => x.amt > 0);
+    const e = post(d, desc, k.toUpperCase() + '-' + month, 'close', L); log('close.' + kind, month, { amount: v }); return e.id;
   }
+  // ---------- finance controls (IFRS for SMEs) ----------
+  const monthIdx = m => +m.slice(0, 4) * 12 + +m.slice(5, 7);
+  // straight line, full month from the month after the asset is ready for use; the last month takes the rounding remainder
+  function assetDepr(x, month) {
+    const n = monthIdx(month) - monthIdx(x.in_use), base = x.cost - (x.salvage || 0), m = Math.floor(base / x.life);
+    return n < 1 || n > x.life ? 0 : n === x.life ? base - m * (x.life - 1) : m;
+  }
+  const deprFor = month => (S.assets || []).reduce((s, x) => s + assetDepr(x, month), 0);
+  // depreciation so far by the schedule (up to and including a month) and the carrying amount
+  function assetStatus(x, month) {
+    let acc = 0; for (let k = 1; k <= x.life; k++) { const mo = monthIdx(x.in_use) + k; if (mo > monthIdx(month)) break; const y = Math.floor((mo - 1) / 12), mm = mo - y * 12; acc += assetDepr(x, y + '-' + String(mm).padStart(2, '0')); }
+    return { acc, nbv: x.cost - acc, done: acc >= x.cost - (x.salvage || 0) };
+  }
+  const BS_TYPES = ['ca', 'nca', 'cl', 'ncl', 'eq'];
+  function opening(date, lines) {
+    need('manager', 'accountant');
+    if (S.journal.some(e => e.src === 'open' && !e.revBy && !e.rev)) fail('already_posted');
+    if (!date || date > S.bizDate) fail('future_date');
+    if (lines.some(l => !S.accounts[l.a] || !BS_TYPES.includes(S.accounts[l.a][0]) || ['1130', '1140', '2150', '2170'].includes(l.a) || (l.dr || 0) < 0 || (l.cr || 0) < 0)) fail('invalid_account');
+    const L = lines.filter(l => l.a !== '3100').map(l => ({ a: l.a, dr: Math.round(+l.dr || 0), cr: Math.round(+l.cr || 0) }));
+    const d = L.reduce((s, l) => s + l.dr, 0), c = L.reduce((s, l) => s + l.cr, 0);
+    if (!d && !c) fail('invalid_amount');
+    L.push({ a: '3100', dr: Math.max(c - d, 0), cr: Math.max(d - c, 0) });
+    const e = post(date, { k: 'open' }, 'OB', 'open', L); log('journal.opening', 'JV-' + e.id, { lines: L }); return e.id;
+  }
+  function assetAdd(p) {
+    need('manager', 'accountant'); S.assets = S.assets || [];
+    const cost = Math.round(+p.cost), salvage = Math.round(+p.salvage || 0), life = Math.round(+p.life_months), pay = p.pay || 'none';
+    if (!p.in_use || p.in_use > S.bizDate) fail('future_date');
+    if (!['1210', '1220'].includes(p.account) || !['none', '1110', '1120', '2110'].includes(pay)) fail('invalid_account');
+    if (!(cost > 0) || salvage < 0 || salvage >= cost || !(life >= 1 && life <= 600) || String(p.name || '').trim().length < 2) fail('invalid_amount');
+    let entry = null;
+    if (pay !== 'none') entry = post(p.in_use, { k: 'asset', text: String(p.name).slice(0, 120) }, 'FA', 'finance', [{ a: p.account, dr: cost }, { a: pay, cr: cost }]).id;
+    const x = { id: (S.assets.reduce((m, a) => Math.max(m, a.id), 0) + 1), name: String(p.name).trim(), account: p.account, cost, salvage, life, in_use: p.in_use, entry, at: new Date().toISOString() };
+    S.assets.push(x); log('asset.add', 'FA-' + x.id, { ...p, entry }); return x.id;
+  }
+  function cashCount(acc, counted, note) {
+    if (acc === '1110') need('manager', 'accountant', 'frontdesk'); else need('manager', 'accountant');
+    counted = Math.round(+counted);
+    if (!['1110', '1120'].includes(acc) || !(counted >= 0)) fail('invalid_amount');
+    const book = accBal(acc, S.bizDate), diff = counted - book;
+    if (diff !== 0 && String(note || '').trim().length < 3) fail('reason_required');
+    let entry = null;
+    if (acc === '1110' && diff !== 0) entry = post(S.bizDate, { k: 'cashCount', text: String(note).slice(0, 160) }, 'CNT', 'cash', diff > 0 ? [{ a: '1110', dr: diff }, { a: '5950', cr: diff }] : [{ a: '5950', dr: -diff }, { a: '1110', cr: -diff }]).id;
+    S.counts = S.counts || [];
+    const c = { id: (S.counts.reduce((m, x) => Math.max(m, x.id), 0) + 1), date: S.bizDate, account: acc, counted, book, diff, note: String(note || '').trim() || null, entry, at: new Date().toISOString(), by: S.me && S.me.name };
+    S.counts.unshift(c); log(acc === '1110' ? 'cash.count' : 'bank.reconcile', 'CC-' + c.id, { counted, book, diff, note }); return { id: c.id, book, diff, entry };
+  }
+  // statement of cash flows, direct method (IAS 7 / Section 7); interest paid is shown under operating activities
+  const CASH = ['1110', '1120'];
+  function cashFlow(from, to) {
+    const rows = { recGuests: 0, refunds: 0, suppliers: 0, staff: 0, commissions: 0, vat: 0, interest: 0, otherOp: 0, capex: 0, loans: 0, owners: 0 };
+    let opening = 0, openingEntries = 0;
+    for (const e of S.journal) {
+      const delta = e.lines.reduce((s, l) => s + (CASH.includes(l.a) ? l.dr - l.cr : 0), 0);
+      if (e.date < from) { opening += delta; continue; }
+      if (e.date > to || delta === 0) continue;
+      if (e.src === 'open' || (e.rev && (S.journal.find(x => x.id === e.rev) || {}).src === 'open')) { openingEntries += delta; continue; }
+      const other = e.lines.filter(l => !CASH.includes(l.a)).map(l => l.a), ty = a => (S.accounts[a] || [])[0], has = (...a) => other.some(x => a.includes(x));
+      let k;
+      if (other.some(a => ty(a) === 'nca')) k = 'capex';
+      else if (other.some(a => ty(a) === 'ncl')) k = 'loans';
+      else if (other.some(a => ty(a) === 'eq')) k = 'owners';
+      else if (has('2140') && has('1150') || (e.desc && e.desc.k === 'vatPay')) k = 'vat';
+      else if (has('2170')) k = 'refunds';
+      else if (has('2120', '5300')) k = 'commissions';
+      else if (has('5200', '2160')) k = 'staff';
+      else if (has('5900')) k = 'interest';
+      else if (has('1130', '1140', '2150') || other.some(a => ty(a) === 'rev')) k = delta > 0 ? 'recGuests' : 'refunds';
+      else if (other.some(a => ['cos', 'opx'].includes(ty(a))) || has('1150', '2110')) k = a5950(other) ? 'otherOp' : 'suppliers';
+      else k = 'otherOp';
+      rows[k] += delta;
+    }
+    const op = rows.recGuests + rows.refunds + rows.suppliers + rows.staff + rows.commissions + rows.vat + rows.interest + rows.otherOp, inv = rows.capex, fin = rows.loans + rows.owners;
+    const start = opening + openingEntries, end = start + op + inv + fin, check = CASH.reduce((s, a) => s + accBal(a, to), 0);
+    return { rows, op, inv, fin, opening: start, end, ok: end === check, book: check };
+  }
+  const a5950 = other => other.length === 1 && other[0] === '5950';
   function lockMonth(m) { need('manager', 'accountant'); if (m >= S.bizDate.slice(0, 7)) fail('month_open'); if (!S.locks.includes(m)) { S.locks.push(m); S.locks.sort(); } log('period_locks.insert', m); }
   function unlockMonth(m) { need('owner'); S.locks = S.locks.filter(x => x !== m); log('period_locks.delete', m); }
 
@@ -1059,7 +1170,7 @@ const Core = (function () {
   }
   function reviewStatus(rid, st) { need('manager'); hubInit(); const r = S.reviews.find(x => x.id === +rid) || fail('not_found'); if (!['published', 'hidden'].includes(st)) fail('invalid_kind'); r.status = st; log('review.' + st, r.bk, null); }
   // full activity history: member view hides staff names and internal details
-  const ACT_BK = ['booking.create', 'booking.confirmed', 'booking.checkin', 'booking.checkout', 'booking.cancelled', 'booking.noshow', 'booking.guest_cancel', 'booking.expired', 'booking.extend',
+  const ACT_BK = ['booking.create', 'booking.confirmed', 'booking.checkin', 'booking.checkout', 'booking.cancelled', 'booking.noshow', 'booking.guest_cancel', 'booking.expired', 'booking.extend', 'booking.early_arrival',
     'booking.link_member', 'claim.create', 'claim.verify', 'claim.reject', 'payment.take', 'folio.charge', 'folio.void', 'refund.paid', 'review.create', 'review.update', 'review.reply'];
   const ACT_ME = ['member.register', 'member.password_changed', 'support.new', 'support.reply', 'support.close'];
   const SAFE = ['amount', 'method', 'refund', 'fee', 'pct', 'room', 'total', 'ci', 'co', 'kind', 'text', 'rating', 'subject', 'from', 'to', 'reason', 'was'];
@@ -1129,10 +1240,10 @@ const Core = (function () {
     const SIM0 = addD(today.slice(0, 7) + '-01', -1).slice(0, 7) + '-01', HZ = addD(today, 45);
     const h = C.hotel;
     S = {
-      ver: 11, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
+      ver: 12, bizDate: SIM0, me: { id: 'U1', name: 'Somsack', role: 'owner' },
       settings: { hotel: h.name, tagline: h.tagline, about: h.about, address: h.address, phone: h.phone, email: h.email, map_url: h.map_url, check_in_time: h.check_in_time, check_out_time: h.check_out_time,
         vat: h.vat_rate, incl: h.prices_incl_vat, deposit_pct: h.deposit_pct, direct_discount: h.direct_discount, free_cancel_days: h.free_cancel_days, payment_note: h.payment_note, close: { ...h.close_amounts },
-        cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours },
+        cancel_cutoff_hours: h.cancel_cutoff_hours, cancel_refund_pct: h.cancel_refund_pct, pending_hold_hours: h.pending_hold_hours, tax: 20 },
       accounts: Object.fromEntries(C.accounts.map(a => [a[0], [a[1], L(a.slice(2))]])),
       types: C.types.map((t, i) => ({ id: t.id, name: L(t.n), description: L(t.d), capacity: t.cap, rate: t.rate, size: t.size, bed: L(t.bed), amenities: t.am.slice(), sort: i, active: true })),
       rooms: C.rooms.map(r => ({ no: r[0], type: r[1], floor: r[2], hk: 'inspected', note: '', active: true })),
@@ -1141,7 +1252,7 @@ const Core = (function () {
       amenities: C.amenities.map((a, i) => ({ id: a[0], icon: a[1], name: L(a.slice(2)), sort: i })),
       staff: [{ id: 'U1', name: 'Somsack', role: 'owner', email: 'owner@saynam.la', active: true }, { id: 'U2', name: 'Manivanh', role: 'frontdesk', email: 'desk@saynam.la', active: true },
         { id: 'U3', name: 'Phonsavanh', role: 'accountant', email: 'account@saynam.la', active: true }, { id: 'U4', name: 'Keo', role: 'housekeeping', email: 'hk@saynam.la', active: true }],
-      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], refunds: [],
+      bookings: [], journal: [], arOTA: [], claims: [], locks: [], audit: [], refunds: [], assets: [], counts: [],
       members: [{ id: 'M1', email: 'demo@saynam.la', pw: 'demo1234', name: 'Noy Sayavong', phone: '+856 20 5555 1234', country: 'LA', since: new Date().toISOString() }],
       seq: { bk: 2401, je: 1, fl: 1, ar: 1, g: 1, cl: 1, au: 1, u: 5, m: 2, rf: 1 }
     };
@@ -1149,6 +1260,8 @@ const Core = (function () {
       ['Kittisak Boonmee', 'TH'], ['Pranee Saetang', 'TH'], ['Wang Lei', 'CN'], ['Zhang Min', 'CN'], ['Liu Yang', 'CN'], ['Nguyen Thi Lan', 'VN'], ['Tran Van Hai', 'VN'], ['Park Minho', 'KR'], ['Tanaka Hiroshi', 'JP'],
       ['Emma Dubois', 'FR'], ['Lukas Weber', 'DE'], ['Sarah Mitchell', 'US'], ['James Carter', 'AU'], ['Chanthaly Douangdy', 'LA'], ['Souksavanh Phanthavong', 'LA']];
     post(SIM0, { k: 'open' }, 'OB', 'open', [{ a: '1110', dr: 80000000 }, { a: '1120', dr: 450000000 }, { a: '1210', dr: 6500000000 }, { a: '1220', dr: 1200000000 }, { a: '1290', cr: 900000000 }, { a: '2310', cr: 2000000000 }, { a: '3100', cr: 5330000000 }]);
+    S.assets = [{ id: 1, name: 'Hotel building', account: '1210', cost: 6500000000, salvage: 0, life: 300, in_use: '2024-02-10', entry: null, at: SIM0 + 'T00:00:00Z' },
+      { id: 2, name: 'Furniture, beds and air conditioners', account: '1220', cost: 1200000000, salvage: 0, life: 60, in_use: '2025-08-05', entry: null, at: SIM0 + 'T00:00:00Z' }];
     const ooo = '207';
     for (const rm of S.rooms) {
       let d = SIM0;
@@ -1237,7 +1350,7 @@ const Core = (function () {
     memberHub, memberPayments, memberThreads, memberThreadNew, memberThreadReply, memberThreadClose, memberThreadSeen, memberReview, memberReviews, memberNotifications, memberNotifRead, memberPassword,
     adminSupport, threadReply, threadStatus, reviewReply, reviewStatus, publicReviews, memberActivity, adminMemberHistory, linkMember, unlinkMember, promoPct, directRate,
     createBooking, checkIn, checkOut, cancel, extend, charge, voidCharge, payment, verifyClaim, setHk, nightAudit,
-    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth,
+    expense, manual, reverse, otaPayout, payCommissions, payVat, close, lockMonth, unlockMonth, opening, assetAdd, cashCount, cashFlow, assetDepr, assetStatus, deprFor,
     saveType, saveRoom, savePromo, saveSettings, saveStaff,
     balances, plFor, bsAt, vatFor, vatPaid, posted, roomNightsIn, onBooks, availRooms, roomFree, freeRooms, balanceOf, chargesOf, paidOf, roomGrossOf, accBal, integrity, typeOf, chOf, roomOf
   };
@@ -1248,7 +1361,7 @@ const Core = (function () {
 const API = (function () {
   const CFG = (typeof window !== 'undefined' && window.HOTEL_CONFIG) || {};
   const LIVE = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-  const KEY = 'saynam-suite-v11', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
+  const KEY = 'saynam-suite-v12', USER_KEY = 'saynam-suite-demo-user', MEMBER_KEY = 'saynam-suite-demo-member';
   const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
   let sb = null, demoMe = null, guestMode = false;
 
@@ -1256,7 +1369,7 @@ const API = (function () {
   function toErr(e) {
     if (e && e.code && e.message === e.code) return e;
     const m = String((e && e.message) || e || 'error');
-    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
+    const known = m.match(/(sold_out|promo_invalid|date_in_past|invalid_dates|stay_too_long|invalid_room_type|too_many_guests|name_required|phone_required|not_found|not_payable|invalid_amount|too_many_claims|permission_denied|cannot_check_in|not_in_house|cannot_cancel|cannot_extend|invalid_kind|cannot_void|reason_required|already_decided|departures_pending|future_date|invalid_account|control_account|cannot_reverse|nothing_due|month_open|already_posted|month_not_started|period_locked|unbalanced_entry|room_unavailable|user_not_found|cannot_demote_self|invalid_promo|no_double_booking|slip_required|deposit_not_received|not_pending|login_required|profile_required|duplicate_booking|too_many_pending|cancel_window_closed|slip_under_review|slip_not_viewed|bank_ref_required|bank_ref_used|use_slip_check|email_taken|email_invalid|weak_password|bad_login|signup_disabled|confirm_email|subject_required|message_required|too_many_threads|too_many_messages|review_after_stay|rating_required|review_locked|bad_password|already_linked|early_arrival|close_day_first|day_already_closed|close_amount_missing|booking_codes_exhausted|Invalid login credentials|Email not confirmed|User already registered|Signups not allowed|Password should be|Unable to validate email)/);
     const MAP = { 'Invalid login credentials': 'bad_login', 'Email not confirmed': 'confirm_email', 'User already registered': 'email_taken', 'Signups not allowed': 'signup_disabled', 'Password should be': 'weak_password', 'Unable to validate email': 'email_invalid' };
     const err = new Error(known ? known[1] : m); err.code = known ? (MAP[known[1]] || known[1]) : 'unknown'; err.raw = m;
     if (/conflicting key value violates exclusion constraint/.test(m)) err.code = 'no_double_booking';
@@ -1265,7 +1378,7 @@ const API = (function () {
 
   // ---------- demo storage ----------
   function demoLoad() {
-    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 11) { Core.set(s); return s; } } } catch (e) { }
+    try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.ver === 12) { Core.set(s); return s; } } } catch (e) { }
     const s = Core.seed(CATALOG, todayLocal()); demoSave(); return s;
   }
   function demoMember() { try { return localStorage.getItem(MEMBER_KEY) || null; } catch (e) { return null; } }
@@ -1313,7 +1426,7 @@ const API = (function () {
       settings: { hotel: s.hotel_name, tagline: s.tagline, about: s.about, address: s.address, phone: s.phone, email: s.email, map_url: s.map_url, check_in_time: s.check_in_time,
         check_out_time: s.check_out_time, vat: +s.vat_rate, incl: s.prices_incl_vat, deposit_pct: +s.deposit_pct, direct_discount: +s.direct_discount, free_cancel_days: s.free_cancel_days,
         payment_note: s.payment_note, payment_qr_url: s.payment_qr_url || null, close: s.close_amounts,
-        cancel_cutoff_hours: +s.cancel_cutoff_hours, cancel_refund_pct: +s.cancel_refund_pct, pending_hold_hours: +s.pending_hold_hours },
+        cancel_cutoff_hours: +s.cancel_cutoff_hours, cancel_refund_pct: +s.cancel_refund_pct, pending_hold_hours: +s.pending_hold_hours, tax: s.profit_tax_rate == null ? 20 : +s.profit_tax_rate },
       accounts: Object.fromEntries((x.accounts || []).map(a => [a.code, [a.type, a.name]])),
       types: (x.types || []).map(t => ({ id: t.id, name: t.name, description: t.description, capacity: t.capacity, rate: +t.base_rate, size: t.size_m2, bed: t.bed, amenities: t.amenities || [], sort: t.sort, active: t.active })),
       rooms: (x.rooms || []).map(r => ({ no: r.no, type: r.type_id, floor: r.floor, hk: r.hk_status, note: r.note || '', active: r.active })),
@@ -1326,7 +1439,7 @@ const API = (function () {
 
   const STAFF_RPC = {
     createBooking: p => ['staff_create_booking', { p }],
-    checkIn: id => ['staff_check_in', { p_id: id }],
+    checkIn: (id, early) => ['staff_check_in', { p_id: id, p_early: !!early }],
     checkOut: (id, m) => ['staff_check_out', { p_id: id, p_method: m }],
     cancel: (id, st, refund) => ['staff_cancel', { p_id: id, p_status: st, p_refund: !!refund }],
     extend: (id, n) => ['staff_extend', { p_id: id, p_nights: n || 1 }],
@@ -1351,6 +1464,9 @@ const API = (function () {
     payCommissions: () => ['acct_pay_commissions', {}],
     payVat: m => ['acct_pay_vat', { p_month: m }],
     close: (k, m) => ['acct_close', { p_kind: k, p_month: m }],
+    opening: (d, lines) => ['acct_opening', { p_date: d, p_lines: lines }],
+    assetAdd: p => ['acct_asset_add', { p }],
+    cashCount: (acc, counted, note) => ['acct_cash_count', { p_account: acc, p_counted: counted, p_note: note || '' }],
     lockMonth: m => ['acct_lock_month', { p_month: m }],
     unlockMonth: m => ['acct_unlock_month', { p_month: m }]
   };
@@ -1360,7 +1476,7 @@ const API = (function () {
     if (fn.op === 'saveRoom') { const r = fn.arg; const { error } = await c.from('rooms').upsert({ no: r.no, type_id: r.type, floor: r.floor, note: r.note || null, active: r.active !== false }); if (error) throw toErr(error); }
     if (fn.op === 'savePromo') { const p = fn.arg; const { error } = await c.from('promo_codes').upsert({ code: String(p.code).toUpperCase(), pct: p.pct, active: p.active !== false, valid_to: p.valid_to || null }); if (error) throw toErr(error); }
     if (fn.op === 'saveSettings') {
-      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url', cancel_cutoff_hours: 'cancel_cutoff_hours', cancel_refund_pct: 'cancel_refund_pct', pending_hold_hours: 'pending_hold_hours' };
+      const p = fn.arg, m = { hotel: 'hotel_name', vat: 'vat_rate', incl: 'prices_incl_vat', deposit_pct: 'deposit_pct', direct_discount: 'direct_discount', free_cancel_days: 'free_cancel_days', address: 'address', phone: 'phone', email: 'email', check_in_time: 'check_in_time', check_out_time: 'check_out_time', close: 'close_amounts', tagline: 'tagline', about: 'about', payment_note: 'payment_note', map_url: 'map_url', payment_qr_url: 'payment_qr_url', cancel_cutoff_hours: 'cancel_cutoff_hours', cancel_refund_pct: 'cancel_refund_pct', pending_hold_hours: 'pending_hold_hours', tax: 'profit_tax_rate' };
       const row = {}; for (const k in p) if (m[k]) row[m[k]] = p[k];
       const { error } = await c.from('settings').update(row).eq('id', 1); if (error) throw toErr(error);
     }
@@ -1469,6 +1585,7 @@ const API = (function () {
       const x = await rpc('admin_snapshot'); const s = normalize(x);
       if (s.me && s.me.role === 'owner') { try { s.staff = await rpc('admin_staff'); } catch (e) { } }
       try { const sup = await rpc('admin_support'); s.support = sup; } catch (e) { s.support = { threads: [], reviews: [] }; }
+      try { const fin = await rpc('admin_finance'); s.assets = (fin.assets || []).map(x => ({ ...x, cost: +x.cost, salvage: +x.salvage, life: +x.life })); s.counts = (fin.counts || []).map(c => ({ ...c, counted: +c.counted, book: +c.book, diff: +c.diff })); } catch (e) { s.assets = []; s.counts = []; }
       try { const st = await rpc('admin_stays'); const m = new Map(st.map(x => [x.id, x])); s.bookings.forEach(b => { const x = m.get(b.id); if (x) Object.assign(b, { ci_at: x.ci_at, co_at: x.co_at, ci_by: x.ci_by, co_by: x.co_by, old_code: x.old_code }); }); } catch (e) { }
       return s;
     },
@@ -1949,6 +2066,84 @@ Object.assign(TX, {
   sl_search: ['ຫຼື ຄົ້ນຫາຊື່, ຫ້ອງ, ເບີໂທ', 'หรือค้นหาชื่อ ห้อง เบอร์โทร', 'or search name, room, phone'], sl_results: ['ຜົນການຄົ້ນຫາ "{q}" · {n} ລາຍການ', 'ผลการค้นหา "{q}" · {n} รายการ', 'Results for "{q}" · {n}'],
   sl_noMatch: ['ບໍ່ພົບການຈອງທີ່ກົງກັນ', 'ไม่พบการจองที่ตรงกัน', 'No matching booking'], sl_codeNone: ['ບໍ່ພົບລະຫັດການຈອງ {c}', 'ไม่พบรหัสการจอง {c}', 'No booking with code {c}']
 });
+Object.assign(TX, {
+  tickIn: ['ເຊັກອິນແລ້ວ', 'เช็คอินแล้ว', 'Checked in'], tickOut: ['ເຊັກເອົາແລ້ວ', 'เช็คเอาท์แล้ว', 'Checked out'],
+  earlyHint: ['ຈອງໄວ້ {d} — ກົດໄດ້ຖ້າມາກ່ອນ', 'จองไว้ {d} — กดได้ถ้ามาก่อน', 'Booked for {d}: tap if arriving early'],
+  earlyQ: ['ລູກຄ້າມາກ່ອນກຳນົດ {n} ມື້. ເຊັກອິນມື້ນີ້ ({d}) ແລະ ຄິດຄ່າຫ້ອງເພີ່ມ {n} ຄືນ?', 'ลูกค้ามาก่อนกำหนด {n} วัน เช็คอินวันนี้ ({d}) และคิดค่าห้องเพิ่ม {n} คืน?', 'Guest is {n} day(s) early. Check in today ({d}) and charge {n} extra night(s)?'],
+  earlyYes: ['ເຊັກອິນມື້ນີ້', 'เช็คอินวันนี้', 'Check in today'],
+  roomNotReadyShort: ['ຫ້ອງຍັງ "{s}" — ແຈ້ງແມ່ບ້ານ', 'ห้องยัง "{s}" — แจ้งแม่บ้าน', 'room still "{s}": tell housekeeping'],
+  e_close_day_first: ['ວັນທຸລະກິດຍັງບໍ່ແມ່ນມື້ນີ້ — ກົດ "ປິດຍອດປະຈຳວັນ" ກ່ອນ', 'วันทำการยังไม่ใช่วันนี้ — กด "ปิดยอดประจำวัน" ก่อน', 'The business date is not today yet: close the day first'],
+  e_no_double_booking: ['ຫ້ອງນີ້ມີແຂກອື່ນໃນຄືນນັ້ນ — ກະລຸນາຍ້າຍຫ້ອງກ່ອນ', 'ห้องนี้มีแขกอื่นในคืนนั้น — กรุณาย้ายห้องก่อน', 'Another guest has this room that night: move rooms first']
+});
+Object.assign(ACTIONS, { 'booking.early_arrival': ['ລູກຄ້າມາກ່ອນກຳນົດ', 'ลูกค้ามาก่อนกำหนด', 'Early arrival'] });
+Object.assign(TX, {
+  e_day_already_closed: ['ປິດຍອດມື້ນີ້ແລ້ວ — ລະບົບຈະປິດຍອດມື້ຕໍ່ໄປເອງຫຼັງທ່ຽງຄືນ', 'ปิดยอดวันนี้แล้ว — ระบบจะปิดยอดวันถัดไปเองหลังเที่ยงคืน', 'Today is already closed. The next day closes automatically after midnight'],
+  e_close_amount_missing: ['ຍັງບໍ່ໄດ້ຕັ້ງຈຳນວນເງິນ — ໃສ່ໃນ ຕັ້ງຄ່າ ກ່ອນ', 'ยังไม่ได้ตั้งจำนวนเงิน — ใส่ในหน้าตั้งค่าก่อน', 'Amount not set yet: enter it in Settings first']
+});
+Object.assign(ACTIONS, { 'night_audit.auto_failed': ['ປິດຍອດອັດຕະໂນມັດບໍ່ສຳເລັດ', 'ปิดยอดอัตโนมัติไม่สำเร็จ', 'Automatic day close failed'], 'system.launch_reset': ['ລ້າງຂໍ້ມູນທົດສອບກ່ອນເປີດໃຊ້', 'ล้างข้อมูลทดสอบก่อนเปิดใช้', 'Test data cleared for launch'] });
+Object.assign(DESC, {
+  asset: ['ຊື້ຊັບສົມບັດຄົງທີ່ — {text}', 'ซื้อสินทรัพย์ถาวร — {text}', 'Fixed asset purchase: {text}'],
+  cashCount: ['ນັບເງິນສົດ: ຂາດ/ເກີນ — {text}', 'นับเงินสด: ขาด/เกิน — {text}', 'Cash count over/short: {text}']
+});
+Object.assign(ACTIONS, {
+  'journal.opening': ['ບັນທຶກຍອດຍົກມາ', 'บันทึกยอดยกมา', 'Opening balances posted'], 'asset.add': ['ເພີ່ມຊັບສົມບັດຄົງທີ່', 'เพิ่มสินทรัพย์ถาวร', 'Fixed asset added'],
+  'cash.count': ['ນັບເງິນສົດ', 'นับเงินสด', 'Cash counted'], 'bank.reconcile': ['ກະທົບຍອດທະນາຄານ', 'กระทบยอดธนาคาร', 'Bank reconciled']
+});
+Object.assign(TX, {
+  tab_cf: ['ກະແສເງິນສົດ', 'กระแสเงินสด', 'Cash flow'], tab_fa: ['ຊັບສົມບັດຄົງທີ່', 'สินทรัพย์ถาวร', 'Fixed assets'], tab_cash: ['ນັບເງິນ & ທະນາຄານ', 'นับเงิน & ธนาคาร', 'Cash & bank'],
+  estTaxR: ['ອາກອນກຳໄລ ໂດຍປະມານ {r}%', 'ภาษีเงินได้ โดยประมาณ {r}%', 'Estimated profit tax {r}%'],
+  taxRate: ['ອັດຕາອາກອນກຳໄລ (%)', 'อัตราภาษีเงินได้นิติบุคคล (%)', 'Profit tax rate (%)'],
+  obNeedT: ['ຍັງບໍ່ມີຍອດຍົກມາ.', 'ยังไม่มียอดยกมา', 'No opening balances yet.'],
+  obNeedD: ['ໃສ່ເງິນສົດ, ເງິນໃນທະນາຄານ, ຊັບສົມບັດ ແລະ ໜີ້ສິນ ທີ່ມີໃນມື້ເລີ່ມໃຊ້ລະບົບ ເພື່ອໃຫ້ງົບດຸນຖືກຕ້ອງ.', 'ใส่เงินสด เงินในธนาคาร สินทรัพย์ และหนี้สิน ณ วันเริ่มใช้ระบบ เพื่อให้งบแสดงฐานะการเงินถูกต้อง', 'Enter the cash, bank, assets and debts you have on the day you start, so the balance sheet is right.'],
+  obStart: ['ໃສ່ຍອດຍົກມາ', 'ใส่ยอดยกมา', 'Enter opening balances'],
+  obTitle: ['ຍອດຍົກມາ (Opening balances)', 'ยอดยกมา (Opening balances)', 'Opening balances'],
+  obIntro: ['ໃສ່ສະເພາະບັນຊີທີ່ມີຍອດ. ທຶນເຈົ້າຂອງ (3100) ຄິດໃຫ້ອັດຕະໂນມັດ = ຊັບສົມບັດ − ໜີ້ສິນ.', 'ใส่เฉพาะบัญชีที่มียอด ทุนของเจ้าของ (3100) คำนวณให้อัตโนมัติ = สินทรัพย์ − หนี้สิน', 'Fill only accounts that have a balance. Owner\'s capital (3100) is worked out for you: assets − liabilities.'],
+  obDate: ['ວັນທີຍອດຍົກມາ', 'วันที่ของยอดยกมา', 'Balances as at'], obPlug: ['ຄິດອັດຕະໂນມັດ', 'คำนวณอัตโนมัติ', 'calculated'],
+  obNote: ['ລູກໜີ້ແຂກ, ເງິນມັດຈຳ ແລະ ເງິນຄືນ ເລີ່ມທີ່ 0 ແລະ ເຄື່ອນໄຫວຜ່ານການຈອງເທົ່ານັ້ນ. ບັນທຶກໄດ້ຄັ້ງດຽວ; ຖ້າຜິດ ໃຫ້ກົດ "ກັບລາຍການ" ໃນສະໝຸດລາຍວັນ ແລ້ວໃສ່ໃໝ່.', 'ลูกหนี้แขก เงินมัดจำ และเงินคืน เริ่มที่ 0 และเคลื่อนไหวผ่านการจองเท่านั้น บันทึกได้ครั้งเดียว ถ้าผิดให้กด "กลับรายการ" ในสมุดรายวันแล้วใส่ใหม่', 'Guest ledger, deposits and refunds start at zero and move only through bookings. Posted once; if wrong, reverse it in the journal and enter again.'],
+  obNegative: ['ໜີ້ສິນຫຼາຍກວ່າຊັບສົມບັດ: ທຶນຈະຕິດລົບ — ກວດຕົວເລກອີກຄັ້ງ.', 'หนี้สินมากกว่าสินทรัพย์: ทุนจะติดลบ — ตรวจตัวเลขอีกครั้ง', 'Liabilities exceed assets: capital would be negative. Check the figures.'],
+  ic_fa: ['ທະບຽນຊັບສົມບັດ ກົງກັບບັນຊີ 1210+1220', 'ทะเบียนสินทรัพย์ตรงกับบัญชี 1210+1220', 'Asset register matches 1210+1220'],
+  regVsGl: ['ທະບຽນ {r} / ບັນຊີ {g}', 'ทะเบียน {r} / บัญชี {g}', 'Register {r} / ledger {g}'],
+  fromRegister: ['ຈາກທະບຽນ {n} ລາຍການ', 'จากทะเบียน {n} รายการ', 'from register, {n} assets'],
+  cl_cash: ['ນັບເງິນສົດໃນລິ້ນຊັກ', 'นับเงินสดในลิ้นชัก', 'Cash drawer counted'], cl_bank: ['ກະທົບຍອດທະນາຄານ (ຕ່າງ = 0)', 'กระทบยอดธนาคาร (ผลต่าง = 0)', 'Bank reconciled (difference 0)'],
+  notYet: ['ຍັງບໍ່ໄດ້ເຮັດເດືອນນີ້', 'ยังไม่ได้ทำเดือนนี้', 'Not done this month'], openTab: ['ເປີດ', 'เปิด', 'Open'],
+  cfDirect: ['ວິທີທາງກົງ', 'วิธีทางตรง', 'direct method'],
+  cfOp: ['ກະແສເງິນສົດຈາກການດຳເນີນງານ', 'กระแสเงินสดจากกิจกรรมดำเนินงาน', 'Operating activities'], cfInv: ['ກະແສເງິນສົດຈາກການລົງທຶນ', 'กระแสเงินสดจากกิจกรรมลงทุน', 'Investing activities'], cfFin: ['ກະແສເງິນສົດຈາກການຈັດຫາເງິນ', 'กระแสเงินสดจากกิจกรรมจัดหาเงิน', 'Financing activities'],
+  cfOpNet: ['ເງິນສົດສຸດທິຈາກການດຳເນີນງານ', 'เงินสดสุทธิจากกิจกรรมดำเนินงาน', 'Net cash from operating activities'], cfInvNet: ['ເງິນສົດສຸດທິຈາກການລົງທຶນ', 'เงินสดสุทธิจากกิจกรรมลงทุน', 'Net cash from investing activities'], cfFinNet: ['ເງິນສົດສຸດທິຈາກການຈັດຫາເງິນ', 'เงินสดสุทธิจากกิจกรรมจัดหาเงิน', 'Net cash from financing activities'],
+  cfNet: ['ເງິນສົດເພີ່ມຂຶ້ນ (ຫຼຸດລົງ) ສຸດທິ', 'เงินสดเพิ่มขึ้น (ลดลง) สุทธิ', 'Net increase (decrease) in cash'], cfOpen: ['ເງິນສົດຕົ້ນງວດ', 'เงินสดต้นงวด', 'Cash at beginning of period'], cfClose: ['ເງິນສົດທ້າຍງວດ', 'เงินสดปลายงวด', 'Cash at end of period'],
+  cf_recGuests: ['ຮັບເງິນຈາກລູກຄ້າ ແລະ OTA', 'รับเงินจากลูกค้าและ OTA', 'Received from guests and OTAs'], cf_refunds: ['ຄືນເງິນລູກຄ້າ', 'คืนเงินลูกค้า', 'Refunds to guests'],
+  cf_suppliers: ['ຈ່າຍຜູ້ສະໜອງ ແລະ ຄ່າໃຊ້ຈ່າຍ', 'จ่ายผู้ขายและค่าใช้จ่ายดำเนินงาน', 'Paid to suppliers and for expenses'], cf_staff: ['ຈ່າຍເງິນເດືອນ', 'จ่ายเงินเดือนพนักงาน', 'Paid to staff'],
+  cf_commissions: ['ຈ່າຍຄ່ານາຍໜ້າ OTA', 'จ่ายค่าคอมมิชชั่น OTA', 'OTA commissions paid'], cf_vat: ['ອາກອນມູນຄ່າເພີ່ມ ຈ່າຍ', 'ภาษีมูลค่าเพิ่มที่จ่าย', 'VAT paid'], cf_interest: ['ດອກເບ້ຍຈ່າຍ', 'ดอกเบี้ยจ่าย', 'Interest paid'],
+  cf_otherOp: ['ອື່ນໆ (ລວມເງິນສົດຂາດ/ເກີນ)', 'อื่น ๆ (รวมเงินสดขาด/เกิน)', 'Other (including cash over/short)'], cf_capex: ['ຊື້ອາຄານ ແລະ ອຸປະກອນ', 'ซื้ออาคารและอุปกรณ์', 'Purchase of property and equipment'],
+  cf_loans: ['ເງິນກູ້ຮັບ (ຈ່າຍຄືນ)', 'เงินกู้ได้รับ (จ่ายคืน)', 'Loans received (repaid)'], cf_owners: ['ທຶນເຈົ້າຂອງ ໃສ່ (ຖອນ)', 'ทุนเจ้าของนำเข้า (ถอนออก)', 'Owner contributions (drawings)'],
+  cfCheckOk: ['ເງິນສົດທ້າຍງວດ ກົງກັບບັນຊີ 1110 + 1120', 'เงินสดปลายงวดตรงกับบัญชี 1110 + 1120', 'Closing cash agrees to accounts 1110 + 1120'],
+  cfCheckBad: ['ບໍ່ກົງກັບບັນຊີ 1110 + 1120 ({b})', 'ไม่ตรงกับบัญชี 1110 + 1120 ({b})', 'Does not agree to 1110 + 1120 ({b})'],
+  cfNote: ['ຈັດປະເພດຕາມບັນຊີຄູ່ຂອງແຕ່ລະລາຍການ (IAS 7). ດອກເບ້ຍຈ່າຍຢູ່ໃນການດຳເນີນງານ.', 'จัดประเภทตามบัญชีคู่ของแต่ละรายการ (IAS 7) ดอกเบี้ยจ่ายแสดงในกิจกรรมดำเนินงาน', 'Classified by each entry\'s other side (IAS 7). Interest paid is shown under operating activities.'],
+  faAdd: ['ເພີ່ມຊັບສົມບັດ', 'เพิ่มสินทรัพย์', 'Add asset'],
+  faPolicy: ['ຄ່າຫຼຸ້ຍຫ້ຽນແບບເສັ້ນຊື່, ເລີ່ມເດືອນຖັດຈາກມື້ເລີ່ມໃຊ້ (IAS 16)', 'ค่าเสื่อมราคาแบบเส้นตรง เริ่มเดือนถัดจากวันที่พร้อมใช้งาน (IAS 16)', 'Straight-line depreciation from the month after the asset is ready for use (IAS 16)'],
+  faName: ['ຊື່ຊັບສົມບັດ', 'ชื่อสินทรัพย์', 'Asset'], faInUse: ['ມື້ເລີ່ມໃຊ້', 'วันที่พร้อมใช้งาน', 'In use from'], faCost: ['ລາຄາທຶນ', 'ราคาทุน', 'Cost'], faSalvage: ['ມູນຄ່າຊາກ', 'มูลค่าซาก', 'Residual value'],
+  faLife: ['ອາຍຸການໃຊ້', 'อายุการใช้งาน', 'Useful life'], faLifeY: ['ອາຍຸການໃຊ້ (ປີ)', 'อายุการใช้งาน (ปี)', 'Useful life (years)'], years: ['ປີ', 'ปี', 'yrs'],
+  faMonth: ['ຄ່າຫຼຸ້ຍຫ້ຽນ {m}', 'ค่าเสื่อม {m}', 'Depreciation {m}'], faAcc: ['ສະສົມ', 'ค่าเสื่อมสะสม', 'Accumulated'], faNbv: ['ມູນຄ່າສຸດທິ', 'มูลค่าตามบัญชี', 'Carrying amount'],
+  faNone: ['ຍັງບໍ່ມີຊັບສົມບັດໃນທະບຽນ. ຖ້າບໍ່ມີທະບຽນ ລະບົບໃຊ້ຕົວເລກຄ່າຫຼຸ້ຍຫ້ຽນລາຍເດືອນໃນໜ້າຕັ້ງຄ່າ.', 'ยังไม่มีสินทรัพย์ในทะเบียน ถ้าไม่มีทะเบียน ระบบใช้ค่าเสื่อมรายเดือนในหน้าตั้งค่า', 'No assets registered yet. Without a register, the monthly depreciation amount in Settings is used.'],
+  faPay: ['ການບັນທຶກ', 'การบันทึกการซื้อ', 'Purchase'], faPayNone: ['ມີໃນຍອດຍົກມາແລ້ວ (ບໍ່ລົງບັນຊີ)', 'อยู่ในยอดยกมาแล้ว (ไม่ลงบัญชีซ้ำ)', 'Already in opening balances (no entry)'],
+  faRegCost: ['ລາຄາທຶນໃນທະບຽນ', 'ราคาทุนในทะเบียน', 'Register cost'], faGlCost: ['ໃນບັນຊີ', 'ในบัญชี', 'ledger'], faRegAcc: ['ຄ່າຫຼຸ້ຍຫ້ຽນສະສົມຕາມຕາຕະລາງ', 'ค่าเสื่อมสะสมตามตาราง', 'Schedule accumulated'], faGlAcc: ['ໃນບັນຊີ', 'ในบัญชี', 'ledger'],
+  faMismatch: ['ລາຄາທຶນໃນທະບຽນບໍ່ກົງກັບບັນຊີ: ເພີ່ມຊັບສົມບັດທີ່ຂາດ ຫຼື ກວດຍອດຍົກມາ.', 'ราคาทุนในทะเบียนไม่ตรงกับบัญชี: เพิ่มสินทรัพย์ที่ขาด หรือตรวจยอดยกมา', 'Register cost differs from the ledger: add missing assets or check the opening balances.'],
+  faAccNote: ['ຄ່າຫຼຸ້ຍຫ້ຽນສະສົມໃນບັນຊີລວມຍອດຍົກມາຈາກກ່ອນໃຊ້ລະບົບ ຈຶ່ງອາດບໍ່ເທົ່າກັບຕາຕະລາງ.', 'ค่าเสื่อมสะสมในบัญชีรวมยอดยกมาก่อนใช้ระบบ จึงอาจไม่เท่ากับตาราง', 'Ledger accumulated depreciation includes amounts brought forward, so it can differ from the schedule.'],
+  fullyDepr: ['ຫຼຸ້ຍຫ້ຽນໝົດແລ້ວ', 'ตัดค่าเสื่อมครบแล้ว', 'fully depreciated'], total: ['ລວມ', 'รวม', 'Total'],
+  cashCountT: ['ນັບເງິນສົດ', 'นับเงินสด', 'Cash count'], cashCountD: ['ນັບເງິນໃນລິ້ນຊັກທ້າຍກະ. ຖ້າຕ່າງ ລະບົບລົງບັນຊີ 5950 ເງິນສົດຂາດ/ເກີນ ໃຫ້ອັດຕະໂນມັດ.', 'นับเงินในลิ้นชักตอนปิดกะ ถ้ามีผลต่าง ระบบลงบัญชี 5950 เงินสดขาด/เกิน ให้อัตโนมัติ', 'Count the drawer at shift end. Any difference is posted to 5950 Cash over/short.'],
+  cashCountBtn: ['ບັນທຶກການນັບ', 'บันทึกการนับ', 'Record count'],
+  bankRecT: ['ກະທົບຍອດທະນາຄານ', 'กระทบยอดธนาคาร', 'Bank reconciliation'], bankRecD: ['ໃສ່ຍອດເງິນຕາມແອັບທະນາຄານ (BCEL One). ຖ້າຕ່າງ ກວດລາຍການຮັບເງິນ QR ຂ້າງລຸ່ມ — ລະບົບບັນທຶກໄວ້ ແຕ່ບໍ່ລົງບັນຊີເອງ.', 'ใส่ยอดเงินตามแอปธนาคาร (BCEL One) ถ้ามีผลต่าง ให้ตรวจรายการรับเงิน QR ด้านล่าง ระบบบันทึกไว้แต่ไม่ลงบัญชีเอง', 'Enter the balance shown in the bank app (BCEL One). If it differs, check the QR receipts below; the difference is recorded, not posted.'],
+  bankRecBtn: ['ບັນທຶກການກະທົບຍອດ', 'บันทึกการกระทบยอด', 'Record reconciliation'],
+  bookBal: ['ຍອດໃນບັນຊີ ຮອດ {d}', 'ยอดตามบัญชี ณ {d}', 'Book balance at {d}'], counted: ['ນັບໄດ້', 'นับได้จริง', 'Counted'], stmtBal: ['ຍອດຕາມແອັບທະນາຄານ', 'ยอดตามแอปธนาคาร', 'Bank app balance'],
+  ccNote: ['ໝາຍເຫດ (ຈຳເປັນຖ້າມີຕ່າງ)', 'หมายเหตุ (ต้องใส่ถ้ามีผลต่าง)', 'Note (required if different)'],
+  ccMatch: ['ກົງກັນ', 'ตรงกัน', 'Matches'], ccDone: ['ບັນທຶກແລ້ວ · ຕ່າງ {d}', 'บันทึกแล้ว · ผลต่าง {d}', 'Recorded · difference {d}'],
+  ccPostsDiff: ['ຈະລົງບັນຊີ 5950', 'จะลงบัญชี 5950', 'will be posted to 5950'], ccBankDiff: ['ບັນທຶກໄວ້ ບໍ່ລົງບັນຊີ', 'บันทึกไว้ ไม่ลงบัญชี', 'recorded, not posted'],
+  bankToday: ['ເງິນເຂົ້າທະນາຄານ {d}', 'เงินเข้าธนาคาร {d}', 'Bank receipts {d}'], ccHistory: ['ປະຫວັດການນັບ & ກະທົບຍອດ', 'ประวัติการนับและกระทบยอด', 'Count & reconciliation history'],
+  bookShort: ['ບັນຊີ', 'บัญชี', 'Book'], countShort: ['ນັບ/ທະນາຄານ', 'นับ/ธนาคาร', 'Actual'], cashShort: ['ເງິນສົດ', 'เงินสด', 'Cash'], bankShort: ['ທະນາຄານ', 'ธนาคาร', 'Bank']
+});
+Object.assign(TX, {
+  e_invalid_account: ['ບັນຊີນີ້ໃຊ້ບໍ່ໄດ້ໃນລາຍການນີ້', 'ใช้บัญชีนี้ในรายการนี้ไม่ได้', 'That account cannot be used here'],
+  e_invalid_amount: ['ຈຳນວນເງິນບໍ່ຖືກຕ້ອງ', 'จำนวนเงินไม่ถูกต้อง', 'Invalid amount']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -2219,7 +2414,8 @@ Object.assign(TX, {
       if (fd) acts += `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled" ${held ? 'data-r="1"' : ''}>${t('declineBk')}${held ? ' · ' + t('refundDep') : ''}</button>`;
     }
     if (fd && b.status === 'confirmed') {
-      if (b.ci <= biz) acts += `<button class="btn pri" data-act="doCi" data-id="${b.id}">${t('checkIn')}</button><button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="noshow">${t('markNoShow')}</button>`;
+      acts += `<button class="btn pri" data-act="doCi" data-id="${b.id}">✓ ${t('tickIn')}</button>`;
+      if (b.ci <= biz) acts += `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="noshow">${t('markNoShow')}</button>`;
       acts += held && freeCancel ? `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled" data-r="1">${t('cancelBk')} · ${t('refundDep')}</button>` : `<button class="btn bad" data-act="doCancel" data-id="${b.id}" data-s="cancelled">${t('cancelBk')}${held ? ' · ' + t('keepDep') : ''}</button>`;
     }
     if (fd && b.status === 'inhouse') {
@@ -2433,15 +2629,18 @@ Object.assign(TX, {
   const realToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
   const STF = ['notin', 'arrived', 'staying', 'dueout', 'left', 'noshow'];
   // what the desk can do with a booking right now, and why not when it cannot
+  // one tap after the real-world step is done: tick "checked in" when the key is handed over, "checked out" when the guest has left
   function stayAction(b) {
     const biz = S.bizDate, fd = can('frontdesk', 'manager');
     if (b.status === 'confirmed') {
-      if (b.ci <= biz) return fd ? `<button class="btn sm pri" data-act="doCi" data-id="${b.id}">${t('checkIn')}</button>` : '';
-      return `<button class="btn sm" disabled title="${esc(t('ciFrom', { d: dfm(b.ci) }))}">${t('checkIn')}</button><div class="tiny faint">${t('ciFrom', { d: dsh(b.ci) })}</div>`;
+      if (!fd) return '';
+      if (V.stAsk === b.id) { const n = diffD(biz, b.ci);
+        return `<div class="tickask"><small>${t('earlyQ', { n, d: dfm(biz) })}</small><div class="row" style="justify-content:flex-end"><button class="btn sm" data-act="stAskNo">${t('cancel')}</button><button class="btn sm pri" data-act="stTickIn" data-id="${b.id}" data-early="1">✓ ${t('earlyYes')}</button></div></div>`; }
+      return `<button class="tk" data-act="stTickIn" data-id="${b.id}"><i></i>${t('tickIn')}</button>${b.ci > biz ? `<div class="tiny faint">${t('earlyHint', { d: dsh(b.ci) })}</div>` : ''}`;
     }
-    if (b.status === 'pending') return `<button class="btn sm" disabled>${t('checkIn')}</button><div class="tiny warnc">${t('needPay')}</div>`;
-    if (b.status === 'inhouse') return fd ? `<button class="btn sm ${b.co <= biz ? 'pri' : ''}" data-act="startCo" data-id="${b.id}">${t('checkOut')}</button>` : '';
-    if (b.status === 'out') return `<span class="goodc small">✓ ${t('st_out')}</span>`;
+    if (b.status === 'pending') return `<span class="tk off"><i></i>${t('tickIn')}</span><div class="tiny warnc">${t('needPay')}</div>`;
+    if (b.status === 'inhouse') return `<span class="tk done"><i>✓</i>${t('st_inhouse')}</span>${fd ? `<button class="tk" data-act="stTickOut" data-id="${b.id}"><i></i>${t('tickOut')}</button>` : ''}`;
+    if (b.status === 'out') return `<span class="tk done"><i>✓</i>${t('st_inhouse')}</span><span class="tk done"><i>✓</i>${t('st_out')}</span>`;
     return '';
   }
   function vStay() {
@@ -2459,15 +2658,15 @@ Object.assign(TX, {
       rows = rows.filter(b => w === 'all' || (w === 'today' && b.ci === biz) || (w === 'late' && b.ci < biz) || (w === 'soon' && b.ci > biz && b.ci <= in7) || (w === 'unpaid' && b.status === 'pending'));
     }
     rows = rows.slice().sort((a, b) => f === 'left' && !searching ? String(b.co_at || '').localeCompare(String(a.co_at || '')) : f === 'arrived' && !searching ? String(b.ci_at || '').localeCompare(String(a.ci_at || '')) : a.ci.localeCompare(b.ci) || a.room.localeCompare(b.room));
-    const when = (at, by) => at ? `<b class="tnum">${tfm(at)}</b><div class="small faint">${esc(by || '—')}</div>` : '<span class="faint">—</span>';
+    const when = (at, by, ic) => at ? `<div class="stamp"><b class="tnum">${ic} ${tfm(at)}</b><div class="small faint">${esc(by || '—')}</div></div>` : '';
     const pay = b => { const due = owed(b); return ['cancelled', 'noshow'].includes(b.status) ? '—' : due > 0 ? `<span class="warnc tnum">${fm(due)}</span>` : `<span class="goodc">${t('settled')}</span>`; };
     const arrive = b => { const n = diffD(biz, b.ci); return b.status !== 'confirmed' && b.status !== 'pending' ? '' : n < 0 ? `<span class="pill p-noshow">${t('sl_late')}</span>` : n === 0 ? `<span class="pill p-pending">${t('today')}</span>` : `<span class="pill p-confirmed">${t('inDays', { n })}</span>`; };
     const flag = b => b.status === 'inhouse' && b.co < biz ? `<span class="pill p-noshow">${t('sl_overstay')}</span>` : b.status === 'inhouse' && b.co === biz ? `<span class="pill p-pending">${t('dueOut')}</span>` : arrive(b);
-    const table = rows.length ? `<table class="t"><thead><tr><th>${t('code')}</th><th>${t('room')}</th><th>${t('guest')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('status')}</th><th>${t('sl_ciAt')}</th><th>${t('sl_coAt')}</th><th class="n">${t('balance')}</th><th class="n">${t('sl_action')}</th></tr></thead><tbody>
+    const table = rows.length ? `<table class="t"><thead><tr><th>${t('code')}</th><th>${t('room')}</th><th>${t('guest')}</th><th>${t('arrive')} → ${t('depart')}</th><th>${t('status')}</th><th>${t('sl_ciAt')} · ${t('sl_coAt')}</th><th class="n">${t('balance')}</th><th class="n">${t('sl_action')}</th></tr></thead><tbody>
       ${rows.map(b => `<tr class="click ${V.stHit === b.id ? 'hitrow' : ''}" data-act="openBk" data-id="${b.id}"><td><b class="mono">${esc(b.code || '')}</b>${b.old_code ? `<div class="tiny faint mono">${esc(b.old_code)}</div>` : ''}</td><td><span class="roomno">${b.room}</span><div class="small faint">${typeName(b.type)}</div></td>
         <td><b>${esc(b.guest.name)}</b><div class="small faint">${esc(b.guest.phone || '')}${b.member ? ' · ' + t('website') : ''}</div></td>
         <td class="tnum">${dsh(b.ci)} → ${dsh(b.co)} <span class="faint">(${nightsOf(b)})</span></td><td>${stPill(b.status)} ${flag(b)}</td>
-        <td>${when(b.ci_at, b.ci_by)}</td><td>${when(b.co_at, b.co_by)}</td><td class="n">${pay(b)}</td><td class="n">${stayAction(b)}</td></tr>`).join('')}
+        <td>${b.ci_at || b.co_at ? `${when(b.ci_at, b.ci_by, '↘')}${b.co_at ? when(b.co_at, b.co_by, '↗') : ''}` : '<span class="faint">—</span>'}</td><td class="n">${pay(b)}</td><td class="n">${stayAction(b)}</td></tr>`).join('')}
       </tbody></table>` : `<div class="empty">${searching ? t('sl_noMatch') : t('sl_none')}</div>`;
     const wins = f === 'notin' && !searching ? `<div class="toolbar" style="margin:0 0 10px">${['all', 'today', 'late', 'soon', 'unpaid'].map(w => `<button class="btn sm ${(V.stWin || 'all') === w ? 'pri' : ''}" data-act="stWin" data-w="${w}">${t('sw_' + w)}</button>`).join('')}</div>` : '';
     const dayNav = !searching && f !== 'notin' ? `<div class="toolbar"><button class="btn sm" data-act="stDay" data-n="-1" aria-label="${esc(t('prevDay'))}">‹</button><input class="input" type="date" id="st_date" value="${D}" style="width:auto"><button class="btn sm" data-act="stDay" data-n="1" aria-label="${esc(t('nextDay'))}">›</button>${D !== biz ? `<button class="btn sm" data-act="stDay" data-n="0">${t('bizDay')}</button>` : ''}</div>` : '';
@@ -2613,21 +2812,25 @@ Object.assign(TX, {
     const first = (S.journal[0] && S.journal[0].date || S.bizDate).slice(0, 7);
     const items = [
       { ok: true, label: t('cl_rev'), info: `${Core.roomNightsIn(mo + '-01', monthEnd(mo))} ${t('roomNights')}` },
-      { ok: Core.posted('depr', mo), label: t('cl_depr'), info: kip(a.depr), btns: [['close', t('postNow'), 'depr']] },
+      { ok: Core.posted('depr', mo), label: t('cl_depr'), info: (S.assets || []).length ? kip(Core.deprFor(mo)) + ' · ' + t('fromRegister', { n: S.assets.length }) : kip(a.depr), btns: [['close', t('postNow'), 'depr']] },
       { ok: Core.posted('sal', mo) || Core.posted('salAcc', mo), label: t('cl_sal'), info: kip(a.sal), btns: [['close', t('accrue'), 'sal_accrue'], ['close', t('payBank'), 'sal_pay']] },
       { ok: Core.posted('int', mo), label: t('cl_int'), info: kip(a.int), btns: [['close', t('postNow'), 'int']] }
     ];
     if (prev >= first) { const v = Core.vatFor(prev); items.push({ ok: Core.vatPaid(prev), label: t('cl_vat') + ' (' + mfm(prev) + ')', info: kip(v.out - v.inp), btns: [['payVat', t('vatPayBtn'), prev]] }); }
     items.push({ ok: comm <= 0, label: t('cl_comm'), info: kip(Math.max(0, comm)), btns: [['payComm', t('payNow')]] });
+    const cnt = acc => (S.counts || []).filter(c => c.account === acc && String(c.date).slice(0, 7) === mo);
+    const lastBank = cnt('1120')[0], lastCash = cnt('1110')[0];
+    items.push({ ok: !!lastCash, label: t('cl_cash'), info: lastCash ? `${dfm(lastCash.date)} · ${t('diff')} ${par(lastCash.diff)}` : t('notYet'), btns: [['atab', t('openTab'), 'cash']] });
+    items.push({ ok: !!lastBank && lastBank.diff === 0, label: t('cl_bank'), info: lastBank ? `${dfm(lastBank.date)} · ${t('diff')} ${par(lastBank.diff)}` : t('notYet'), btns: [['atab', t('openTab'), 'cash']] });
     return items;
   }
   function periodRange() { const p = V.period; if (p === 'all') return ['0000-01-01', '9999-12-31', S.bizDate]; const e = monthEnd(p); return [p + '-01', e, e < S.bizDate ? e : S.bizDate]; }
   function vAcc() {
     if (!V.period) V.period = S.bizDate.slice(0, 7);
     const months = monthsList().filter(m => m <= S.bizDate.slice(0, 7)), ic = Core.integrity();
-    const tabs = ['close', 'journal', 'tb', 'pl', 'bs', 'vat', 'ar', 'coa'];
-    const body = { close: aClose, journal: aJournal, tb: aTB, pl: aPL, bs: aBS, vat: aVat, ar: aAR, coa: aCOA }[V.acctTab]();
-    const showPeriod = ['close', 'journal', 'tb', 'pl', 'bs'].includes(V.acctTab);
+    const tabs = ['close', 'journal', 'tb', 'pl', 'bs', 'cf', 'vat', 'ar', 'fa', 'cash', 'coa'];
+    const body = ({ close: aClose, journal: aJournal, tb: aTB, pl: aPL, bs: aBS, cf: aCF, vat: aVat, ar: aAR, fa: aFA, cash: aCash, coa: aCOA }[V.acctTab] || aClose)();
+    const showPeriod = ['close', 'journal', 'tb', 'pl', 'bs', 'cf', 'fa'].includes(V.acctTab);
     return `<div class="tabs" role="tablist">${tabs.map(k => `<button class="${V.acctTab === k ? 'on' : ''}" data-act="atab" data-t="${k}">${t('tab_' + k)}</button>`).join('')}</div>
     <div class="spread">${showPeriod ? `<div class="toolbar"><span class="muted">${t('period')}</span><select class="input" data-in="aper" style="width:auto">${months.map(m => `<option value="${m}" ${V.period === m ? 'selected' : ''}>${mfm(m)}${S.locks.includes(m) ? ' 🔒' : ''}</option>`).join('')}${V.acctTab !== 'close' ? `<option value="all" ${V.period === 'all' ? 'selected' : ''}>${t('allTime')}</option>` : ''}</select></div>` : '<span></span>'}
     <span class="note ${ic.ok ? 'good' : 'bad'}" style="padding:5px 12px">${ic.ok ? '✓ ' + t('checksOk') : t('checksBad')}</span></div>${body}`;
@@ -2636,12 +2839,12 @@ Object.assign(TX, {
   function aClose() {
     const mo = V.period === 'all' ? S.bizDate.slice(0, 7) : V.period, ic = Core.integrity(), cur = S.bizDate.slice(0, 7);
     const lockable = monthsList().filter(m => m < cur);
-    return `<div class="grid g-dash"><div class="card statement"><h3>${t('closeTitle', { m: mfm(mo) })}</h3><p class="muted" style="margin:0 0 6px">${t('closeIntro')}</p>
+    return `${openingCard()}<div class="grid g-dash"><div class="card statement"><h3>${t('closeTitle', { m: mfm(mo) })}</h3><p class="muted" style="margin:0 0 6px">${t('closeIntro')}</p>
       ${closeItems(mo).map(c => `<div class="checkrow"><span class="tick ${c.ok ? 'ok' : 'no'}">${c.ok ? '✓' : '•'}</span><div><div>${esc(c.label)}</div><div class="small muted tnum">${c.info}</div></div><div class="row">${c.ok ? `<span class="small good">${t('posted')}</span>` : canBooks() && !S.locks.includes(mo) ? (c.btns || []).map(([a, l, x]) => `<button class="btn sm ${a === 'payVat' || x === 'sal_pay' || x === 'depr' ? 'pri' : ''}" data-act="${a}" data-k="${x || ''}" data-m="${a === 'payVat' ? x : mo}">${l}</button>`).join('') : ''}</div></div>`).join('')}</div>
-      <div class="stack"><div class="card"><h3>${t('integrity')}</h3><div class="stack small">${[['drcr', 'ic_drcr'], ['bs', 'ic_bs'], ['guest', 'ic_guest'], ['deposits', 'ic_dep'], ['ota', 'ic_ota']].map(([k, l]) => `<div class="spread"><span>${t(l)}</span><span class="tick ${ic[k] ? 'ok' : 'no'}">${ic[k] ? '✓' : '!'}</span></div>`).join('')}</div></div>
+      <div class="stack"><div class="card"><h3>${t('integrity')}</h3><div class="stack small">${[['drcr', 'ic_drcr'], ['bs', 'ic_bs'], ['guest', 'ic_guest'], ['deposits', 'ic_dep'], ['ota', 'ic_ota']].map(([k, l]) => `<div class="spread"><span>${t(l)}</span><span class="tick ${ic[k] ? 'ok' : 'no'}">${ic[k] ? '✓' : '!'}</span></div>`).join('')}${faCheckRow()}</div></div>
       <div class="card"><h3>${t('locks')}</h3><p class="small muted" style="margin:0 0 8px">${t('lockNote')}</p><div class="stack">${lockable.map(m => `<div class="spread"><span class="tnum">${mfm(m)}</span>${S.locks.includes(m) ? `<span class="row"><span class="pill p-out">🔒 ${t('lockedLbl')}</span>${can('owner') && S.me.role === 'owner' ? `<button class="btn sm ghost" data-act="unlock" data-m="${m}">${t('unlockBtn')}</button>` : ''}</span>` : canBooks() ? `<button class="btn sm" data-act="lock" data-m="${m}">${t('lockBtn', { m: mfm(m) })}</button>` : ''}</div>`).join('') || `<div class="empty">${t('none')}</div>`}</div></div></div></div>`;
   }
-  const REVERSIBLE = ['manual', 'expense', 'close', 'tax', 'finance', 'cash'];
+  const REVERSIBLE = ['manual', 'expense', 'close', 'tax', 'finance', 'cash', 'open'];
   function aJournal() {
     const [from, to] = periodRange();
     const list = S.journal.filter(e => e.date >= from && e.date <= to).slice().sort((a, b) => a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1), shown = list.slice(0, V.jeLimit);
@@ -2663,14 +2866,14 @@ Object.assign(TX, {
     const [from, to, asAt] = periodRange(), p = Core.plFor(from, to);
     const rn = Core.roomNightsIn(from, to), first = (S.journal[0] || { date: S.bizDate }).date, days = V.period === 'all' ? diffD(first, S.bizDate) : diffD(from, addD(asAt, 1));
     const bal = Core.balances(from, to), roomRev = -bal['4100'], avail = Core.availRooms() * Math.max(1, days);
-    const line = (k, v) => `<tr><td class="ind"><span class="mono faint">${k}</span> ${accName(k)}</td><td class="n">${par(v)}</td></tr>`, est = Math.max(0, Math.round(p.pbt * 0.2));
+    const line = (k, v) => `<tr><td class="ind"><span class="mono faint">${k}</span> ${accName(k)}</td><td class="n">${par(v)}</td></tr>`, taxR = S.settings.tax ?? 20, est = Math.max(0, Math.round(p.pbt * taxR / 100));
     return `<div class="grid g-dash"><div class="card statement"><h3>${t('tab_pl')} <small>${V.period === 'all' ? t('allTime') : mfm(V.period)} · LAK</small><button class="btn sm" data-act="copyTbl" data-t="pltbl">${t('copyXl')}</button></h3><div class="tablewrap"><table class="t" id="pltbl"><tbody>
       <tr class="hd"><td>${t('revenue')}</td><td></td></tr>${p.g.rev.map(x => line(...x)).join('')}<tr class="sub"><td>${t('revenue')}</td><td class="n">${par(p.rev)}</td></tr>
       <tr class="hd"><td>${t('costSales')}</td><td></td></tr>${p.g.cos.map(x => line(...x)).join('')}<tr class="sub"><td>${t('grossProfit')}</td><td class="n">${par(p.gp)}</td></tr>
       <tr class="hd"><td>${t('opex')}</td><td></td></tr>${p.g.opx.map(x => line(...x)).join('')}<tr class="sub"><td>${t('opProfit')}</td><td class="n">${par(p.op)}</td></tr>
       <tr class="hd"><td>${t('finCost')}</td><td></td></tr>${p.g.fin.map(x => line(...x)).join('')}
       <tr class="tot"><td>${t('pbt')}</td><td class="n ${p.pbt < 0 ? 'bad' : ''}">${par(p.pbt)}</td></tr>
-      <tr><td class="faint">${t('estTax')}</td><td class="n faint">${par(-est)}</td></tr><tr><td class="faint">${t('netProfit')}</td><td class="n faint">${par(p.pbt - est)}</td></tr>
+      <tr><td class="faint">${t('estTaxR', { r: taxR })}</td><td class="n faint">${par(-est)}</td></tr><tr><td class="faint">${t('netProfit')}</td><td class="n faint">${par(p.pbt - est)}</td></tr>
     </tbody></table></div><p class="small muted" style="margin:10px 0 0">${t('estTaxNote')}</p></div>
     <div class="card"><h3>${t('kpis')}</h3><div class="stack">
       <div class="spread"><span class="muted">${t('occ')}</span><b class="tnum">${pct(rn / avail, 1)}</b></div>
@@ -2710,6 +2913,86 @@ Object.assign(TX, {
     const b = Core.balances('0000-01-01', '9999-12-31'), tn = { ca: t('curAssets'), nca: t('ncAssets'), cl: t('curLiab'), ncl: t('ncLiab'), eq: t('equity'), rev: t('revenue'), cos: t('costSales'), opx: t('opex'), fin: t('finCost') };
     return `<div class="card statement"><h3>${t('tab_coa')} <small>IFRS for SMEs · LAK</small></h3><div class="tablewrap"><table class="t"><thead><tr><th>${t('code')}</th><th>${t('account')}</th><th>${t('kind')}</th><th class="n">${t('balance')}</th></tr></thead><tbody>
     ${Object.keys(S.accounts).map(k => { const ty = S.accounts[k][0], v = DEBIT_NORMAL(ty) ? b[k] : -b[k]; return `<tr><td class="mono">${k}</td><td>${accName(k)}<div class="small faint">${esc(S.accounts[k][1].en)}</div></td><td class="small muted">${tn[ty]} · ${DEBIT_NORMAL(ty) ? 'Dr' : 'Cr'}</td><td class="n">${par(v)}</td></tr>`; }).join('')}</tbody></table></div></div>`;
+  }
+  // ---------- finance controls ----------
+  const hasOpening = () => S.journal.some(e => e.src === 'open' && !e.revBy && !e.rev);
+  function openingCard() {
+    if (hasOpening() || !canBooks()) return '';
+    return `<div class="note warn spread" style="margin-bottom:12px"><span><b>${t('obNeedT')}</b> ${t('obNeedD')}</span><button class="btn pri sm" data-act="newOB">${t('obStart')}</button></div>`;
+  }
+  function faCheckRow() {
+    const reg = (S.assets || []).reduce((s, x) => s + x.cost, 0), gl = Core.accBal('1210') + Core.accBal('1220'), ok = reg === gl;
+    return `<div class="spread"><span>${t('ic_fa')}</span><span class="tick ${ok ? 'ok' : 'no'}" title="${esc(t('regVsGl', { r: fm(reg), g: fm(gl) }))}">${ok ? '✓' : '!'}</span></div>`;
+  }
+  const OB_ACC = () => Object.keys(S.accounts).filter(k => ['ca', 'nca', 'cl', 'ncl', 'eq'].includes(S.accounts[k][0]) && !['1130', '1140', '2150', '2170', '3100'].includes(k));
+  const obSide = k => ['ca', 'nca'].includes(S.accounts[k][0]) && k !== '1290' ? 'dr' : 'cr';
+  function obForm() {
+    V.modal = { k: 'ob' };
+    openModal(`<div class="mh"><div><h2>${t('obTitle')}</h2><p>${t('obIntro')}</p></div><button class="btn ghost" data-act="closeModal">✕</button></div>
+    <div class="fgrid"><label class="field"><span>${t('obDate')}</span><input class="input" type="date" id="ob_d" value="${S.bizDate}" max="${S.bizDate}"></label></div>
+    <div class="tablewrap"><table class="t"><thead><tr><th>${t('account')}</th><th class="n">${t('dr')}</th><th class="n">${t('cr')}</th></tr></thead><tbody>
+    ${OB_ACC().map(k => `<tr><td><span class="mono faint">${k}</span> ${accName(k)}</td>${['dr', 'cr'].map(sd => `<td class="n">${obSide(k) === sd ? `<input class="input ob" style="text-align:right;min-width:120px" type="number" min="0" step="1000" inputmode="numeric" data-a="${k}" data-s="${sd}">` : ''}</td>`).join('')}</tr>`).join('')}
+    <tr class="sub"><td><span class="mono faint">3100</span> ${accName('3100')} <span class="small faint">(${t('obPlug')})</span></td><td class="n" id="ob_cd"></td><td class="n" id="ob_cc"></td></tr>
+    </tbody></table></div><p class="small muted" style="margin:6px 0 0">${t('obNote')}</p>
+    <div id="ob_msg"></div><div class="actions"><button class="btn" data-act="closeModal">${t('cancel')}</button><button class="btn pri" id="ob_post" data-act="obPost">${t('postNow')}</button></div>`);
+    obTotals();
+  }
+  function obLines() { return [...document.querySelectorAll('input.ob')].map(i => ({ a: i.dataset.a, [i.dataset.s]: Math.round(+i.value || 0) })).filter(l => (l.dr || 0) + (l.cr || 0) > 0); }
+  function obTotals() {
+    const L = obLines(), d = L.reduce((s, l) => s + (l.dr || 0), 0), c = L.reduce((s, l) => s + (l.cr || 0), 0), cap = d - c;
+    $('#ob_cd').textContent = cap < 0 ? fm(-cap) : ''; $('#ob_cc').textContent = cap > 0 ? fm(cap) : '';
+    $('#ob_msg').innerHTML = cap < 0 ? `<div class="note warn">${t('obNegative')}</div>` : '';
+    $('#ob_post').disabled = !L.length;
+  }
+  function aCF() {
+    const [from, to] = periodRange(), f = Core.cashFlow(from, to), r = f.rows;
+    const ln = (k, v) => `<tr><td class="ind">${t('cf_' + k)}</td><td class="n">${par(v)}</td></tr>`;
+    return `<div class="card statement"><h3>${t('tab_cf')} <small>${V.period === 'all' ? t('allTime') : mfm(V.period)} · ${t('cfDirect')} · LAK</small><button class="btn sm" data-act="copyTbl" data-t="cftbl">${t('copyXl')}</button></h3><div class="tablewrap"><table class="t" id="cftbl"><tbody>
+      <tr class="hd"><td>${t('cfOp')}</td><td></td></tr>${['recGuests', 'refunds', 'suppliers', 'staff', 'commissions', 'vat', 'interest', 'otherOp'].map(k => ln(k, r[k])).join('')}<tr class="sub"><td>${t('cfOpNet')}</td><td class="n">${par(f.op)}</td></tr>
+      <tr class="hd"><td>${t('cfInv')}</td><td></td></tr>${ln('capex', r.capex)}<tr class="sub"><td>${t('cfInvNet')}</td><td class="n">${par(f.inv)}</td></tr>
+      <tr class="hd"><td>${t('cfFin')}</td><td></td></tr>${ln('loans', r.loans)}${ln('owners', r.owners)}<tr class="sub"><td>${t('cfFinNet')}</td><td class="n">${par(f.fin)}</td></tr>
+      <tr class="tot"><td>${t('cfNet')}</td><td class="n">${par(f.op + f.inv + f.fin)}</td></tr>
+      <tr><td>${t('cfOpen')}</td><td class="n">${par(f.opening)}</td></tr><tr class="tot"><td>${t('cfClose')}</td><td class="n">${par(f.end)}</td></tr></tbody></table></div>
+      <p class="small ${f.ok ? 'good' : 'bad'}" style="margin:10px 0 0">${f.ok ? '✓ ' + t('cfCheckOk') : t('cfCheckBad', { b: fm(f.book) })}</p><p class="small muted" style="margin:4px 0 0">${t('cfNote')}</p></div>`;
+  }
+  function aFA() {
+    const [, , asAt] = periodRange(), mo = asAt.slice(0, 7), A = S.assets || [];
+    let tc = 0, ta = 0, tm = 0;
+    const rows = A.map(x => { const st = Core.assetStatus(x, mo), m = Core.assetDepr(x, mo); tc += x.cost; ta += st.acc; tm += m;
+      return `<tr><td><b>${esc(x.name)}</b><div class="small faint">FA-${x.id} · ${accName(x.account)}</div></td><td class="tnum">${dfm(x.in_use)}</td><td class="n">${fm(x.cost)}</td><td class="n">${Math.round(x.life / 12 * 10) / 10} ${t('years')}</td><td class="n">${fm(m)}</td><td class="n">${fm(st.acc)}</td><td class="n"><b>${fm(st.nbv)}</b>${st.done ? `<div class="tiny faint">${t('fullyDepr')}</div>` : ''}</td></tr>`; }).join('');
+    const gl = Core.accBal('1210', asAt) + Core.accBal('1220', asAt), glAcc = -Core.accBal('1290', asAt);
+    return `<div class="toolbar">${canBooks() ? `<button class="btn pri" data-act="newFA">${t('faAdd')}</button>` : ''}<span class="small muted">${t('faPolicy')}</span></div>
+    <div class="card"><h3>${t('tab_fa')} <small>${t('asAt', { d: dfm(asAt) })} · LAK</small><button class="btn sm" data-act="copyTbl" data-t="fatbl">${t('copyXl')}</button></h3>
+    ${A.length ? `<div class="tablewrap"><table class="t" id="fatbl"><thead><tr><th>${t('faName')}</th><th>${t('faInUse')}</th><th class="n">${t('faCost')}</th><th class="n">${t('faLife')}</th><th class="n">${t('faMonth', { m: mfm(mo) })}</th><th class="n">${t('faAcc')}</th><th class="n">${t('faNbv')}</th></tr></thead><tbody>${rows}
+      <tr class="tot"><td colspan="2">${t('total')}</td><td class="n">${fm(tc)}</td><td></td><td class="n">${fm(tm)}</td><td class="n">${fm(ta)}</td><td class="n">${fm(tc - ta)}</td></tr></tbody></table></div>` : `<div class="empty">${t('faNone')}</div>`}
+    <div class="stack small" style="margin-top:12px"><div class="spread"><span>${t('faRegCost')} / ${t('faGlCost')} (1210+1220)</span><b class="tnum ${tc === gl ? 'good' : 'bad'}">${fm(tc)} / ${fm(gl)}</b></div>
+      <div class="spread"><span>${t('faRegAcc')} / ${t('faGlAcc')} (1290)</span><b class="tnum">${fm(ta)} / ${fm(glAcc)}</b></div>
+      ${tc !== gl ? `<p class="note warn" style="margin:4px 0 0">${t('faMismatch')}</p>` : ''}${ta !== glAcc ? `<p class="small muted" style="margin:0">${t('faAccNote')}</p>` : ''}</div></div>`;
+  }
+  function faForm() {
+    V.modal = { k: 'fa' };
+    openModal(`<div class="mh"><div><h2>${t('faAdd')}</h2><p>${t('faPolicy')}</p></div><button class="btn ghost" data-act="closeModal">✕</button></div>
+    <div class="fgrid"><label class="field full"><span>${t('faName')}</span><input class="input" id="fa_n" maxlength="120"></label>
+    <label class="field"><span>${t('account')}</span><select class="input" id="fa_a"><option value="1220">1220 · ${accName('1220')}</option><option value="1210">1210 · ${accName('1210')}</option></select></label>
+    <label class="field"><span>${t('faInUse')}</span><input class="input" type="date" id="fa_d" value="${S.bizDate}" max="${S.bizDate}"></label>
+    <label class="field"><span>${t('faCost')}</span><input class="input" type="number" id="fa_c" min="0" step="1000" inputmode="numeric"></label>
+    <label class="field"><span>${t('faSalvage')}</span><input class="input" type="number" id="fa_s" min="0" step="1000" value="0" inputmode="numeric"></label>
+    <label class="field"><span>${t('faLifeY')}</span><input class="input" type="number" id="fa_l" min="1" max="50" step="1" value="5"></label>
+    <label class="field"><span>${t('faPay')}</span><select class="input" id="fa_p"><option value="none">${t('faPayNone')}</option><option value="1120">${accName('1120')}</option><option value="1110">${accName('1110')}</option><option value="2110">${t('unpaid')}</option></select></label></div>
+    <div id="fa_msg"></div><div class="actions"><button class="btn" data-act="closeModal">${t('cancel')}</button><button class="btn pri" data-act="faPost">${t('save')}</button></div>`);
+  }
+  function aCash() {
+    const biz = S.bizDate, cash = Core.accBal('1110', biz), bank = Core.accBal('1120', biz), C = S.counts || [];
+    const inBank = S.journal.filter(e => e.date === biz).flatMap(e => e.lines.filter(l => l.a === '1120' && l.dr > 0).map(l => ({ e, amt: l.dr })));
+    const box = (acc, title, intro, book, btn) => `<div class="card stack"><h3 style="margin:0">${title} <small>${acc}</small></h3><p class="small muted" style="margin:0">${intro}</p>
+      <div class="spread"><span class="muted">${t('bookBal', { d: dfm(biz) })}</span><b class="tnum">${kip(book)}</b></div>
+      <div class="fgrid"><label class="field"><span>${acc === '1110' ? t('counted') : t('stmtBal')}</span><input class="input" type="number" min="0" step="1000" inputmode="numeric" id="cc_v_${acc}" data-in="ccv" data-acc="${acc}"></label>
+      <label class="field"><span>${t('ccNote')}</span><input class="input" id="cc_n_${acc}" maxlength="160"></label></div><div id="cc_d_${acc}" class="small"></div>
+      <div class="actions" style="margin:0"><button class="btn pri" data-act="ccPost" data-acc="${acc}">${btn}</button></div></div>`;
+    return `<div class="grid g2">${box('1110', t('cashCountT'), t('cashCountD'), cash, t('cashCountBtn'))}${box('1120', t('bankRecT'), t('bankRecD'), bank, t('bankRecBtn'))}</div>
+    <div class="stack" style="margin-top:14px"><div class="card"><h3>${t('bankToday', { d: dfm(biz) })} <small>${inBank.length}</small></h3>${inBank.length ? `<div class="tablewrap"><table class="t"><tbody>${inBank.map(x => `<tr><td class="mono small faint">JV-${String(x.e.id).padStart(5, '0')}</td><td>${descText(x.e.desc)}${x.e.ref ? ` <span class="small faint">${esc(x.e.ref)}</span>` : ''}</td><td class="n">${fm(x.amt)}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${t('none')}</div>`}</div>
+    <div class="card"><h3>${t('ccHistory')}</h3>${C.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>${t('date')}</th><th>${t('account')}</th><th class="n">${t('bookShort')}</th><th class="n">${t('countShort')}</th><th class="n">${t('diff')}</th><th>${t('ccNote')}</th></tr></thead><tbody>
+      ${C.slice(0, 40).map(c => `<tr><td class="tnum">${dfm(String(c.date).slice(0, 10))}<div class="tiny faint">${esc(c.by || '')}</div></td><td>${c.account === '1110' ? t('cashShort') : t('bankShort')}</td><td class="n">${fm(c.book)}</td><td class="n">${fm(c.counted)}</td><td class="n ${c.diff ? 'bad' : 'good'}">${c.diff ? par(c.diff) : '✓'}</td><td class="small">${esc(c.note || '')}${c.entry ? ` <span class="mono faint">JV-${String(c.entry).padStart(5, '0')}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${t('none')}</div>`}</div></div>`;
   }
   function jeForm() {
     if (!V.jeRows) V.jeRows = [{ a: '5700', dr: '', cr: '' }, { a: '1110', dr: '', cr: '' }];
@@ -2763,6 +3046,7 @@ Object.assign(TX, {
       <label class="field"><span>${t('phone')}</span><input class="input" id="s_phone" value="${esc(s.phone || '')}"></label>
       <label class="field"><span>${t('email')}</span><input class="input" id="s_email" value="${esc(s.email || '')}"></label>
       <label class="field"><span>${t('vatRate')}</span><input class="input" type="number" id="s_vat" min="0" max="30" step="1" value="${s.vat}"></label>
+      <label class="field"><span>${t('taxRate')}</span><input class="input" type="number" id="s_tax" min="0" max="50" step="1" value="${s.tax ?? 20}"></label>
       <label class="field"><span>${t('depositPct')}</span><input class="input" type="number" id="s_dep" min="0" max="100" value="${s.deposit_pct}"></label>
       <label class="field"><span>${t('directDisc')}</span><input class="input" type="number" id="s_dd" min="0" max="50" value="${s.direct_discount}"></label>
       <label class="field"><span>${t('freeCancel')}</span><input class="input" type="number" id="s_fc" min="0" max="60" value="${s.free_cancel_days}"></label>
@@ -2815,8 +3099,11 @@ Object.assign(TX, {
     bkTab: d => { V.bkTab = d.t; render(); },
     doCi: async (d, el) => {
       const b = S.bookings.find(x => x.id === d.id), r = S.rooms.find(x => x.no === b.room);
-      if (!el.dataset.force && !['clean', 'inspected'].includes(r.hk)) { showBk(b.id, `<div class="note warn spread">${esc(t('roomNotReady', { r: r.no, s: t('hk_' + r.hk) }))}<button class="btn sm" data-act="doCi" data-id="${b.id}" data-force="1">${t('ciAnyway')}</button></div>`); return; }
-      try { await act('checkIn', b.id); render(); showBk(b.id); toast(t('ciDone', { g: b.guest.name, r: b.room })); } catch (e) { }
+      try { await API.act('checkIn', b.id, !!el.dataset.early); await refresh(); render(); showBk(b.id); toast(t('ciDone', { g: b.guest.name, r: b.room }) + (!['clean', 'inspected'].includes(r.hk) ? ' · ' + t('roomNotReadyShort', { s: t('hk_' + r.hk) }) : '')); }
+      catch (e) {
+        if (e.code === 'early_arrival') { showBk(b.id, `<div class="note warn spread"><span>${esc(t('earlyQ', { n: diffD(S.bizDate, b.ci), d: dfm(S.bizDate) }))}</span><button class="btn sm pri" data-act="doCi" data-id="${b.id}" data-early="1">✓ ${t('earlyYes')}</button></div>`); return; }
+        toast(errText(e));
+      }
     },
     doCancel: async d => { try { await act('cancel', d.id, d.s, !!d.r); render(); showBk(d.id); } catch (e) { } },
     startCo: d => startCo(d.id),
@@ -2833,6 +3120,24 @@ Object.assign(TX, {
     unlinkMem: async d => { try { await act('unlinkMember', d.id); render(); reopen(); } catch (e) { } },
     stF: d => { V.stF = d.f; V.stQ = ''; V.stHit = null; V.stMsg = null; render(); },
     stWin: d => { V.stWin = d.w; render(); },
+    stAskNo: () => { V.stAsk = null; render(); },
+    stTickIn: async d => {
+      const b = S.bookings.find(x => x.id === d.id); if (!b) return;
+      try {
+        const r = await API.act('checkIn', b.id, !!d.early); V.stAsk = null; await refresh(); render();
+        const warn = r && r.room_status && !['clean', 'inspected'].includes(r.room_status) ? ' · ' + t('roomNotReadyShort', { s: t('hk_' + r.room_status) }) : '';
+        toast(t('ciDone', { g: b.guest.name, r: b.room }) + warn);
+      } catch (e) {
+        if (e.code === 'early_arrival') { V.stAsk = b.id; render(); return; }
+        toast(errText(e));
+      }
+    },
+    stTickOut: async d => {
+      const b = S.bookings.find(x => x.id === d.id); if (!b) return;
+      // settled walk-in / website guest: one tap. Money still due (or an OTA bill to raise): the check-out window collects it.
+      if (Core.balanceOf(b) !== 0 || (CHM()[b.ch] || {}).mode === 'ota') { startCo(b.id); return; }
+      try { await act('checkOut', b.id, 'cash'); render(); toast(t('coDone', { g: b.guest.name, r: b.room })); } catch (e) { }
+    },
     stClear: () => { V.stQ = ''; V.stCode = ''; V.stHit = null; V.stMsg = null; render(); },
     stFind: () => {
       const raw = String(($('#st_code') || {}).value || '').trim().toUpperCase().replace(/\s/g, ''); V.stCode = raw;
@@ -2881,7 +3186,7 @@ Object.assign(TX, {
     gOpen: d => { V.gSel = V.gSel === d.id ? null : d.id; render(); },
     acceptBk: async d => { try { await act('acceptBooking', d.id); render(); reopen(); toast(t('bkAccepted')); } catch (e) { } },
     setHk: async d => { try { await act('setHk', d.r, d.s); render(); } catch (e) { } },
-    atab: d => { V.acctTab = d.t; if (d.t === 'close' && V.period === 'all') V.period = S.bizDate.slice(0, 7); V.jeLimit = 50; render(); },
+    atab: d => { V.acctTab = d.t || d.k; if (d.t === 'close' && V.period === 'all') V.period = S.bizDate.slice(0, 7); V.jeLimit = 50; render(); },
     moreJe: () => { V.jeLimit += 100; render(); },
     close: async d => { try { await act('close', d.k, d.m); render(); toast(t('posted')); } catch (e) { } },
     payVat: async d => { try { await act('payVat', d.m); render(); toast(t('posted')); } catch (e) { } },
@@ -2892,6 +3197,21 @@ Object.assign(TX, {
     revAsk: d => { V.revAsk = +d.id; render(); const i = $('#rv_r'); if (i) i.focus(); },
     revDo: async d => { const r = $('#rv_r').value.trim(); try { await act('reverse', +d.id, r); V.revAsk = null; render(); toast(t('posted')); } catch (e) { } },
     newJe: () => { V.jeRows = null; jeForm(); },
+    newOB: () => obForm(),
+    obPost: async () => {
+      const L = obLines(); if (!L.length) return;
+      try { await act('opening', $('#ob_d').value || S.bizDate, L); closeModal(); render(); toast(t('posted')); } catch (e) { $('#ob_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
+    },
+    newFA: () => faForm(),
+    faPost: async () => {
+      const p = { name: $('#fa_n').value.trim(), account: $('#fa_a').value, in_use: $('#fa_d').value || S.bizDate, cost: Math.round(+$('#fa_c').value || 0), salvage: Math.round(+$('#fa_s').value || 0), life_months: Math.round((+$('#fa_l').value || 0) * 12), pay: $('#fa_p').value };
+      if (p.name.length < 2 || p.cost <= 0 || p.salvage >= p.cost || p.life_months < 1) { $('#fa_msg').innerHTML = `<div class="note bad">${t('errAmt')}</div>`; return; }
+      try { await act('assetAdd', p); closeModal(); render(); toast(t('saved')); } catch (e) { $('#fa_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; }
+    },
+    ccPost: async d => {
+      const acc = d.acc, v = $('#cc_v_' + acc).value; if (v === '') { toast(t('errAmt')); return; }
+      try { const r = await act('cashCount', acc, Math.round(+v), $('#cc_n_' + acc).value.trim()); render(); toast(r && r.diff ? t('ccDone', { d: par(r.diff) }) : t('ccMatch')); } catch (e) { }
+    },
     jeAdd: () => { V.jeRows.push({ a: '5700', dr: '', cr: '' }); const d = $('#je_d').value, tx = $('#je_t').value; jeForm(); $('#je_d').value = d; $('#je_t').value = tx; },
     jePost: async () => {
       const lines = V.jeRows.map(r => ({ a: r.a, dr: Math.round(+r.dr || 0), cr: Math.round(+r.cr || 0) }));
@@ -2918,7 +3238,7 @@ Object.assign(TX, {
       try { navigator.clipboard.writeText(tsv).then(() => toast(t('copied')), fail); } catch (e) { fail(); }
     },
     saveSet: async () => {
-      const p = { hotel: $('#s_name').value.trim() || S.settings.hotel, address: $('#s_addr').value.trim(), phone: $('#s_phone').value.trim(), email: $('#s_email').value.trim(), vat: Math.max(0, Math.min(30, +$('#s_vat').value || 0)), incl: $('#s_incl').checked, deposit_pct: +$('#s_dep').value || 0, direct_discount: +$('#s_dd').value || 0, free_cancel_days: +$('#s_fc').value || 0, cancel_cutoff_hours: Math.max(0, Math.min(72, +$('#s_cxh').value || 0)), cancel_refund_pct: Math.max(0, Math.min(100, +$('#s_cxp').value || 0)), pending_hold_hours: Math.max(1, Math.min(168, +$('#s_hold').value || 24)), close: { depr: +$('#s_c_depr').value || 0, sal: +$('#s_c_sal').value || 0, int: +$('#s_c_int').value || 0 } };
+      const p = { hotel: $('#s_name').value.trim() || S.settings.hotel, address: $('#s_addr').value.trim(), phone: $('#s_phone').value.trim(), email: $('#s_email').value.trim(), vat: Math.max(0, Math.min(30, +$('#s_vat').value || 0)), incl: $('#s_incl').checked, deposit_pct: +$('#s_dep').value || 0, direct_discount: +$('#s_dd').value || 0, free_cancel_days: +$('#s_fc').value || 0, cancel_cutoff_hours: Math.max(0, Math.min(72, +$('#s_cxh').value || 0)), cancel_refund_pct: Math.max(0, Math.min(100, +$('#s_cxp').value || 0)), pending_hold_hours: Math.max(1, Math.min(168, +$('#s_hold').value || 24)), tax: Math.max(0, Math.min(50, +$('#s_tax').value || 0)), close: { depr: +$('#s_c_depr').value || 0, sal: +$('#s_c_sal').value || 0, int: +$('#s_c_int').value || 0 } };
       try { await act('saveSettings', p); render(); toast(t('saved')); } catch (e) { }
     },
     staffAdd: async () => { const e = $('#st_e').value.trim(), n = $('#st_n').value.trim(); if (!e || !n) return toast(t('errName')); try { await act('saveStaff', { email: e, name: n, role: $('#st_r').value }); render(); toast(t('saved')); } catch (er) { } },
@@ -2936,7 +3256,10 @@ Object.assign(TX, {
   document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'st_code') { e.preventDefault(); A.stFind(); } });
   document.addEventListener('input', e => {
     if (e.target.id === 'sv_ref') syncVerifyBtn();
-    const el = e.target, k = el.dataset && el.dataset.in; if (!k) return;
+    const el = e.target, k = el.dataset && el.dataset.in;
+    if (el.classList && el.classList.contains('ob')) { obTotals(); return; }
+    if (!k) return;
+    if (k === 'ccv') { const acc = el.dataset.acc, book = Core.accBal(acc, S.bizDate), dv = Math.round(+el.value || 0) - book; $('#cc_d_' + acc).innerHTML = el.value === '' ? '' : dv === 0 ? `<span class="good">✓ ${t('ccMatch')}</span>` : `<span class="bad">${t('diff')} ${par(dv)}</span> · ${t(acc === '1110' ? 'ccPostsDiff' : 'ccBankDiff')}`; return; }
     if (k === 'bkq') { V.bkQ = el.value; $('#bktable').innerHTML = bkRows(); }
     else if (k === 'stq') { V.stQ = el.value; const pos = el.selectionStart; render(); const i = $('#stq'); i.focus(); i.setSelectionRange(pos, pos); }
     else if (k === 'gq') { V.gQ = el.value; const pos = el.selectionStart; render(); const i = $('#gq'); i.focus(); i.setSelectionRange(pos, pos); }
