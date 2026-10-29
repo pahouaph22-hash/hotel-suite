@@ -396,6 +396,23 @@ button.mstile:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,
 button.mstile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .msmore{font-style:normal;opacity:.5;margin-left:2px}
 #modal .sheet.wide{width:min(1100px,100%)}
+/* trend chart */
+.mschart{display:grid;grid-template-columns:44px 1fr;gap:6px;height:190px;padding-bottom:20px}
+.msaxis{position:relative}.msaxis span{position:absolute;right:4px;transform:translateY(50%);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.msplot{position:relative;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line)}
+.msgrid{position:absolute;left:0;right:0;border-top:1px dashed var(--line);opacity:.7;pointer-events:none}
+.mscol{all:unset;position:relative;flex:1 1 0;min-width:0;height:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px;cursor:pointer;border-radius:6px}
+.mscol:hover{background:var(--surface-2)}.mscol:focus-visible{outline:2px solid var(--accent)}
+.msb{display:block;width:min(14px,38%);min-height:0;border-radius:4px 4px 0 0;transition:height .3s ease}
+.msb.in{background:var(--good)}.msb.out{background:var(--warn)}
+.mscol em{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--faint);white-space:nowrap}
+.mslegend{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.mslegend i{width:10px;height:10px;border-radius:3px;display:inline-block}.mslegend i.in{background:var(--good)}.mslegend i.out{background:var(--warn)}
+.msclose{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+#mstip{position:fixed;z-index:200;pointer-events:none;background:var(--ink);color:var(--surface);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.2);min-width:150px}
+#mstip b{display:block;margin-bottom:2px}#mstip span{display:flex;justify-content:space-between;gap:12px}
+.mslegend .dot{width:10px;height:10px;border-radius:3px;display:inline-block}.mslegend .dot.in{background:var(--good)}.mslegend .dot.out{background:var(--warn)}
+#mstip{background:#16231f;color:#fff}
 
 </style>
 <script>window.HOTEL_CONFIG = window.HOTEL_CONFIG || {};</script>
@@ -2280,6 +2297,13 @@ Object.assign(TX, {
   ms_netExplain: ['ຍອດຄົງເຫຼືອສຸດທິ = ເງິນທີ່ຮັບຈິງ − ເງິນທີ່ຈ່າຍຈິງ ໃນຊ່ວງນີ້. ບໍ່ລວມເງິນທຶນ ແລະ ເງິນກູ້.', 'ยอดคงเหลือสุทธิ = เงินที่รับจริง − เงินที่จ่ายจริงในช่วงนี้ ไม่รวมเงินทุนและเงินกู้', 'Net = money actually received − money actually paid in this period, excluding owner and loan money.'],
   ms_cashExplain: ['ຍອດຍົກມາ + ຮັບ − ຈ່າຍ ± ໂອນລະຫວ່າງເງິນສົດ/ທະນາຄານ ແລະ ເງິນທຶນ = ຍອດຄົງເຫຼືອ (ຕົງກັບບັນຊີ 1110 ແລະ 1120).', 'ยอดยกมา + รับ − จ่าย ± โอนระหว่างเงินสด/ธนาคาร และเงินทุน = ยอดคงเหลือ (ตรงกับบัญชี 1110 และ 1120)', 'Opening + in − out ± transfers and owner money = closing (agrees to accounts 1110 and 1120).']
 });
+Object.assign(TX, {
+  ms_trend: ['ແນວໂນ້ມລາຍຮັບ–ລາຍຈ່າຍ', 'แนวโน้มรายรับ–รายจ่าย', 'Money in & out trend'],
+  ms_showTable: ['ເບິ່ງເປັນຕາຕະລາງ', 'ดูเป็นตาราง', 'Show table'], ms_showChart: ['ເບິ່ງເປັນກຣາຟ', 'ดูเป็นกราฟ', 'Show chart'],
+  ms_closedTo: ['ສະຫຼຸບແລ້ວຮອດ {d}', 'สรุปแล้วถึง {d}', 'summarised up to {d}'], ms_noneClosed: ['ຍັງບໍ່ມີວັນທີ່ສະຫຼຸບ', 'ยังไม่มีวันที่สรุป', 'no day summarised yet'],
+  ms_autoShort: ['ລະບົບສະຫຼຸບເອງທຸກວັນ 11:30', 'ระบบสรุปเองทุกวัน 11:30', 'the system summarises each day at 11:30'],
+  ms_closePending: ['ສະຫຼຸບວັນທີ່ຄ້າງ ({n})', 'สรุปวันที่ค้าง ({n})', 'Summarise pending days ({n})'], ms_closedN: ['ສະຫຼຸບແລ້ວ {n} ວັນ', 'สรุปแล้ว {n} วัน', '{n} day(s) summarised']
+});
 
 // ===== BACK OFFICE =====
 (function () {
@@ -3105,21 +3129,32 @@ Object.assign(TX, {
     const endD = to < biz ? to : biz, cashEnd = Core.accBal('1110', endD) + Core.accBal('1120', endD), owed = -Core.accBal('2110');
     const ctl = `<span class="msrange"><input class="input" type="date" data-in="msFrom" value="${from}" max="${biz}" aria-label="${esc(t('ms_from'))}"><span class="faint">→</span><input class="input" type="date" data-in="msTo" value="${to}" max="${biz}" aria-label="${esc(t('ms_to'))}"></span>`;
     const tile = (k, v, cls, sub) => `<button class="mstile ${cls}" data-act="msDetail" data-k="${k}" title="${esc(t('ms_clickDetail'))}"><span>${t(k)} <i class="msmore">›</i></span><b class="tnum">${kip(v)}</b>${sub ? `<small>${sub}</small>` : ''}</button>`;
-    // per-period rows
+    // trend: a calm two-series column chart instead of a long table; the table stays one click away
     let rowsHtml = '';
     if (grain !== 'none') {
       const keyOf = d => grain === 'day' ? d : d.slice(0, 7), buckets = new Map();
       if (grain === 'day') for (let d = from; d <= to && d <= biz; d = addD(d, 1)) buckets.set(d, { i: 0, o: 0 });
       else for (let mo = from.slice(0, 7); mo <= to.slice(0, 7) && mo <= biz.slice(0, 7); mo = addD(mo + '-01', 32).slice(0, 7)) buckets.set(mo, { i: 0, o: 0 });
       R.forEach(r => { const b = buckets.get(keyOf(r.day)); if (!b) return; if (r.kind === 'in') b.i += r.delta; else if (r.kind === 'out') b.o -= r.delta; });
-      const cl = new Map((S.closings || []).map(c => [String(c.day).slice(0, 10), c]));
-      const status = d => { if (d >= biz) return `<span class="small faint">${t('ms_open')}</span>`; const c = cl.get(d), live = Core.dayMoney(d);
-        if (!c) return `<span class="small warnc">${t('ms_notClosed')}</span>${can('manager', 'accountant', 'frontdesk') ? ` <button class="btn sm" data-act="msClose" data-d="${d}">${t('ms_closeNow')}</button>` : ''}`;
-        const diff = (live.income - +c.income) || (live.expense - +c.expense);
-        return `<span class="small goodc" title="${esc(t('ms_closedBy', { t: tfm(c.closed_at), b: c.closed_by === 'auto' ? t('ms_auto') : c.closed_by }))}">✓ ${t('ms_closed')}</span>${diff ? ` <span class="pill p-noshow" title="${esc(t('ms_changedT'))}">${t('ms_changed')}</span>` : ''}`; };
-      rowsHtml = `<div class="card"><h3>${grain === 'day' ? t('ms_byDay') : t('ms_byMonth')}</h3><div class="tablewrap"><table class="t" id="mstbl"><thead><tr><th>${grain === 'day' ? t('date') : t('month')}</th><th class="n">${t('ms_in')}</th><th class="n">${t('ms_out')}</th><th class="n">${t('ms_net')}</th>${grain === 'day' ? `<th>${t('ms_summary')}</th>` : ''}</tr></thead><tbody>
-        ${[...buckets.entries()].reverse().map(([k, v]) => `<tr class="click" data-act="msPick" data-g="${grain}" data-k="${k}"><td class="tnum">${grain === 'day' ? dfm(k) : mfm(k)}</td><td class="n goodc">${v.i ? fm(v.i) : '–'}</td><td class="n">${v.o ? fm(v.o) : '–'}</td><td class="n"><b class="${v.i - v.o < 0 ? 'bad' : ''}">${par(v.i - v.o)}</b></td>${grain === 'day' ? `<td>${status(k)}</td>` : ''}</tr>`).join('')}
-        </tbody><tfoot><tr class="tot"><td>${t('total')}</td><td class="n">${fm(inc)}</td><td class="n">${fm(exp)}</td><td class="n">${par(inc - exp)}</td>${grain === 'day' ? '<td></td>' : ''}</tr></tfoot></table></div></div>`;
+      const B = [...buckets.entries()], max = Math.max(1, ...B.map(([, v]) => Math.max(v.i, v.o))), step = Math.ceil(B.length / (window.innerWidth < 700 ? 5 : 12));
+      const nice = (() => { const p = Math.pow(10, Math.floor(Math.log10(max))), m = max / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; })();
+      const lab = k => grain === 'day' ? k.slice(8) + '/' + k.slice(5, 7) : mfm(k).slice(0, 2);
+      const short = v => v >= 1e9 ? Math.round(v / 1e8) / 10 + 'B' : v >= 1e6 ? Math.round(v / 1e5) / 10 + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'K' : String(v);
+      const active = B.filter(([, v]) => v.i || v.o);
+      const chart = `<div class="mschart" role="img" aria-label="${esc(t('ms_trend'))}"><div class="msaxis">${[1, .5, 0].map(f => `<span style="bottom:${f * 100}%">${short(nice * f)}</span>`).join('')}</div>
+        <div class="msplot">${[.5, 1].map(f => `<i class="msgrid" style="bottom:${f * 100}%"></i>`).join('')}${B.map(([k, v], n) => `<button class="mscol" data-act="msPick" data-g="${grain}" data-k="${k}" data-tip="${esc(`${grain === 'day' ? dfm(k) : mfm(k)}|${fm(v.i)}|${fm(v.o)}|${par(v.i - v.o)}`)}">
+          <span class="msb in" style="height:${v.i / nice * 100}%"></span><span class="msb out" style="height:${v.o / nice * 100}%"></span>${n % step === 0 ? `<em>${lab(k)}</em>` : ''}</button>`).join('')}</div></div>`;
+      const table = `<div class="tablewrap"><table class="t" id="mstbl"><thead><tr><th>${grain === 'day' ? t('date') : t('month')}</th><th class="n">${t('ms_in')}</th><th class="n">${t('ms_out')}</th><th class="n">${t('ms_net')}</th></tr></thead><tbody>
+        ${active.slice().reverse().map(([k, v]) => `<tr class="click" data-act="msPick" data-g="${grain}" data-k="${k}"><td class="tnum">${grain === 'day' ? dfm(k) : mfm(k)}</td><td class="n tnum">${v.i ? fm(v.i) : '–'}</td><td class="n tnum">${v.o ? fm(v.o) : '–'}</td><td class="n tnum"><b>${par(v.i - v.o)}</b></td></tr>`).join('') || `<tr><td colspan="4" class="faint">${t('ms_noTx')}</td></tr>`}</tbody></table></div>`;
+      // daily summaries: one quiet line instead of a button on every row
+      const cl = new Set((S.closings || []).map(c => String(c.day).slice(0, 10)));
+      const open = grain === 'day' ? active.map(([k]) => k).filter(d => d < biz && !cl.has(d)) : [];
+      const lastClosed = (S.closings || []).map(c => String(c.day).slice(0, 10)).sort().pop();
+      rowsHtml = `<div class="card"><div class="spread" style="margin-bottom:10px"><h3 style="margin:0">${t('ms_trend')} <small>${grain === 'day' ? t('ms_byDay') : t('ms_byMonth')}</small></h3>
+        <div class="row"><span class="mslegend"><span class="dot in"></span>${t('ms_in')}</span><span class="mslegend"><span class="dot out"></span>${t('ms_out')}</span><button class="btn sm ghost" data-act="msTable">${V.msTable ? t('ms_showChart') : t('ms_showTable')}</button></div></div>
+        ${V.msTable ? table : chart}
+        <div class="msclose small"><span class="muted">${t('ms_summary')}:</span> ${lastClosed ? `<span class="goodc">✓ ${t('ms_closedTo', { d: dfm(lastClosed) })}</span>` : `<span class="faint">${t('ms_noneClosed')}</span>`} <span class="faint">· ${t('ms_autoShort')}</span>
+          ${open.length && can('manager', 'accountant', 'frontdesk') ? `<button class="btn sm" data-act="msCloseAll" data-d="${open.join(',')}">${t('ms_closePending', { n: open.length })}</button>` : ''}</div></div>`;
     }
     // categories
     const byCat = kind => { const o = {}; R.filter(r => r.kind === kind).forEach(r => o[r.cat] = (o[r.cat] || 0) + Math.abs(r.delta)); return Object.entries(o).sort((a, b) => b[1] - a[1]); };
@@ -3530,6 +3565,8 @@ Object.assign(TX, {
     msMore: () => { V.msLimit = (V.msLimit || 100) + 200; render(); },
     msCsv: () => msCsv(),
     msDetail: d => msDetail(d.k),
+    msTable: () => { V.msTable = !V.msTable; render(); },
+    msCloseAll: async d => { const days = d.d.split(','); for (const x of days) { try { await API.act('closeDay', x); } catch (e) { } } await refresh(); render(); toast(t('ms_closedN', { n: days.length })); },
     msClose: async d => { try { await act('closeDay', d.d); render(); toast(t('ms_closedOk', { d: dfm(d.d) })); } catch (e) { } },
     payBill: () => payBillForm(),
     payBillPost: async () => { const v = Math.round(+$('#pb_v').value || 0); try { await act('payPayable', v, $('#pb_p').value, $('#pb_t').value.trim()); closeModal(); render(); toast(t('posted')); } catch (e) { $('#pb_msg').innerHTML = `<div class="note bad">${esc(errText(e))}</div>`; } },
@@ -3597,6 +3634,15 @@ Object.assign(TX, {
     catch (er) { $('#lg_msg').innerHTML = `<div class="note bad">${esc(errText(er))}</div>`; }
   });
   document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'st_code') { e.preventDefault(); A.stFind(); } });
+  // hover tooltip for the trend chart
+  document.addEventListener('mouseover', e => {
+    const c = e.target.closest && e.target.closest('.mscol'); let tip = document.getElementById('mstip');
+    if (!c) { if (tip) tip.remove(); return; }
+    const [d, i, o, n] = c.dataset.tip.split('|');
+    if (!tip) { tip = document.createElement('div'); tip.id = 'mstip'; document.body.appendChild(tip); }
+    tip.innerHTML = `<b>${d}</b><span>${t('ms_in')}<em style="font-style:normal">${i}</em></span><span>${t('ms_out')}<em style="font-style:normal">${o}</em></span><span>${t('ms_net')}<em style="font-style:normal">${n}</em></span>`;
+    const r = c.getBoundingClientRect(); tip.style.left = Math.min(window.innerWidth - 180, Math.max(8, r.left + r.width / 2 - 80)) + 'px'; tip.style.top = Math.max(8, r.top - tip.offsetHeight - 8) + 'px';
+  });
   document.addEventListener('input', e => {
     if (e.target.id === 'sv_ref') syncVerifyBtn();
     const el = e.target, k = el.dataset && el.dataset.in;
